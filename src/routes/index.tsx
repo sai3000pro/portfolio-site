@@ -381,7 +381,9 @@ function Index() {
     after(1850 + 2400, () => setPhase((p) => (p === "warp" ? "settled" : p)));
 
     return () => timers.forEach(clearTimeout);
-  }, [runId, skipIntro, stars]);
+    // stars handle is stable (useCallback) but identity changes each render; intentionally excluded
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runId, skipIntro]);
 
   const replay = () => { stars.setTarget(0.0025); setPhase("loading"); setRunId((n) => n + 1); };
 
