@@ -201,3 +201,54 @@
   background: radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.18), transparent 45%);
   pointer-events: none;
 }
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+  /* Firefox custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: #2f9bff transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* WebKit / Chromium custom scrollbar — sleek, no track, no arrows */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: linear-gradient(180deg, #5db6ff, #2f9bff);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #7cc4ff, #3aa3ff);
+}
+/* remove the up/down arrow buttons */
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.type-caret {
+  display: inline-block;
+  margin-left: 2px;
+  font-weight: 400;
+  color: var(--portfolio-accent-bright);
+  animation: caret-blink 1s steps(1) infinite;
+}
+@keyframes caret-blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
