@@ -153,13 +153,25 @@
   --portfolio-space: #000005;
 }
 
-.font-display { font-family: "Sora", system-ui, sans-serif; }
-.font-body { font-family: "Space Grotesk", system-ui, sans-serif; }
+.font-display {
+  font-family: "Sora", system-ui, sans-serif;
+}
+.font-body {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
 
-.bg-space { background: var(--portfolio-space); }
-.text-ink { color: var(--portfolio-ink); }
-.text-muted-portfolio { color: var(--portfolio-muted); }
-.text-accent-bright { color: var(--portfolio-accent-bright); }
+.bg-space {
+  background: var(--portfolio-space);
+}
+.text-ink {
+  color: var(--portfolio-ink);
+}
+.text-muted-portfolio {
+  color: var(--portfolio-muted);
+}
+.text-accent-bright {
+  color: var(--portfolio-accent-bright);
+}
 
 .role-gradient {
   background: linear-gradient(100deg, #5db6ff, #9fd4ff 50%, #2f9bff);
@@ -169,7 +181,9 @@
   text-shadow: 0 0 40px rgba(47, 155, 255, 0.25);
 }
 
-.load-word { position: relative; }
+.load-word {
+  position: relative;
+}
 .load-word::after {
   content: "LOADING";
   position: absolute;
@@ -181,7 +195,11 @@
   clip-path: inset(0 100% 0 0);
   animation: wordfill 1.7s ease forwards;
 }
-@keyframes wordfill { to { clip-path: inset(0 0 0 0); } }
+@keyframes wordfill {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
 
 .nebula::after {
   content: "";
@@ -204,9 +222,20 @@
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 90px;
-  /* Firefox custom scrollbar */
-  scrollbar-width: thin;
-  scrollbar-color: #2f9bff transparent;
+  /* dark page background so the scrollbar gutter blends (no light "track") */
+  background-color: var(--portfolio-space);
+}
+body {
+  background-color: var(--portfolio-space);
+}
+/* Firefox only (no ::-webkit-scrollbar support): blue thumb, transparent track.
+   Kept away from Chromium so its ::-webkit rules apply — including hidden arrow
+   buttons, which the standard scrollbar-* properties can't remove. */
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #5db6ff transparent;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -222,16 +251,25 @@ html {
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+  box-shadow: none;
+  border: none;
+}
+::-webkit-scrollbar-track-piece {
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   border-radius: 9999px;
-  background: linear-gradient(180deg, #5db6ff, #2f9bff);
+  background-color: #5db6ff;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #7cc4ff, #3aa3ff);
+  background-color: #7cc4ff;
 }
-/* remove the up/down arrow buttons */
-::-webkit-scrollbar-button {
+::-webkit-scrollbar-button,
+::-webkit-scrollbar-button:single-button,
+::-webkit-scrollbar-button:vertical:decrement,
+::-webkit-scrollbar-button:vertical:increment,
+::-webkit-scrollbar-button:horizontal:decrement,
+::-webkit-scrollbar-button:horizontal:increment {
   display: none;
   width: 0;
   height: 0;
@@ -248,6 +286,57 @@ html {
   animation: caret-blink 1s steps(1) infinite;
 }
 @keyframes caret-blink {
-  0%, 50% { opacity: 1; }
-  50.01%, 100% { opacity: 0; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ===== Earth globe (Work Experience timeline node) ===== */
+.globe-shade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.4), transparent 44%),
+    radial-gradient(circle at 50% 50%, transparent 54%, rgba(2, 10, 30, 0.5) 100%);
+}
+.globe-pin {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: #ff3b3b;
+  box-shadow: 0 0 7px 2px rgba(255, 59, 59, 0.95);
+  transform: translate(-50%, -50%);
+  z-index: 4;
+}
+.globe-pin::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 59, 59, 0.85);
+  animation: pin-ping 1.8s ease-out infinite;
+}
+@keyframes pin-ping {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .globe-pin::after {
+    animation: none;
+  }
 }

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Github, Linkedin, Mail, ArrowDown } from "lucide-react";
+import { AnimatePresence, motion, type TargetAndTransition, type Transition } from "framer-motion";
+import { Github, Linkedin, Mail, ArrowUp } from "lucide-react";
 
 import { NAV_LINKS, PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
 import { About } from "@/components/portfolio/about";
@@ -304,7 +304,7 @@ function Portrait() {
     <div
       className="relative justify-self-center"
       style={{
-        width: "clamp(240px,26vw,340px)",
+        width: "clamp(168px,18vw,212px)",
         aspectRatio: "4 / 5",
         filter: "drop-shadow(0 0 50px rgba(47,155,255,0.28))",
       }}
@@ -352,30 +352,6 @@ function Portrait() {
           }}
         />
       </div>
-
-      {/* Floating status chip */}
-      <div
-        className="absolute flex items-center gap-2 rounded-full font-display"
-        style={{
-          left: -18,
-          bottom: 26,
-          padding: "9px 15px",
-          fontSize: 12.5,
-          color: "#dbeafe",
-          background: "rgba(8,16,30,0.72)",
-          border: "1px solid rgba(93,182,255,0.3)",
-          backdropFilter: "blur(8px)",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.45)",
-        }}
-      >
-        <motion.span
-          className="rounded-full"
-          style={{ width: 8, height: 8, background: "#34d399" }}
-          animate={{ opacity: [1, 0.35, 1], scale: [1, 0.85, 1] }}
-          transition={{ duration: 1.8, ease: "easeInOut", repeat: Infinity }}
-        />
-        Open to opportunities
-      </div>
     </div>
   );
 }
@@ -393,33 +369,202 @@ const item = {
   },
 };
 
-// Sports balls (and a tire) that take turns being the dot on the "i" in Sai.
-const BALLS = ["⚽", "🏀", "🛞", "⚾", "🎾"];
+// Shared shaded-sphere shell for the 3D ball icons.
+function sphereStyle(background: string): React.CSSProperties {
+  return {
+    position: "relative",
+    display: "inline-block",
+    width: "1em",
+    height: "1em",
+    borderRadius: "9999px",
+    overflow: "hidden",
+    background,
+    boxShadow: "inset -2px -2px 5px rgba(0,0,0,0.3), inset 2px 2px 4px rgba(255,255,255,0.7)",
+  };
+}
+
+function Sheen() {
+  return (
+    <span
+      style={{
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        background: "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.55), transparent 44%)",
+        pointerEvents: "none",
+      }}
+    />
+  );
+}
+
+// Tennis ball — green sphere with white seam (bounces via the parent).
+function TennisBall() {
+  return (
+    <span
+      aria-hidden
+      style={sphereStyle("radial-gradient(circle at 34% 30%, #e9ff70, #cdee3a 58%, #a9c92f)")}
+    >
+      <svg
+        viewBox="0 0 100 100"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth="6"
+        strokeLinecap="round"
+      >
+        <path d="M16 20 Q 46 50 16 80" />
+        <path d="M84 20 Q 54 50 84 80" />
+      </svg>
+      <Sheen />
+    </span>
+  );
+}
+
+// An F1 slick tyre with a spoked rim (rather than the wheel emoji).
+function F1Wheel() {
+  const spokes = [0, 45, 90, 135];
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      style={{ width: "0.95em", height: "0.95em", display: "block" }}
+      aria-hidden
+    >
+      <circle cx="50" cy="50" r="48" fill="#141414" />
+      <circle cx="50" cy="50" r="31" fill="#2c2c2c" />
+      <circle cx="50" cy="50" r="24" fill="#cbd0d8" />
+      <g stroke="#878d96" strokeWidth="5" strokeLinecap="round">
+        {spokes.map((a) => {
+          const r = (a * Math.PI) / 180;
+          return (
+            <line
+              key={a}
+              x1={50 - 24 * Math.cos(r)}
+              y1={50 - 24 * Math.sin(r)}
+              x2={50 + 24 * Math.cos(r)}
+              y2={50 + 24 * Math.sin(r)}
+            />
+          );
+        })}
+      </g>
+      <circle cx="50" cy="50" r="7" fill="#6b7078" />
+    </svg>
+  );
+}
+
+// A spinning baseball: red seams scroll over a shaded white sphere (backspin).
+function BaseballBall() {
+  return (
+    <span
+      aria-hidden
+      style={{
+        position: "relative",
+        display: "inline-block",
+        width: "1em",
+        height: "1em",
+        borderRadius: "9999px",
+        overflow: "hidden",
+        background: "radial-gradient(circle at 34% 30%, #ffffff, #efeeee 62%, #d0cece)",
+        boxShadow: "inset -2px -2px 5px rgba(0,0,0,0.28), inset 2px 2px 4px rgba(255,255,255,0.85)",
+      }}
+    >
+      <motion.svg
+        viewBox="0 0 100 300"
+        preserveAspectRatio="none"
+        style={{ position: "absolute", left: 0, top: 0, width: "100%", height: "300%" }}
+        animate={{ y: ["0%", "-33.334%"] }}
+        transition={{ duration: 0.8, ease: "linear", repeat: Infinity }}
+      >
+        {[0, 100, 200].map((off) => (
+          <g
+            key={off}
+            transform={`translate(0 ${off})`}
+            fill="none"
+            stroke="#c62828"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeDasharray="2 7"
+          >
+            <path d="M4 25 Q 50 3 96 25" />
+            <path d="M4 75 Q 50 97 96 75" />
+          </g>
+        ))}
+      </motion.svg>
+      <span
+        style={{
+          position: "absolute",
+          inset: 0,
+          borderRadius: "inherit",
+          background: "radial-gradient(circle at 32% 26%, rgba(255,255,255,0.6), transparent 42%)",
+          pointerEvents: "none",
+        }}
+      />
+    </span>
+  );
+}
+
+// Each icon that takes a turn as the dot on the "i" in Sai, with its own idle motion.
+const BALLS: {
+  id: string;
+  content: React.ReactNode;
+  animate: TargetAndTransition;
+  transition: Transition;
+}[] = [
+  {
+    id: "soccer",
+    content: <span>⚽</span>,
+    animate: { rotate: 360 }, // slow spin
+    transition: { rotate: { duration: 7, ease: "linear", repeat: Infinity } },
+  },
+  {
+    id: "basketball",
+    content: <span>🏀</span>,
+    animate: { y: [0, -6, 0] }, // bounce
+    transition: { y: { duration: 0.8, ease: "easeOut", times: [0, 0.4, 1], repeat: Infinity } },
+  },
+  {
+    id: "f1",
+    content: <F1Wheel />,
+    animate: { rotate: 360 }, // fast roll
+    transition: { rotate: { duration: 0.9, ease: "linear", repeat: Infinity } },
+  },
+  {
+    id: "baseball",
+    content: <BaseballBall />,
+    animate: {}, // spin handled inside the component (seams scroll)
+    transition: {},
+  },
+  {
+    id: "tennis",
+    content: <TennisBall />,
+    animate: { y: [0, -5, 0] }, // bounce
+    transition: { y: { duration: 0.7, ease: "easeOut", times: [0, 0.4, 1], repeat: Infinity } },
+  },
+];
 
 function SpinningBall({ index, style }: { index: number; style?: React.CSSProperties }) {
+  const ball = BALLS[index % BALLS.length];
+
   return (
-    <motion.span
+    <span
       className="absolute inline-block"
-      style={{ left: "50%", x: "-50%", lineHeight: 1, transformOrigin: "center", ...style }}
+      style={{ left: "50%", transform: "translateX(-50%)", lineHeight: 1, ...style }}
       aria-hidden
-      // subtle idle rock back and forth
-      animate={{ rotate: [-7, 7, -7] }}
-      transition={{ duration: 3.4, ease: "easeInOut", repeat: Infinity }}
     >
       <AnimatePresence mode="wait">
         <motion.span
           key={index}
           className="inline-block"
-          // flip across to reveal the next ball
+          style={{ transformPerspective: 260 }}
+          // flip across to reveal the next icon, then play its idle animation
           initial={{ rotateY: -90, opacity: 0 }}
-          animate={{ rotateY: 0, opacity: 1 }}
+          animate={{ rotateY: 0, opacity: 1, ...ball.animate }}
           exit={{ rotateY: 90, opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeInOut" }}
+          transition={{ duration: 0.6, ease: "easeInOut", ...ball.transition }}
         >
-          {BALLS[index % BALLS.length]}
+          {ball.content}
         </motion.span>
       </AnimatePresence>
-    </motion.span>
+    </span>
   );
 }
 
@@ -436,7 +581,7 @@ function SaiName() {
       {/* dotless i (U+0131) so the spinning ball can stand in for the dot */}
       <span className="relative inline-block">
         ı
-        <SpinningBall index={i} style={{ top: "-0.2em", fontSize: "0.52em" }} />
+        <SpinningBall index={i} style={{ top: "-0.34em", fontSize: "0.34em" }} />
       </span>
     </span>
   );
@@ -446,166 +591,195 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
   const role = useRotatingRole(show);
   return (
     <motion.div
-      className="relative grid items-center w-full"
+      className="relative w-full flex flex-col items-center justify-center text-center"
       style={{
         minHeight: "100vh",
-        gridTemplateColumns: "1.15fr 0.85fr",
-        gap: "clamp(30px,5vw,90px)",
-        padding: "0 clamp(28px,6vw,110px)",
+        gap: "clamp(16px,2.2vh,28px)",
+        padding: "clamp(96px,14vh,150px) clamp(20px,6vw,40px) clamp(56px,9vh,90px)",
       }}
       variants={container}
       initial={instant ? false : "hidden"}
       animate={show ? "show" : "hidden"}
     >
-      <div style={{ maxWidth: 640 }}>
-        <motion.div
-          variants={item}
-          className="inline-flex items-center gap-2.5 font-display font-medium uppercase text-accent-bright rounded-full mb-[26px]"
-          style={{
-            fontSize: 13,
-            letterSpacing: 3,
-            padding: "7px 15px",
-            background: "rgba(47,155,255,0.08)",
-            border: "1px solid rgba(47,155,255,0.22)",
-          }}
-        >
-          <span
-            className="rounded-full"
-            style={{ width: 6, height: 6, background: "#5db6ff", boxShadow: "0 0 8px #5db6ff" }}
-          />
-          Portfolio · Welcome aboard
-        </motion.div>
-
-        <motion.h1
-          variants={item}
-          className="font-display font-extrabold mb-2 text-white"
-          style={{ fontSize: "clamp(44px,6.6vw,92px)", lineHeight: 0.98, letterSpacing: "-0.02em" }}
-        >
-          Hi there,
-          <br />
-          I'm <SaiName />.
-          <span
-            className="role-gradient block"
-            style={{
-              fontSize: "clamp(24px,4.4vw,58px)",
-              lineHeight: 1.2,
-              minHeight: "1.25em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {role || "\u00A0"}
-            <span className="type-caret" aria-hidden>
-              |
-            </span>
-          </span>
-        </motion.h1>
-
-        <motion.p
-          variants={item}
-          className="text-muted-portfolio"
-          style={{
-            fontSize: "clamp(16px,1.25vw,19px)",
-            lineHeight: 1.7,
-            margin: "28px 0 38px",
-            maxWidth: 520,
-            textWrap: "pretty",
-          }}
-        >
-          {PROFILE.tagline}
-        </motion.p>
-
-        <motion.div variants={item} className="flex gap-4 flex-wrap">
-          <motion.a
-            href={PROFILE.resumeUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ y: -2, boxShadow: "0 12px 36px rgba(47,155,255,0.6)" }}
-            whileTap={{ scale: 0.97 }}
-            className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full"
-            style={{
-              fontSize: 15,
-              padding: "15px 28px",
-              color: "#021024",
-              background: "linear-gradient(180deg,#5db6ff,#2f9bff)",
-              boxShadow: "0 8px 28px rgba(47,155,255,0.45)",
-            }}
-          >
-            View Résumé →
-          </motion.a>
-          <motion.a
-            href="#projects"
-            whileHover={{
-              y: -2,
-              borderColor: "rgba(93,182,255,0.55)",
-              background: "rgba(47,155,255,0.08)",
-            }}
-            whileTap={{ scale: 0.97 }}
-            className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full text-white"
-            style={{
-              fontSize: 15,
-              padding: "15px 28px",
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "rgba(255,255,255,0.03)",
-            }}
-          >
-            Explore Work
-          </motion.a>
-        </motion.div>
-
-        <motion.div variants={item} className="flex items-center gap-3 mt-8">
-          {SOCIALS.map((s) => {
-            const Icon = SOCIAL_ICONS[s.label] ?? Mail;
-            return (
-              <motion.a
-                key={s.label}
-                href={s.href}
-                target={s.href.startsWith("http") ? "_blank" : undefined}
-                rel="noopener noreferrer"
-                aria-label={s.label}
-                whileHover={{
-                  y: -3,
-                  borderColor: "rgba(93,182,255,0.55)",
-                  color: "#5db6ff",
-                }}
-                className="grid place-items-center rounded-full text-muted-portfolio"
-                style={{
-                  width: 44,
-                  height: 44,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(255,255,255,0.03)",
-                }}
-              >
-                <Icon size={19} strokeWidth={1.8} />
-              </motion.a>
-            );
-          })}
-        </motion.div>
-      </div>
-
-      <motion.div variants={item} className="hidden md:block">
+      {/* Portrait */}
+      <motion.div variants={item}>
         <Portrait />
       </motion.div>
 
-      {/* Scroll cue */}
-      <motion.a
-        href="#about"
-        aria-label="Scroll to about"
+      {/* Badge */}
+      <motion.div
         variants={item}
-        className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-portfolio no-underline"
-        style={{ bottom: "clamp(18px,4vh,40px)" }}
-        whileHover={{ color: "#5db6ff" }}
+        className="inline-flex items-center gap-2.5 font-display font-medium uppercase text-accent-bright rounded-full"
+        style={{
+          fontSize: 12.5,
+          letterSpacing: 3,
+          padding: "7px 15px",
+          background: "rgba(47,155,255,0.08)",
+          border: "1px solid rgba(47,155,255,0.22)",
+        }}
       >
-        <span className="font-display uppercase" style={{ fontSize: 11, letterSpacing: 3 }}>
-          Scroll
+        <span
+          className="rounded-full"
+          style={{ width: 6, height: 6, background: "#5db6ff", boxShadow: "0 0 8px #5db6ff" }}
+        />
+        Portfolio · Welcome aboard
+      </motion.div>
+
+      {/* Name */}
+      <motion.h1
+        variants={item}
+        className="font-display font-extrabold text-white"
+        style={{ fontSize: "clamp(42px,6.6vw,88px)", lineHeight: 1.0, letterSpacing: "-0.02em" }}
+      >
+        Hi there,
+        <br />
+        I'm <SaiName />.
+      </motion.h1>
+
+      {/* Rotating role */}
+      <motion.div
+        variants={item}
+        className="role-gradient font-display font-extrabold"
+        style={{
+          fontSize: "clamp(22px,4vw,52px)",
+          lineHeight: 1.2,
+          minHeight: "1.25em",
+          whiteSpace: "nowrap",
+          paddingRight: "0.14em",
+        }}
+      >
+        {role || "\u00A0"}
+        <span className="type-caret" aria-hidden>
+          |
         </span>
-        <motion.span
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 1.6, ease: "easeInOut", repeat: Infinity }}
+      </motion.div>
+
+      {/* Tagline */}
+      <motion.p
+        variants={item}
+        className="text-muted-portfolio"
+        style={{
+          fontSize: "clamp(15px,1.2vw,18px)",
+          lineHeight: 1.7,
+          maxWidth: 560,
+          textWrap: "pretty",
+        }}
+      >
+        {PROFILE.tagline}
+      </motion.p>
+
+      {/* CTAs */}
+      <motion.div
+        variants={item}
+        className="flex gap-4 flex-wrap justify-center"
+        style={{ marginTop: 4 }}
+      >
+        <motion.a
+          href={PROFILE.resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          whileHover={{ y: -2, boxShadow: "0 12px 36px rgba(47,155,255,0.6)" }}
+          whileTap={{ scale: 0.97 }}
+          className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full"
+          style={{
+            fontSize: 15,
+            padding: "15px 28px",
+            color: "#021024",
+            background: "linear-gradient(180deg,#5db6ff,#2f9bff)",
+            boxShadow: "0 8px 28px rgba(47,155,255,0.45)",
+          }}
         >
-          <ArrowDown size={18} strokeWidth={1.8} />
-        </motion.span>
-      </motion.a>
+          View Résumé →
+        </motion.a>
+        <motion.a
+          href="#projects"
+          whileHover={{
+            y: -2,
+            borderColor: "rgba(93,182,255,0.55)",
+            background: "rgba(47,155,255,0.08)",
+          }}
+          whileTap={{ scale: 0.97 }}
+          className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full text-white"
+          style={{
+            fontSize: 15,
+            padding: "15px 28px",
+            border: "1px solid rgba(255,255,255,0.18)",
+            background: "rgba(255,255,255,0.03)",
+          }}
+        >
+          Explore Work
+        </motion.a>
+      </motion.div>
+
+      {/* Socials */}
+      <motion.div variants={item} className="flex items-center gap-3 justify-center">
+        {SOCIALS.map((s) => {
+          const Icon = SOCIAL_ICONS[s.label] ?? Mail;
+          return (
+            <motion.a
+              key={s.label}
+              href={s.href}
+              target={s.href.startsWith("http") ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              aria-label={s.label}
+              whileHover={{ y: -3, borderColor: "rgba(93,182,255,0.55)", color: "#5db6ff" }}
+              className="grid place-items-center rounded-full text-muted-portfolio"
+              style={{
+                width: 44,
+                height: 44,
+                border: "1px solid rgba(255,255,255,0.14)",
+                background: "rgba(255,255,255,0.03)",
+              }}
+            >
+              <Icon size={19} strokeWidth={1.8} />
+            </motion.a>
+          );
+        })}
+      </motion.div>
     </motion.div>
+  );
+}
+
+function ScrollTop() {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 400);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Scroll to top"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          whileHover={{ y: -2, background: "rgba(255,255,255,0.1)" }}
+          whileTap={{ scale: 0.94 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          className="fixed z-50 grid place-items-center rounded-full"
+          style={{
+            bottom: 24,
+            right: 24,
+            width: 46,
+            height: 46,
+            color: "#ffffff",
+            background: "transparent",
+          }}
+        >
+          <ArrowUp
+            size={26}
+            strokeWidth={2.2}
+            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
+          />
+        </motion.button>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -698,6 +872,8 @@ function Index() {
       </div>
 
       <AnimatePresence>{phase === "loading" && <Loading key="loading" />}</AnimatePresence>
+
+      <ScrollTop />
     </div>
   );
 }
