@@ -6,10 +6,36 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const repoName = process.env.GITHUB_REPOSITORY
+  ? process.env.GITHUB_REPOSITORY.split("/")[1]
+  : undefined;
+
+// User/organization pages (username.github.io) are served from the root.
+const base =
+  repoName && !repoName.endsWith(".github.io") ? `/${repoName}/` : "/";
+
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    // GitHub Pages project pages serve from /<repo>/; keep root-relative for local dev.
+    base,
+  },
+  // Static prerender for GitHub Pages (generates HTML, no server worker).
+  // Cast to any because the wrapper's narrow types don't expose nitro's prerender option,
+  // but the runtime spreads the full object through to nitro.
+  nitro: {
+    preset: "node-server",
+    output: {
+      dir: "dist",
+      publicDir: "dist/public",
+      serverDir: "dist/server",
+    },
+    prerender: {
+      routes: ["/"],
+    },
+  } as any,
 });
