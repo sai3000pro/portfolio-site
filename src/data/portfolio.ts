@@ -98,27 +98,27 @@ export const PROJECTS: Project[] = [
   {
     title: "Verbalyst",
     description: "Empowering speech, unleashing confidence.",
-    image: "/assets/verbalyst.png",
+    image: "assets/verbalyst.png",
     link: "https://devpost.com/software/verbalyst",
     winner: true,
   },
   {
     title: "Healthut",
     description: "Making mental health resources simple and accessible.",
-    image: "/assets/Healthut.png",
+    image: "assets/Healthut.png",
     link: "https://devpost.com/software/healthub",
     winner: true,
   },
   {
     title: "PatronPal",
     description: "Support your favorite creators, your way.",
-    image: "/assets/patronPal.png",
+    image: "assets/patronPal.png",
     link: "https://devpost.com/software/patronpal",
   },
   {
     title: "devDucky",
     description: "Ever needed a rubber ducky timeout?",
-    image: "/assets/devDucky.jpg",
+    image: "assets/devDucky.jpg",
     link: "https://devpost.com/software/devducky",
   },
 ];
