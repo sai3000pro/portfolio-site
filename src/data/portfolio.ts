@@ -5,10 +5,10 @@ export const PROFILE = {
   name: "Sai",
   fullName: "Saivenkat Jilla",
   email: "sljilla@uwaterloo.ca",
-  resumeUrl: "/assets/Resume.pdf",
-  portrait: "/assets/portrait.jpeg",
+  resumeUrl: "assets/Resume.pdf",
+  portrait: "assets/portrait.jpeg",
   portraitAlt: "Pinky, the UWaterloo Math Faculty mascot, posing with Sai",
-  logo: "/assets/logo.png",
+  logo: "assets/logo.png",
   tagline:
     "An aspiring web developer and amateur photographer, drifting between code and the cosmos — capturing light, building things for the web, and chasing the quiet wonder in both.",
   bio: "I'm Sai, an aspiring web developer, amateur photographer, and passionate student advocate. My journey into tech began when I realized how much I love creating and solving problems. I also enjoy capturing moments through my lens and diving into the fascinating world of machine learning.",
