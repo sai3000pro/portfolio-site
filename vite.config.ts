@@ -25,6 +25,8 @@ export default defineConfig({
     base,
   },
   // Static prerender for GitHub Pages (generates HTML, no server worker).
+  // Cast to any because the wrapper's narrow types don't expose nitro's prerender option,
+  // but the runtime spreads the full object through to nitro.
   nitro: {
     preset: "node-server",
     output: {
@@ -35,5 +37,5 @@ export default defineConfig({
     prerender: {
       routes: ["/"],
     },
-  },
+  } as any,
 });
