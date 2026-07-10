@@ -386,7 +386,7 @@ export function Experience() {
         >
           {EXPERIENCES.map((exp, i) => (
             <motion.div
-              key={exp.title}
+              key={`${exp.company}-${exp.title}`}
               ref={(el) => {
                 itemRefs.current[i] = el;
               }}

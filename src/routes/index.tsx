@@ -606,7 +606,7 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
         <Portrait />
       </motion.div>
 
-      {/* Badge */}
+      {/* Current role */}
       <motion.div
         variants={item}
         className="inline-flex items-center gap-2.5 font-display font-medium uppercase text-accent-bright rounded-full"
@@ -618,11 +618,13 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
           border: "1px solid rgba(47,155,255,0.22)",
         }}
       >
-        <span
+        <motion.span
           className="rounded-full"
-          style={{ width: 6, height: 6, background: "#5db6ff", boxShadow: "0 0 8px #5db6ff" }}
+          style={{ width: 7, height: 7, background: "#34d399", boxShadow: "0 0 8px #34d399" }}
+          animate={{ opacity: [1, 0.35, 1], scale: [1, 0.85, 1] }}
+          transition={{ duration: 1.8, ease: "easeInOut", repeat: Infinity }}
         />
-        Portfolio · Welcome aboard
+        Now · SWE Intern @ Capital One
       </motion.div>
 
       {/* Name */}

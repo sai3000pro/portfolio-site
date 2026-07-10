@@ -37,27 +37,63 @@ export interface Experience {
 
 export const EXPERIENCES: Experience[] = [
   {
-    title: "Machine Learning Researcher",
-    company: "Alternative Protein Project",
-    duration: "Jul 2024 — Present",
+    title: "Software Engineering Intern",
+    company: "Capital One",
+    duration: "May 2026 — Aug 2026",
     description:
-      "Developed and implemented a Python pipeline to analyze single-cell RNA-seq data, uncovering insights for cultivated meat research using modern ML and bioinformatics tools.",
-    location: "Waterloo, ON",
-    coords: { lat: 43.4643, lon: -80.5204 },
-    details:
-      "As part of the Alternative Protein Project, I built an end-to-end Python pipeline for single-cell RNA-seq analysis — spanning quality control, normalization, dimensionality reduction, clustering, and visualization. The work supports cultivated-meat research by surfacing structure in cell populations, and I worked alongside a small research team to iterate on methods and communicate findings.",
+      "Engineering an end-to-end interview-scheduling system using Next.js, Go, PostgreSQL, and AWS, bridging candidate and recruiter workflows through dynamic availability mapping, SSO integration, and centralized job-round management.",
+    location: "Toronto, ON",
+    coords: { lat: 43.6532, lon: -79.3832 },
     photos: [],
   },
   {
-    title: "Web Developer",
+    title: "Undergraduate Research Assistant",
+    company: "University of Cambridge · University of Waterloo",
+    duration: "Jan 2026 — Apr 2026",
+    description:
+      "Engineered active-learning pipelines for GEDI biomass estimation, demonstrating that spatial sampling mitigates the cold-start problem by outperforming random baseline strategies by 27% under extreme data starvation (N=25). Built a 2D landscape generator using Gaussian Random Fields to simulate 3,000+ data points, modelling both smooth and chaotic environments to evaluate the situational superiority of different learning strategies. Architected a Python/SciPy evaluation suite to benchmark ML strategies, showing that Attentive Neural Processes (ANPs) outperformed Random Forests by more than 3× accuracy (R²) in chaotic environments under data starvation (<1% sample size).",
+    location: "Cambridge, England",
+    coords: { lat: 52.2053, lon: 0.1218 },
+    photos: [],
+  },
+  {
+    title: "Software Engineering Intern",
+    company: "Marsh McLennan",
+    duration: "Aug 2025 — Jan 2026",
+    description:
+      "Automated case-handling by building an email classifier with RAG-based semantic search and a RESTful Node.js API. Resolved 1,000+ exposed secrets by engineering a GitGuardian/JWT remediation pipeline that won an org-wide tournament. Saved 100+ hr/wk by automating 300+-instance database deployments in GitHub Actions with rollback and secret handling. Bolstered preemptive security and development velocity by piloting a GitHub bot for OWASP vulnerability auditing and building a natural-language-to-workflow app via Mastra AI. Optimized reliability for 30+ apps by refining and documenting multi-cloud designs (OCI, AWS, Azure, GCP) alongside dev teams.",
+    location: "Toronto, ON",
+    coords: { lat: 43.6532, lon: -79.3832 },
+    photos: [],
+  },
+  {
+    title: "Machine Learning Researcher",
+    company: "Alternative Protein Project",
+    duration: "Jul 2024 — Aug 2025",
+    description:
+      "Extracted genomic insights for cultivated meat by architecting an end-to-end RNA-seq workflow to analyze public datasets. Optimized analysis of large-scale public single-cell datasets by engineering a reproducible Python pipeline (Scanpy, anndata, pandas, scikit-learn, rpy2) that enables efficient QC, clustering, and visualization of large datasets.",
+    location: "Waterloo, ON",
+    coords: { lat: 43.4643, lon: -80.5204 },
+    photos: [],
+  },
+  {
+    title: "Full-Stack Software Engineer",
+    company: "Mathematics Society, University of Waterloo",
+    duration: "Jan 2025 — Aug 2025",
+    description:
+      "Eliminated unreliable API dependencies for term lookups, stabilizing the interface via memoized utility functions. Streamlined admin workflows by engineering a multi-select UI and RESTful backend endpoints for bulk exam management.",
+    location: "Waterloo, ON",
+    coords: { lat: 43.4643, lon: -80.5204 },
+    photos: [],
+  },
+  {
+    title: "Software Engineering Intern",
     company: "Global X Investments Canada",
     duration: "Jan 2025 — Apr 2025",
     description:
-      "Enhanced digital engagement and internal efficiency by streamlining content workflows, optimizing performance, and automating web operations across WordPress and email campaigns.",
+      "Increased organic traffic to core financial pages by reducing load times by 15% and refining technical SEO — through API optimizations, front-end lazy loading, and metadata enhancements to maximize indexing and retention. Drove a 32.4% email open rate and scaled web presence by deploying 80+ pages and email blasts to support product launches. Saved 100+ hr/yr by automating EN/FR content synchronization and internal linking via custom Python and PHP scripts.",
     location: "Toronto, ON",
     coords: { lat: 43.6532, lon: -79.3832 },
-    details:
-      "On the digital team at Global X, I streamlined content workflows across WordPress and email, improved page performance, and automated repetitive web operations to save the team time. The role blended front-end work, CMS administration, and marketing-ops automation in a fast-moving financial environment.",
     photos: [],
   },
   {
