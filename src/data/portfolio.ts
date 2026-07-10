@@ -125,12 +125,23 @@ export const EXPERIENCES: Experience[] = [
 export interface Project {
   title: string;
   description: string;
-  image: string;
+  image?: string;
   link: string;
   winner?: boolean;
+  // Hover call-to-action label (defaults to "View on Devpost →").
+  cta?: string;
+  repo?: string;
 }
 
 export const PROJECTS: Project[] = [
+  {
+    title: "CORnet-Mouse",
+    description:
+      "A biologically-constrained neural network modelling the mouse visual and muscular system with reinforcement learning. In a custom Unity world, the mouse forages while fleeing a looming hawk and ignoring harmless clouds — guided by a reward that balances survival, foraging, and energy. SYDE 552 final project.",
+    link: "/assets/CORnet-Mouse.pdf",
+    cta: "Read paper →",
+    repo: "https://github.com/Kriti1400/Syde552-Project",
+  },
   {
     title: "Verbalyst",
     description: "Empowering speech, unleashing confidence.",

@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Github } from "lucide-react";
 import { PROJECTS } from "@/data/portfolio";
 import { Section, SectionHeading } from "./section";
 
@@ -12,29 +13,47 @@ export function Projects() {
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}
       >
         {PROJECTS.map((project, i) => (
-          <motion.a
+          <motion.div
             key={project.title}
-            href={project.link}
-            target="_blank"
-            rel="noopener noreferrer"
             initial={{ opacity: 0, y: 32 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.6, delay: i * 0.07, ease: [0.2, 0.7, 0.3, 1] }}
             whileHover={{ y: -6 }}
-            className="group relative block overflow-hidden rounded-2xl no-underline"
+            className="group relative block overflow-hidden rounded-2xl"
             style={{
               background: "rgba(255,255,255,0.035)",
               border: "1px solid rgba(93,182,255,0.16)",
             }}
           >
+            <a
+              href={project.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Open ${project.title}`}
+              className="absolute inset-0 z-[1]"
+            />
             <div className="relative overflow-hidden" style={{ aspectRatio: "16 / 10" }}>
-              <img
-                src={project.image}
-                alt={project.title}
-                loading="lazy"
-                className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-              />
+              {project.image ? (
+                <img
+                  src={project.image}
+                  alt={project.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <div
+                  className="w-full h-full grid place-items-center transition-transform duration-500 group-hover:scale-105"
+                  style={{ background: "linear-gradient(135deg, #0a4f99, #05213f)" }}
+                >
+                  <span
+                    className="font-display font-bold text-white/90 text-center"
+                    style={{ fontSize: 24, letterSpacing: 0.4, padding: "0 18px" }}
+                  >
+                    {project.title}
+                  </span>
+                </div>
+              )}
               <div
                 className="absolute inset-0 transition-opacity duration-300"
                 style={{
@@ -65,7 +84,7 @@ export function Projects() {
                   backdropFilter: "blur(4px)",
                 }}
               >
-                View on Devpost →
+                {project.cta ?? "View on Devpost →"}
               </span>
             </div>
 
@@ -80,7 +99,26 @@ export function Projects() {
                 {project.description}
               </p>
             </div>
-          </motion.a>
+
+            {project.repo && (
+              <a
+                href={project.repo}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${project.title} GitHub repository`}
+                className="absolute top-3 right-3 z-[2] inline-flex items-center gap-1.5 rounded-full font-display text-white no-underline transition-colors hover:text-accent-bright"
+                style={{
+                  fontSize: 12,
+                  padding: "6px 11px",
+                  background: "rgba(10,20,36,0.8)",
+                  border: "1px solid rgba(255,255,255,0.16)",
+                }}
+              >
+                <Github size={13} />
+                Code
+              </a>
+            )}
+          </motion.div>
         ))}
       </div>
     </Section>
