@@ -131,6 +131,10 @@ export interface Project {
   // Hover call-to-action label (defaults to "View on Devpost →").
   cta?: string;
   repo?: string;
+  // Constellation fields — all optional for backward compat.
+  details?: string;
+  photos?: string[];
+  tech?: string[];
 }
 
 export const PROJECTS: Project[] = [
@@ -141,6 +145,7 @@ export const PROJECTS: Project[] = [
     link: "https://sai3000pro.github.io/portfolio-site/assets/CORnet-Mouse.pdf",
     cta: "Read paper →",
     repo: "https://github.com/Kriti1400/Syde552-Project",
+    tech: ["Python", "Unity", "Reinforcement Learning", "AI/ML"],
   },
   {
     title: "Verbalyst",
@@ -148,6 +153,7 @@ export const PROJECTS: Project[] = [
     image: "assets/verbalyst.png",
     link: "https://devpost.com/software/verbalyst",
     winner: true,
+    tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind", "AI/ML"],
   },
   {
     title: "Healthut",
@@ -155,18 +161,21 @@ export const PROJECTS: Project[] = [
     image: "assets/Healthut.png",
     link: "https://devpost.com/software/healthub",
     winner: true,
+    tech: ["Python", "JavaScript", "HTML", "CSS"],
   },
   {
     title: "PatronPal",
     description: "Support your favorite creators, your way.",
     image: "assets/patronPal.png",
     link: "https://devpost.com/software/patronpal",
+    tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind"],
   },
   {
     title: "devDucky",
     description: "Ever needed a rubber ducky timeout?",
     image: "assets/devDucky.jpg",
     link: "https://devpost.com/software/devducky",
+    tech: ["Python", "Flask", "JavaScript", "Node.js", "Express", "Vite", "AI/ML"],
   },
 ];
 
