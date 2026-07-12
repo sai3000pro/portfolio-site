@@ -77,18 +77,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sai — Web Developer & Amateur Photographer" },
+      { title: "Saivenkat Jilla: Software Engineer, Creator, and Problem Solver" },
       {
         name: "description",
         content:
-          "Portfolio of Sai (Saivenkat Jilla) — aspiring web developer and amateur photographer.",
+          "Portfolio of Sai (Saivenkat Jilla) — Software Engineer studying at the University of Waterloo",
       },
       { name: "author", content: "Saivenkat Jilla" },
-      { property: "og:title", content: "Sai — Web Developer & Amateur Photographer" },
+      {
+        property: "og:title",
+        content: "Saivenkat Jilla: Software Engineer, Creator, and Problem Solver",
+      },
       {
         property: "og:description",
         content:
-          "Portfolio of Sai (Saivenkat Jilla) — aspiring web developer and amateur photographer.",
+          "Portfolio of Sai (Saivenkat Jilla) — Software Engineer studying at the University of Waterloo",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
