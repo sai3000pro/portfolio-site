@@ -160,7 +160,7 @@ export function Footer() {
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-center md:text-left">
           <p className="font-display font-semibold text-white" style={{ fontSize: 15.5 }}>
-            © {2024 - new Date().getFullYear()} | {PROFILE.fullName}
+            © 2024 - {new Date().getFullYear()} | {PROFILE.fullName}
           </p>
           <p className="text-muted-portfolio" style={{ fontSize: 13.5 }}>
             Software Engineer, Creator, and Problem Solver
