@@ -10,8 +10,8 @@ export const PROFILE = {
   portraitAlt: "Pinky, the UWaterloo Math Faculty mascot, posing with Sai",
   logo: "assets/logo.png",
   tagline:
-    "An aspiring web developer and amateur photographer, drifting between code and the cosmos — capturing light, building things for the web, and chasing the quiet wonder in both.",
-  bio: "I'm Sai, an aspiring web developer, amateur photographer, and passionate student advocate. My journey into tech began when I realized how much I love creating and solving problems. I also enjoy capturing moments through my lens and diving into the fascinating world of machine learning.",
+    "CS student at the University of Waterloo, striving to make the world a better place through well-written software.",
+  bio: "I'm Sai, a software engineer, amateur photographer, and passionate student advocate. My journey into tech began when I realized how much I love creating and solving problems. When I'm not coding, I enjoy watching Formula 1, playing basketball and capturing moments through my lens.",
 } as const;
 
 // Rotating roles for the hero headline.
@@ -137,7 +137,7 @@ export const PROJECTS: Project[] = [
   {
     title: "CORnet-Mouse",
     description:
-      "A biologically-constrained neural network modelling the mouse visual and muscular system with reinforcement learning. In a custom Unity world, the mouse forages while fleeing a looming hawk and ignoring harmless clouds — guided by a reward that balances survival, foraging, and energy. SYDE 552 final project.",
+      "A biologically-constrained neural network modelling the mouse visual and muscular system with reinforcement learning. In a custom Unity world, the mouse forages while fleeing a looming hawk and ignoring harmless clouds — guided by a reward function that balances survival, foraging, and energy. SYDE 552 final project.",
     link: "https://sai3000pro.github.io/portfolio-site/assets/CORnet-Mouse.pdf",
     cta: "Read paper →",
     repo: "https://github.com/Kriti1400/Syde552-Project",

@@ -7,7 +7,7 @@ const TAGS = ["Web Development", "Photography", "Machine Learning", "Student Adv
 export function About() {
   return (
     <Section id="about">
-      <SectionHeading eyebrow="About me" title="A bit about the human" />
+      <SectionHeading eyebrow="Who I am" title="A bit about me" />
 
       <div className="mx-auto mt-12 text-center" style={{ maxWidth: 760 }}>
         <Reveal>

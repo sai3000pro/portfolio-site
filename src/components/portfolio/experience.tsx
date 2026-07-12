@@ -374,7 +374,7 @@ export function Experience() {
 
   return (
     <Section id="experience">
-      <SectionHeading eyebrow="Career trajectory" title="Work Experience" />
+      <SectionHeading eyebrow="My Professional Journey" title="Work Experience" />
 
       <div className="mt-16 mx-auto" style={{ maxWidth: 760 }}>
         <div

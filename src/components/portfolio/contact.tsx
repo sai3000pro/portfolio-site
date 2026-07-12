@@ -38,8 +38,8 @@ export function Contact() {
             className="text-muted-portfolio"
             style={{ fontSize: "clamp(16px,1.3vw,19px)", lineHeight: 1.8, textWrap: "pretty" }}
           >
-            Have an idea, an opportunity, or just want to talk about code and the cosmos? My inbox
-            is always open — I'll do my best to get back to you.
+            Have an idea, an opportunity, or just want to chat? My inbox is always open, and I'll do
+            my best to get back to you.
           </p>
 
           <div className="mt-8 flex flex-col gap-3">
@@ -160,10 +160,10 @@ export function Footer() {
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-center md:text-left">
           <p className="font-display font-semibold text-white" style={{ fontSize: 15.5 }}>
-            © {new Date().getFullYear()} {PROFILE.fullName}
+            © {2024 - new Date().getFullYear()} | {PROFILE.fullName}
           </p>
           <p className="text-muted-portfolio" style={{ fontSize: 13.5 }}>
-            Built between code and the cosmos.
+            Software Engineer, Creator, and Problem Solver
           </p>
         </div>
         <div className="flex gap-5">
