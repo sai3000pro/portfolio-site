@@ -132,7 +132,8 @@ export interface Project {
   cta?: string;
   repo?: string;
   // Constellation fields — all optional for backward compat.
-  details?: string;
+  tagline?: string; // short text on the card; falls back to description
+  details?: string; // full summary in the modal; falls back to description
   photos?: string[];
   tech?: string[];
 }
@@ -142,6 +143,9 @@ export const PROJECTS: Project[] = [
     title: "CORnet-Mouse",
     description:
       "A biologically-constrained neural network modelling the mouse visual and muscular system with reinforcement learning. In a custom Unity world, the mouse forages while fleeing a looming hawk and ignoring harmless clouds — guided by a reward function that balances survival, foraging, and energy. SYDE 552 final project.",
+    tagline: "Biologically-modeled mouse brain trained to survive in a Unity world.",
+    details:
+      "A SYDE 552 final project that models the mouse visual and motor system using CORnet — a biologically-constrained deep neural network architecture. The model is trained with reinforcement learning inside a custom Unity environment where the mouse must forage for food while fleeing a looming hawk overhead, without being distracted by harmless passing clouds. A hand-crafted reward function balances survival, foraging efficiency, and energy expenditure, pushing the agent toward naturalistic behaviour rather than pure score maximisation.",
     link: "https://sai3000pro.github.io/portfolio-site/assets/CORnet-Mouse.pdf",
     cta: "Read paper →",
     repo: "https://github.com/Kriti1400/Syde552-Project",
@@ -150,6 +154,9 @@ export const PROJECTS: Project[] = [
   {
     title: "Verbalyst",
     description: "Empowering speech, unleashing confidence.",
+    tagline: "Upload a recording. Get AI feedback on your speech in seconds.",
+    details:
+      "Verbalyst is an AI speech-coaching web app built at a hackathon. Users upload an MP4 recording and the platform runs it through AssemblyAI to produce an accurate transcript, then feeds that transcript into Google Vertex AI for a detailed breakdown covering pacing, filler-word frequency, clarity, and overall confidence. A Flask + Python backend ties the two APIs together, while a Tailwind-styled vanilla JS frontend keeps the experience fast and focused. Won Best Overall at the hackathon.",
     image: "assets/verbalyst.png",
     link: "https://devpost.com/software/verbalyst",
     winner: true,
@@ -158,6 +165,9 @@ export const PROJECTS: Project[] = [
   {
     title: "Healthut",
     description: "Making mental health resources simple and accessible.",
+    tagline: "Mental health support on the web and straight into Discord.",
+    details:
+      "Healthut is a two-part mental health companion. The website surfaces curated resources organised by topic — crisis lines, self-help tools, community forums — with a clean HTML/CSS/JS interface designed to reduce friction when someone needs help fast. Alongside it, a Python-powered Discord bot brings the same resources directly into the servers where people already spend time, letting users search and browse without ever leaving their community. The Healthut logo was hand-drawn in Procreate.",
     image: "assets/Healthut.png",
     link: "https://devpost.com/software/healthub",
     winner: true,
@@ -166,6 +176,9 @@ export const PROJECTS: Project[] = [
   {
     title: "PatronPal",
     description: "Support your favorite creators, your way.",
+    tagline: "A Chrome extension that makes tipping creators effortless.",
+    details:
+      "PatronPal lowers the barrier between fans and the creators they love. A Chrome extension built on Google Manifest V3 detects creator content as you browse and surfaces a one-click support panel without interrupting your flow. The extension talks to a Flask + Python backend that handles transactions and creator profiles, while the web dashboard — built with Tailwind and Flowbite components — gives creators a clean home to manage their page and track support.",
     image: "assets/patronPal.png",
     link: "https://devpost.com/software/patronpal",
     tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind"],
@@ -173,6 +186,9 @@ export const PROJECTS: Project[] = [
   {
     title: "devDucky",
     description: "Ever needed a rubber ducky timeout?",
+    tagline: "An AI rubber duck that runs locally and never judges you.",
+    details:
+      "devDucky is a local-first AI debugging companion that runs entirely on your machine — no cloud, no data leaks. Describe your bug or paste in your code and a locally hosted LLM (served via Ollama with Unsloth-optimised models) walks you through the problem Socratically, asking questions rather than just handing you the answer. Session history is stored with Mongoose so you can revisit past debugging threads. The stack is a Vite + Node/Express frontend paired with a Flask + Python backend.",
     image: "assets/devDucky.jpg",
     link: "https://devpost.com/software/devducky",
     tech: ["Python", "Flask", "JavaScript", "Node.js", "Express", "Vite", "AI/ML"],

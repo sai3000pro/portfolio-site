@@ -575,6 +575,10 @@ function SpinningBall({ index, style }: { index: number; style?: React.CSSProper
  *  flips to the next one each time you hover the name. */
 function SaiName() {
   const [i, setI] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setI((n) => n + 1), 10_000);
+    return () => clearInterval(id);
+  }, []);
   return (
     <span
       className="relative inline-block whitespace-nowrap cursor-default"

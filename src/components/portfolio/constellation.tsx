@@ -66,6 +66,22 @@ function seedGrid(
   }
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Returns the point where a ray from the card's centre toward (tx, ty) exits the card border.
+function cardBorderPoint(cardX: number, cardY: number, tx: number, ty: number) {
+  const cx = cardX + NODE_W / 2;
+  const cy = cardY + NODE_H / 2;
+  const dx = tx - cx;
+  const dy = ty - cy;
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+  const tHit = Math.min(
+    NODE_W / 2 / Math.abs(dx) || Infinity,
+    NODE_H / 2 / Math.abs(dy) || Infinity,
+  );
+  return { x: cx + dx * tHit, y: cy + dy * tHit };
+}
+
 // ─── StrandLayer ──────────────────────────────────────────────────────────────
 
 function StrandLayer({
@@ -77,20 +93,42 @@ function StrandLayer({
   motionValues: Array<{ x: MotionValue<number>; y: MotionValue<number> }>;
   activeNode: number | null;
 }) {
-  const lineRefs = useRef<(SVGLineElement | null)[]>([]);
+  const glowRefs = useRef<(SVGLineElement | null)[]>([]);
+  const coreRefs = useRef<(SVGLineElement | null)[]>([]);
 
   useEffect(() => {
     const unsubs: Array<() => void> = [];
 
     edges.forEach((edge, i) => {
       const update = () => {
-        const el = lineRefs.current[i];
-        if (!el) return;
-        // Connect card centres
-        el.setAttribute("x1", String(motionValues[edge.a].x.get() + NODE_W / 2));
-        el.setAttribute("y1", String(motionValues[edge.a].y.get() + NODE_H / 2));
-        el.setAttribute("x2", String(motionValues[edge.b].x.get() + NODE_W / 2));
-        el.setAttribute("y2", String(motionValues[edge.b].y.get() + NODE_H / 2));
+        const ax = motionValues[edge.a].x.get();
+        const ay = motionValues[edge.a].y.get();
+        const bx = motionValues[edge.b].x.get();
+        const by = motionValues[edge.b].y.get();
+        const bcx = bx + NODE_W / 2;
+        const bcy = by + NODE_H / 2;
+        const acx = ax + NODE_W / 2;
+        const acy = ay + NODE_H / 2;
+        const ptA = cardBorderPoint(ax, ay, bcx, bcy);
+        const ptB = cardBorderPoint(bx, by, acx, acy);
+        const x1 = String(ptA.x);
+        const y1 = String(ptA.y);
+        const x2 = String(ptB.x);
+        const y2 = String(ptB.y);
+        const gl = glowRefs.current[i];
+        if (gl) {
+          gl.setAttribute("x1", x1);
+          gl.setAttribute("y1", y1);
+          gl.setAttribute("x2", x2);
+          gl.setAttribute("y2", y2);
+        }
+        const cl = coreRefs.current[i];
+        if (cl) {
+          cl.setAttribute("x1", x1);
+          cl.setAttribute("y1", y1);
+          cl.setAttribute("x2", x2);
+          cl.setAttribute("y2", y2);
+        }
       };
 
       unsubs.push(
@@ -116,11 +154,26 @@ function StrandLayer({
         height: "100%",
         pointerEvents: "none",
         overflow: "visible",
+        zIndex: 0,
       }}
     >
       <defs>
-        <filter id="cst-glow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur" />
+        {/* Wide soft corona — the outer "trail" bloom */}
+        <filter id="cst-bloom" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+          <feColorMatrix
+            in="blur"
+            type="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1.2 0 0  0 0 0 2.2 0"
+            result="boosted"
+          />
+          <feMerge>
+            <feMergeNode in="boosted" />
+          </feMerge>
+        </filter>
+        {/* Tight shimmer on the bright core line */}
+        <filter id="cst-core" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.7" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -128,22 +181,46 @@ function StrandLayer({
         </filter>
       </defs>
 
+      {/* Glow pass — outer corona, painted behind the cores */}
       {edges.map((edge, i) => {
         const isActive = activeNode !== null && (edge.a === activeNode || edge.b === activeNode);
         const alpha = isActive
-          ? Math.min(0.14 + edge.weight * 0.07 * 2.8, 0.9)
-          : 0.14 + edge.weight * 0.07;
-        const width = isActive ? edge.weight * 0.65 + 1.0 : edge.weight * 0.35 + 0.5;
+          ? Math.min(0.28 + edge.weight * 0.1, 0.68)
+          : 0.09 + edge.weight * 0.035;
+        const width = isActive ? edge.weight * 1.4 + 4.5 : edge.weight * 0.75 + 2;
 
         return (
           <line
-            key={`${edge.a}-${edge.b}`}
+            key={`glow-${edge.a}-${edge.b}`}
             ref={(el) => {
-              lineRefs.current[i] = el;
+              glowRefs.current[i] = el;
             }}
-            stroke={`rgba(93,182,255,${alpha})`}
+            stroke={`rgba(47,155,255,${alpha})`}
             strokeWidth={width}
-            filter="url(#cst-glow)"
+            strokeLinecap="round"
+            filter="url(#cst-bloom)"
+          />
+        );
+      })}
+
+      {/* Core pass — near-white starlight thread on top */}
+      {edges.map((edge, i) => {
+        const isActive = activeNode !== null && (edge.a === activeNode || edge.b === activeNode);
+        const alpha = isActive
+          ? Math.min(0.7 + edge.weight * 0.08, 0.96)
+          : 0.22 + edge.weight * 0.06;
+        const width = isActive ? edge.weight * 0.45 + 0.9 : edge.weight * 0.28 + 0.45;
+
+        return (
+          <line
+            key={`core-${edge.a}-${edge.b}`}
+            ref={(el) => {
+              coreRefs.current[i] = el;
+            }}
+            stroke={`rgba(210,230,255,${alpha})`}
+            strokeWidth={width}
+            strokeLinecap="round"
+            filter="url(#cst-core)"
           />
         );
       })}
@@ -193,7 +270,8 @@ function ProjectNode({
         width: NODE_W,
         borderRadius: 14,
         overflow: "hidden",
-        background: "rgba(255,255,255,0.038)",
+        background: "rgba(8,15,30,0.88)",
+        zIndex: 1,
         border: `1px solid ${isActive ? "rgba(93,182,255,0.45)" : "rgba(93,182,255,0.17)"}`,
         boxShadow: isActive
           ? "0 8px 32px rgba(93,182,255,0.18), 0 2px 8px rgba(0,0,0,0.4)"
@@ -311,7 +389,7 @@ function ProjectNode({
             } as React.CSSProperties
           }
         >
-          {project.description}
+          {project.tagline ?? project.description}
         </p>
         <div style={{ marginTop: 10, textAlign: "right" }}>
           <button
