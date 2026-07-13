@@ -2,6 +2,7 @@
   "ci": {
     "collect": {
       "staticDistDir": "./dist/public",
+      "url": ["http://localhost/"],
       "numberOfRuns": 3,
       "settings": {
         "chromeFlags": "--disable-gpu --no-sandbox --headless"
