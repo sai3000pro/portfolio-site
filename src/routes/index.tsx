@@ -18,17 +18,20 @@ const SOCIAL_ICONS: Record<string, typeof Github> = {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sai — Web Developer & Amateur Photographer" },
+      { title: "Saivenkat Jilla: Software Engineer, Creator, and Problem Solver" },
       {
         name: "description",
         content:
-          "Portfolio of Sai (Saivenkat Jilla) — an aspiring web developer and amateur photographer drifting between code and the cosmos.",
+          "Portfolio of Sai (Saivenkat Jilla) — Software Engineer studying at the University of Waterloo",
       },
-      { property: "og:title", content: "Sai — Web Developer & Amateur Photographer" },
+      {
+        property: "og:title",
+        content: "Saivenkat Jilla: Software Engineer, Creator, and Problem Solver",
+      },
       {
         property: "og:description",
         content:
-          "Portfolio of Sai (Saivenkat Jilla) — an aspiring web developer and amateur photographer drifting between code and the cosmos.",
+          "Portfolio of Sai (Saivenkat Jilla) — Software Engineer studying at the University of Waterloo",
       },
     ],
   }),
