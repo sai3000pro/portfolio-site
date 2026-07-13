@@ -285,7 +285,6 @@ function ProjectNode({
       dragMomentum={false}
       dragElastic={0}
       dragConstraints={canvasRef}
-      dragTransition={reducedMotion ? { duration: 0 } : undefined}
       whileDrag={{ scale: 1.04, zIndex: 10, cursor: "grabbing" }}
       whileHover={!isMobile ? { scale: 1.02 } : undefined}
       onDragStart={onDragStart}
