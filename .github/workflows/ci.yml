@@ -21,11 +21,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Download build output
-        uses: actions/download-artifact@v8
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          name: site-build
-          path: dist/public
+          bun-version: latest
+
+      - name: Cache Bun install
+        uses: actions/cache@v6
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Built with GITHUB_REPOSITORY cleared so asset paths are root-relative (base: "/"),
+      # matching how Lighthouse's local static server serves the site. The `verify` job's
+      # build is deliberately different: it keeps GITHUB_REPOSITORY so assets are prefixed
+      # with /<repo>/, which is required for the real GitHub Pages deployment.
+      - name: Build (root-relative, for local Lighthouse audit)
+        run: bun run build:static
+        env:
+          NITRO_PRESET: node-server
+          GITHUB_REPOSITORY: ""
 
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
