@@ -30,9 +30,10 @@ invoked with `uses: ./.github/workflows/verify.yml`. It:
 6. `bun run build:static` (Vite build + prerender to `dist/public`)
 7. Uploads `dist/public` as a workflow artifact named `site-build`.
 
-Both `ci.yml` and `deploy.yml` call this once per run and then download the `site-build`
-artifact for their own next step, instead of rebuilding from scratch. This means a deploy never
-runs a second, independent build that could drift from what was verified.
+`deploy.yml` calls this once per run and then downloads the `site-build` artifact for
+publishing, instead of rebuilding from scratch — a deploy never runs a second, independent
+build that could drift from what was verified. (`ci.yml`'s Lighthouse job is the deliberate
+exception: it needs a build with different asset paths, see below.)
 
 `typecheck` and `format:check` are new npm scripts added to `package.json` alongside the
 existing `lint`/`format` — they didn't exist before this pipeline, so this is the first time
@@ -43,9 +44,17 @@ this codebase has been typechecked and format-checked in CI.
 Runs on every PR and on pushes to `main`/`master`. Two jobs:
 
 - **`verify`** — the shared gate above.
-- **`lighthouse`** — downloads the verified build and runs
+- **`lighthouse`** — does its **own** build with `SITE_BASE: "/"` and runs
   [Lighthouse CI](https://github.com/treosh/lighthouse-ci-action) (`treosh/lighthouse-ci-action`)
   against it using `lighthouserc.json` at the repo root.
+
+Why the separate build: `vite.config.ts` derives Vite's `base` from `GITHUB_REPOSITORY`
+(always set on Actions runners), so the `verify` build's asset URLs are prefixed with
+`/portfolio-site/` — correct for the real GitHub Pages deployment, but broken when Lighthouse
+serves the same files from the root of its local ephemeral server (every asset 404s, the page
+never paints, and Lighthouse dies with `NO_FCP`). The `SITE_BASE` env var is an explicit
+override in `vite.config.ts` that forces a root-relative base. It has to be a custom variable:
+Actions **silently ignores** attempts to override reserved `GITHUB_*` variables via `env:`.
 
 Concurrency is set to cancel superseded runs on the same ref, so pushing twice in a row doesn't
 queue up stale CI runs.
@@ -56,6 +65,9 @@ Since this is a portfolio site, Lighthouse scores are part of what's being shown
 internal tooling — so this is checked on every PR:
 
 - Audits the prerendered `dist/public` directory directly (`staticDistDir`), 3 runs averaged.
+- `"url": ["http://localhost/"]` restricts the audit to the home page. **Don't remove this
+  line** — without it, LHCI auto-discovers and audits _every_ `*.html` in `staticDistDir`,
+  including the generated `404.html`.
 - Assertions:
   - `performance` — **warn** below 0.8 (perf scores are noisy on shared CI runners, so this
     doesn't hard-fail the build)

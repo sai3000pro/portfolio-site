@@ -11,7 +11,11 @@ const repoName = process.env.GITHUB_REPOSITORY
   : undefined;
 
 // User/organization pages (username.github.io) are served from the root.
-const base = repoName && !repoName.endsWith(".github.io") ? `/${repoName}/` : "/";
+// SITE_BASE overrides the GitHub-Pages-derived base — CI's Lighthouse job sets it to "/"
+// because its local static server serves the build from the root, and Actions silently
+// ignores attempts to override the reserved GITHUB_REPOSITORY variable.
+const base =
+  process.env.SITE_BASE || (repoName && !repoName.endsWith(".github.io") ? `/${repoName}/` : "/");
 
 export default defineConfig({
   tanstackStart: {
