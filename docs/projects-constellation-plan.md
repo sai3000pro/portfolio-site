@@ -150,15 +150,15 @@ Extend `Project` (all optional, backward-compatible):
 ```ts
 export interface Project {
   title: string;
-  description: string;   // short, shown as label / card summary
+  description: string; // short, shown as label / card summary
   image?: string;
   link: string;
   winner?: boolean;
   cta?: string;
   repo?: string;
-  details?: string;      // long text for the modal
-  photos?: string[];     // modal imagery
-  tech?: string[];       // drives edges: shared tech => strand
+  details?: string; // long text for the modal
+  photos?: string[]; // modal imagery
+  tech?: string[]; // drives edges: shared tech => strand
 }
 ```
 
@@ -167,28 +167,28 @@ export interface Project {
 
 **Confirmed `tech` tags per project:**
 
-| Project | `tech` |
-|---|---|
-| CORnet-Mouse | `Python`, `Unity`, `Reinforcement Learning`, `AI/ML` |
-| Verbalyst | `Python`, `Flask`, `JavaScript`, `HTML`, `CSS`, `Tailwind`, `AI/ML` |
-| Healthut | `Python`, `JavaScript`, `HTML`, `CSS` |
-| PatronPal | `Python`, `Flask`, `JavaScript`, `HTML`, `CSS`, `Tailwind` |
-| devDucky | `Python`, `Flask`, `JavaScript`, `Node.js`, `Express`, `Vite`, `AI/ML` |
+| Project      | `tech`                                                                 |
+| ------------ | ---------------------------------------------------------------------- |
+| CORnet-Mouse | `Python`, `Unity`, `Reinforcement Learning`, `AI/ML`                   |
+| Verbalyst    | `Python`, `Flask`, `JavaScript`, `HTML`, `CSS`, `Tailwind`, `AI/ML`    |
+| Healthut     | `Python`, `JavaScript`, `HTML`, `CSS`                                  |
+| PatronPal    | `Python`, `Flask`, `JavaScript`, `HTML`, `CSS`, `Tailwind`             |
+| devDucky     | `Python`, `Flask`, `JavaScript`, `Node.js`, `Express`, `Vite`, `AI/ML` |
 
 **Derived edge map (all 10 pairs — fully connected graph):**
 
-| Edge | Shared techs | Weight |
-|---|---|---|
-| Verbalyst ↔ PatronPal | Python, Flask, JS, HTML, CSS, Tailwind | 6 |
-| Verbalyst ↔ Healthut | Python, JS, HTML, CSS | 4 |
-| Healthut ↔ PatronPal | Python, JS, HTML, CSS | 4 |
-| Verbalyst ↔ devDucky | Python, Flask, JS, AI/ML | 4 |
-| PatronPal ↔ devDucky | Python, Flask, JS | 3 |
-| CORnet-Mouse ↔ Verbalyst | Python, AI/ML | 2 |
-| CORnet-Mouse ↔ devDucky | Python, AI/ML | 2 |
-| Healthut ↔ devDucky | Python, JS | 2 |
-| CORnet-Mouse ↔ Healthut | Python | 1 |
-| CORnet-Mouse ↔ PatronPal | Python | 1 |
+| Edge                     | Shared techs                           | Weight |
+| ------------------------ | -------------------------------------- | ------ |
+| Verbalyst ↔ PatronPal    | Python, Flask, JS, HTML, CSS, Tailwind | 6      |
+| Verbalyst ↔ Healthut     | Python, JS, HTML, CSS                  | 4      |
+| Healthut ↔ PatronPal     | Python, JS, HTML, CSS                  | 4      |
+| Verbalyst ↔ devDucky     | Python, Flask, JS, AI/ML               | 4      |
+| PatronPal ↔ devDucky     | Python, Flask, JS                      | 3      |
+| CORnet-Mouse ↔ Verbalyst | Python, AI/ML                          | 2      |
+| CORnet-Mouse ↔ devDucky  | Python, AI/ML                          | 2      |
+| Healthut ↔ devDucky      | Python, JS                             | 2      |
+| CORnet-Mouse ↔ Healthut  | Python                                 | 1      |
+| CORnet-Mouse ↔ PatronPal | Python                                 | 1      |
 
 The graph is fully connected with natural weight variation. Verbalyst ↔ PatronPal will have the heaviest/brightest strand; CORnet-Mouse edges to Healthut and PatronPal will be the thinnest.
 

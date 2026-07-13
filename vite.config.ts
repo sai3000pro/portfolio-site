@@ -11,8 +11,7 @@ const repoName = process.env.GITHUB_REPOSITORY
   : undefined;
 
 // User/organization pages (username.github.io) are served from the root.
-const base =
-  repoName && !repoName.endsWith(".github.io") ? `/${repoName}/` : "/";
+const base = repoName && !repoName.endsWith(".github.io") ? `/${repoName}/` : "/";
 
 export default defineConfig({
   tanstackStart: {

@@ -5,13 +5,13 @@
 Five workflows live in `.github/workflows/`, plus one Dependabot config. They split into a
 reusable "verify" step and four workflows that each use it for a different purpose:
 
-| File | Trigger | Purpose |
-|---|---|---|
-| `verify.yml` | `workflow_call` only (not run directly) | Install, lint, typecheck, format-check, build. Shared by `ci.yml` and `deploy.yml`. |
-| `ci.yml` | PRs and pushes to `main`/`master` | Runs `verify`, then audits the build with Lighthouse CI. |
-| `deploy.yml` | Pushes to `main`/`master`, manual dispatch | Runs `verify`, then publishes the build to GitHub Pages. |
-| `codeql.yml` | PRs, pushes to `main`/`master`, weekly schedule | Static security analysis (CodeQL) for JS/TS. |
-| `dependabot.yml` | N/A (Dependabot's own schedule) | Weekly PRs for dependency and GitHub Actions updates. |
+| File             | Trigger                                         | Purpose                                                                             |
+| ---------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `verify.yml`     | `workflow_call` only (not run directly)         | Install, lint, typecheck, format-check, build. Shared by `ci.yml` and `deploy.yml`. |
+| `ci.yml`         | PRs and pushes to `main`/`master`               | Runs `verify`, then audits the build with Lighthouse CI.                            |
+| `deploy.yml`     | Pushes to `main`/`master`, manual dispatch      | Runs `verify`, then publishes the build to GitHub Pages.                            |
+| `codeql.yml`     | PRs, pushes to `main`/`master`, weekly schedule | Static security analysis (CodeQL) for JS/TS.                                        |
+| `dependabot.yml` | N/A (Dependabot's own schedule)                 | Weekly PRs for dependency and GitHub Actions updates.                               |
 
 The key design point: **nothing reaches GitHub Pages without passing lint, typecheck, format,
 and a successful build first.** Before this setup, `deploy.yml` built and published on every

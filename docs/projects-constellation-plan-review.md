@@ -3,6 +3,7 @@
 Issues and gaps found in `projects-constellation-plan.md`, grouped by severity.
 
 **Resolved after review:**
+
 - Node-to-node collision → added to physics model and locked decisions.
 - Modal content for thin projects → content to be provided by owner before phase 5.
 - Dual position system conflict + 60fps setState → resolved by locking `useMotionValue` as the position tracking approach.

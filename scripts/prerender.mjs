@@ -4,15 +4,10 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const ssr = await import(join(__dirname, "../dist/server/_ssr/index.mjs")).then(
-  (m) => m.default
-);
+const ssr = await import(join(__dirname, "../dist/server/_ssr/index.mjs")).then((m) => m.default);
 
 async function findPublicDir() {
-  const candidates = [
-    join(__dirname, "../dist/public"),
-    join(__dirname, "../dist/client"),
-  ];
+  const candidates = [join(__dirname, "../dist/public"), join(__dirname, "../dist/client")];
   for (const dir of candidates) {
     try {
       const s = await stat(dir);
