@@ -38,8 +38,6 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Phase = "loading" | "warp" | "settled";
-
 interface Star {
   x: number;
   y: number;
@@ -198,50 +196,6 @@ function useRotatingRole(active: boolean): string {
   }, [active]);
 
   return text;
-}
-
-function Loading() {
-  const [pct, setPct] = useState(0);
-  useEffect(() => {
-    const dur = 1700;
-    const t0 = performance.now();
-    let raf = 0;
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / dur);
-      setPct(Math.round(p * 100));
-      if (p < 1) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, []);
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-9 bg-space"
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-    >
-      <div
-        className="load-word relative font-display font-extrabold uppercase text-white"
-        style={{ fontSize: "clamp(34px,7vw,72px)", letterSpacing: "0.32em", textIndent: "0.32em" }}
-      >
-        LOADING
-      </div>
-      <div className="h-1 rounded overflow-hidden bg-white/10" style={{ width: "min(360px,62vw)" }}>
-        <div
-          className="h-full rounded"
-          style={{
-            width: pct + "%",
-            background: "linear-gradient(90deg,#2f9bff,#5db6ff)",
-            boxShadow: "0 0 14px rgba(47,155,255,0.8)",
-          }}
-        />
-      </div>
-      <div className="font-display text-muted-portfolio" style={{ fontSize: 13, letterSpacing: 3 }}>
-        {pct}%
-      </div>
-    </motion.div>
-  );
 }
 
 function Nav({ show }: { show: boolean }) {
@@ -793,83 +747,26 @@ function ScrollTop() {
 }
 
 function Index() {
-  const [phase, setPhase] = useState<Phase>("loading");
-  const [skipIntro, setSkipIntro] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stars = useStarfield(canvasRef);
 
-  // Detect reduced motion / deep-link / hidden tab on mount (client-only)
   useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const skip =
-      reduce || window.location.hash === "#landing" || document.visibilityState === "hidden";
-    if (skip) {
-      setSkipIntro(true);
-      setPhase("settled");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (skipIntro) {
-      stars.setTarget(0.006);
-      return;
-    }
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const after = (ms: number, fn: () => void) => timers.push(setTimeout(fn, ms));
-
-    setPhase("loading");
-    stars.setTarget(0.0025);
-
-    after(1850, () => {
-      setPhase("warp");
-      stars.setTarget(0.16);
-      after(900, () => stars.setTarget(0.045));
-      after(1700, () => stars.setTarget(0.006));
-    });
-    after(1850 + 2400, () => setPhase((p) => (p === "warp" ? "settled" : p)));
-
-    return () => timers.forEach(clearTimeout);
+    stars.setTarget(0.006);
     // stars handle is stable (useCallback) but identity changes each render; intentionally excluded
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [skipIntro]);
-
-  // Lock page scroll until the intro settles.
-  useEffect(() => {
-    const locked = phase !== "settled";
-    document.body.style.overflow = locked ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [phase]);
-
-  const settled = phase === "settled";
+  }, []);
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-space font-body text-ink">
       {/* Persistent starfield background */}
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 w-full h-full transition-opacity duration-500"
-        style={{ zIndex: 0, opacity: phase === "loading" ? 0 : 1 }}
-      />
+      <canvas ref={canvasRef} className="fixed inset-0 w-full h-full" style={{ zIndex: 0 }} />
       <div className="nebula fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
 
-      <Nav show={settled} />
+      <Nav show />
 
-      {/* Hero — zooms in out of the warp */}
-      <motion.section
-        id="home"
-        className="relative"
-        style={{ zIndex: 2 }}
-        initial={false}
-        animate={phase === "loading" ? { scale: 0.06, opacity: 0 } : { scale: 1, opacity: 1 }}
-        transition={{ duration: skipIntro ? 0 : 2.2, ease: [0.16, 0.7, 0.2, 1] }}
-        onAnimationComplete={() => {
-          if (phase === "warp") setPhase("settled");
-        }}
-      >
-        <Hero show={settled} instant={skipIntro} />
-      </motion.section>
+      <section id="home" className="relative" style={{ zIndex: 2 }}>
+        <Hero show instant />
+      </section>
 
       {/* Content sections */}
       <div className="relative" style={{ zIndex: 2 }}>
@@ -879,8 +776,6 @@ function Index() {
         <Contact />
         <Footer />
       </div>
-
-      <AnimatePresence>{phase === "loading" && <Loading key="loading" />}</AnimatePresence>
 
       <ScrollTop />
     </div>
