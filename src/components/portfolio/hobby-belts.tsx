@@ -8,6 +8,8 @@ import {
   wrap,
   type MotionValue,
 } from "framer-motion";
+import { Pause, Play } from "lucide-react";
+
 import type { HobbyPhoto } from "@/data/hobbies";
 import { assetUrl } from "@/lib/assets";
 import { HobbyLightbox } from "@/components/portfolio/hobby-lightbox";
@@ -311,6 +313,7 @@ function MotionStage({
 }) {
   const { total, perRow, rows, tileW, tileH, pitch } = layout;
 
+  const [paused, setPaused] = useState(false);
   const [focused, setFocused] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -357,9 +360,9 @@ function MotionStage({
   }
   const values = valuesRef.current;
 
-  // Global pause: keyboard focus and the open lightbox freeze every belt. Per-row hover
-  // pausing is handled separately, inside the RAF loop.
-  const globalPaused = focused || lightboxOpen;
+  // Global pause: the pause button, keyboard focus, and the open lightbox freeze every belt.
+  // Per-row hover pausing is handled separately, inside the RAF loop.
+  const globalPaused = paused || focused || lightboxOpen;
   const pausedRef = useRef(false);
   pausedRef.current = globalPaused;
 
@@ -702,6 +705,30 @@ function MotionStage({
         })}
       </div>
 
+      {/* Compact pause control (WCAG 2.2.2). Anchored to the bottom-right corner, in the empty
+          area below the centred belt band, so \u2014 unlike the old full-width bar \u2014 it never
+          overlaps the belts or blocks a tile click. */}
+      <button
+        type="button"
+        onClick={() => setPaused((p) => !p)}
+        aria-pressed={paused}
+        aria-label={paused ? "Play the photo wall" : "Pause the photo wall"}
+        className="absolute inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-white"
+        style={{
+          right: "clamp(16px,4vw,40px)",
+          bottom: "clamp(16px,4vh,36px)",
+          zIndex: 3,
+          fontSize: 12.5,
+          padding: "7px 14px",
+          background: "rgba(4,10,24,0.6)",
+          backdropFilter: "blur(6px)",
+          border: "1px solid rgba(47,155,255,0.22)",
+        }}
+      >
+        {paused ? <Play size={13} strokeWidth={2} /> : <Pause size={13} strokeWidth={2} />}
+        {paused ? "Play" : "Pause"}
+      </button>
+
       <p aria-live="polite" className="sr-only">
         {ready ? `Photo wall ready, ${photos.length} photos.` : ""}
       </p>
@@ -805,7 +832,7 @@ function BeltTile({
         backfaceVisibility: "hidden",
         touchAction: "manipulation",
       }}
-      {...(isOriginal ? {} : { "aria-hidden": true, inert: true })}
+      {...(isOriginal ? {} : { "aria-hidden": true })}
     >
       <div style={shell}>
         {isOriginal ? (
@@ -820,7 +847,15 @@ function BeltTile({
             {inner}
           </button>
         ) : (
-          <span className="relative block w-full h-full">{inner}</span>
+          // Clone: a duplicate the belt needs to loop. Mouse-clickable (opens the same photo),
+          // but not focusable and hidden from assistive tech (the original carries a11y/tab).
+          <div
+            onClick={onOpen}
+            className="relative block w-full h-full"
+            style={{ cursor: "pointer" }}
+          >
+            {inner}
+          </div>
         )}
       </div>
     </motion.div>
