@@ -181,26 +181,6 @@
   text-shadow: 0 0 40px rgba(47, 155, 255, 0.25);
 }
 
-.load-word {
-  position: relative;
-}
-.load-word::after {
-  content: "LOADING";
-  position: absolute;
-  inset: 0;
-  color: transparent;
-  background: linear-gradient(90deg, #5db6ff, #fff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  clip-path: inset(0 100% 0 0);
-  animation: wordfill 1.7s ease forwards;
-}
-@keyframes wordfill {
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
 .nebula::after {
   content: "";
   position: absolute;

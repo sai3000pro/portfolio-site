@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, type TargetAndTransition, type Transition } from "framer-motion";
 import { Github, Linkedin, Mail, ArrowUp } from "lucide-react";
 
-import { NAV_LINKS, PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
+import { PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
 import { About } from "@/components/portfolio/about";
 import { Experience } from "@/components/portfolio/experience";
 import { Projects } from "@/components/portfolio/projects";
 import { Contact, Footer } from "@/components/portfolio/contact";
+import { Nav } from "@/components/portfolio/nav";
+import { Starfield } from "@/components/portfolio/starfield";
+import { assetUrl } from "@/lib/assets";
 
 const SOCIAL_ICONS: Record<string, typeof Github> = {
   GitHub: Github,
@@ -38,130 +41,11 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-interface Star {
-  x: number;
-  y: number;
-  z: number;
-  tw: number;
-  hue: number;
-}
-interface StarfieldHandle {
-  setTarget: (t: number) => void;
-}
-
-function useStarfield(canvasRef: React.RefObject<HTMLCanvasElement | null>): StarfieldHandle {
-  const stateRef = useRef({
-    stars: [] as Star[],
-    n: 720,
-    w: 0,
-    h: 0,
-    cx: 0,
-    cy: 0,
-    speed: 0.0025,
-    target: 0.0025,
-    dpr: 1,
-    running: false,
-  });
-
-  const setTarget = useCallback((t: number) => {
-    stateRef.current.target = t;
-  }, []);
-
-  useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv) return;
-    const ctx = cv.getContext("2d");
-    if (!ctx) return;
-    const s = stateRef.current;
-    s.dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    const size = () => {
-      s.dpr = Math.min(window.devicePixelRatio || 1, 2);
-      s.w = cv.clientWidth;
-      s.h = cv.clientHeight;
-      cv.width = s.w * s.dpr;
-      cv.height = s.h * s.dpr;
-      s.cx = s.w / 2;
-      s.cy = s.h / 2;
-      ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
-    };
-    size();
-
-    s.stars = [];
-    for (let i = 0; i < s.n; i++) {
-      s.stars.push({
-        x: Math.random() * 2 - 1,
-        y: Math.random() * 2 - 1,
-        z: Math.random(),
-        tw: Math.random() * Math.PI * 2,
-        hue: Math.random() < 0.18 ? 205 : 0,
-      });
-    }
-
-    s.running = true;
-    const fov = 0.9;
-    const loop = (t: number) => {
-      if (!s.running) return;
-      s.speed += (s.target - s.speed) * 0.04;
-      ctx.clearRect(0, 0, s.w, s.h);
-      const warpish = s.speed > 0.02;
-      for (const star of s.stars) {
-        const pz = star.z;
-        star.z -= s.speed;
-        if (star.z <= 0.02) {
-          star.z = 1;
-          star.x = Math.random() * 2 - 1;
-          star.y = Math.random() * 2 - 1;
-          continue;
-        }
-        const k = fov / star.z;
-        const sx = s.cx + star.x * k * s.cx;
-        const sy = s.cy + star.y * k * s.cy;
-        if (sx < -50 || sx > s.w + 50 || sy < -50 || sy > s.h + 50) continue;
-        const sizePx = (1 - star.z) * 2.4 + (warpish ? 0.3 : 0.9);
-        let alpha = warpish
-          ? Math.min(1, (1 - star.z) * 1.4)
-          : Math.min(1, 0.45 + (1 - star.z) * 0.9);
-        if (!warpish) alpha *= 0.6 + 0.4 * Math.sin(t * 0.002 + star.tw);
-        const color = star.hue ? `rgba(150,200,255,${alpha})` : `rgba(255,255,255,${alpha})`;
-        if (warpish) {
-          const k0 = fov / pz;
-          const px = s.cx + star.x * k0 * s.cx;
-          const py = s.cy + star.y * k0 * s.cy;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = sizePx;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(px, py);
-          ctx.lineTo(sx, sy);
-          ctx.stroke();
-        } else {
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(sx, sy, sizePx, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      requestAnimationFrame(loop);
-    };
-    requestAnimationFrame(loop);
-
-    window.addEventListener("resize", size);
-    return () => {
-      s.running = false;
-      window.removeEventListener("resize", size);
-    };
-  }, [canvasRef]);
-
-  return { setTarget };
-}
-
 /** Typewriter cycling through ROLES for the hero headline. */
-function useRotatingRole(active: boolean): string {
-  const [text, setText] = useState(active ? "" : ROLES[0]);
+function useRotatingRole(): string {
+  const [text, setText] = useState("");
 
   useEffect(() => {
-    if (!active) return;
     let timeout: ReturnType<typeof setTimeout>;
     let roleIdx = 0;
     let charIdx = 0;
@@ -193,67 +77,9 @@ function useRotatingRole(active: boolean): string {
 
     timeout = setTimeout(tick, 600);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, []);
 
   return text;
-}
-
-function Nav({ show }: { show: boolean }) {
-  return (
-    <motion.nav
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
-      style={{
-        padding: "20px clamp(24px,5vw,80px)",
-        backdropFilter: "blur(8px)",
-        background: "rgba(0,0,5,0.35)",
-      }}
-      initial={false}
-      animate={{ opacity: show ? 1 : 0, y: show ? 0 : -12 }}
-      transition={{ duration: 0.6, delay: show ? 0.2 : 0 }}
-    >
-      <a href="#home" className="flex items-center gap-3 no-underline">
-        <img
-          src={PROFILE.logo}
-          alt="Sai logo"
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: "9999px",
-            boxShadow: "0 0 16px rgba(47,155,255,0.5)",
-          }}
-        />
-        <span className="font-display font-semibold text-white" style={{ fontSize: 18 }}>
-          {PROFILE.name}
-          <b className="text-accent-bright">.</b>
-        </span>
-      </a>
-      <div className="hidden md:flex items-center gap-1">
-        {NAV_LINKS.map((l) => (
-          <a
-            key={l.label}
-            href={l.href}
-            className="font-display font-medium no-underline rounded-full px-[15px] py-[8px] text-muted-portfolio hover:text-white transition-colors"
-            style={{ fontSize: 14.5 }}
-          >
-            {l.label}
-          </a>
-        ))}
-        <a
-          href={PROFILE.resumeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-display font-semibold no-underline rounded-full px-[16px] py-[8px] text-white ml-1 transition-colors"
-          style={{
-            fontSize: 14.5,
-            background: "rgba(47,155,255,0.14)",
-            border: "1px solid rgba(93,182,255,0.35)",
-          }}
-        >
-          Résumé
-        </a>
-      </div>
-    </motion.nav>
-  );
 }
 
 function Portrait() {
@@ -296,7 +122,7 @@ function Portrait() {
         }}
       >
         <img
-          src={PROFILE.portrait}
+          src={assetUrl(PROFILE.portrait)}
           alt={PROFILE.portraitAlt}
           className="w-full h-full object-cover"
         />
@@ -548,8 +374,8 @@ function SaiName() {
   );
 }
 
-function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
-  const role = useRotatingRole(show);
+function Hero() {
+  const role = useRotatingRole();
   return (
     <motion.div
       className="relative w-full flex flex-col items-center justify-center text-center"
@@ -559,8 +385,8 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
         padding: "clamp(96px,14vh,150px) clamp(20px,6vw,40px) clamp(56px,9vh,90px)",
       }}
       variants={container}
-      initial={instant ? false : "hidden"}
-      animate={show ? "show" : "hidden"}
+      initial={false}
+      animate="show"
     >
       {/* Portrait */}
       <motion.div variants={item}>
@@ -638,7 +464,7 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
         style={{ marginTop: 4 }}
       >
         <motion.a
-          href={PROFILE.resumeUrl}
+          href={assetUrl(PROFILE.resumeUrl)}
           target="_blank"
           rel="noopener noreferrer"
           whileHover={{ y: -2, boxShadow: "0 12px 36px rgba(47,155,255,0.6)" }}
@@ -747,25 +573,14 @@ function ScrollTop() {
 }
 
 function Index() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stars = useStarfield(canvasRef);
-
-  useEffect(() => {
-    stars.setTarget(0.006);
-    // stars handle is stable (useCallback) but identity changes each render; intentionally excluded
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-space font-body text-ink">
-      {/* Persistent starfield background */}
-      <canvas ref={canvasRef} className="fixed inset-0 w-full h-full" style={{ zIndex: 0 }} />
-      <div className="nebula fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
+      <Starfield />
 
-      <Nav show />
+      <Nav />
 
       <section id="home" className="relative" style={{ zIndex: 2 }}>
-        <Hero show instant />
+        <Hero />
       </section>
 
       {/* Content sections */}

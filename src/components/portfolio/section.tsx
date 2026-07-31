@@ -25,7 +25,16 @@ export function Reveal({
 }
 
 /** Section title styled with the cosmic accent + eyebrow label. */
-export function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) {
+export function SectionHeading({
+  eyebrow,
+  title,
+  as: Heading = "h2",
+}: {
+  eyebrow: string;
+  title: string;
+  /** Use "h1" when the heading is the page's primary title (a dedicated route). */
+  as?: "h1" | "h2";
+}) {
   return (
     <div className="flex flex-col items-center text-center">
       <Reveal>
@@ -47,12 +56,12 @@ export function SectionHeading({ eyebrow, title }: { eyebrow: string; title: str
         </span>
       </Reveal>
       <Reveal delay={0.08}>
-        <h2
+        <Heading
           className="font-display font-extrabold text-white mt-5"
           style={{ fontSize: "clamp(30px,4.4vw,52px)", letterSpacing: "-0.02em", lineHeight: 1.05 }}
         >
           {title}
-        </h2>
+        </Heading>
       </Reveal>
     </div>
   );

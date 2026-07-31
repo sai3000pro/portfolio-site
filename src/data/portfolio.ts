@@ -206,10 +206,19 @@ export const SOCIALS: Social[] = [
   { label: "Email", href: "mailto:sljilla@uwaterloo.ca" },
 ];
 
-export const NAV_LINKS = [
-  { label: "Home", href: "#home" },
-  { label: "About", href: "#about" },
-  { label: "Experience", href: "#experience" },
-  { label: "Projects", href: "#projects" },
-  { label: "Contact", href: "#contact" },
+export interface NavLink {
+  label: string;
+  /** In-page anchor on "/" (no leading "#"). Mutually exclusive with `to`. */
+  section?: string;
+  /** Router path, for links that leave the landing page. */
+  to?: string;
+}
+
+export const NAV_LINKS: NavLink[] = [
+  { label: "Home", section: "home" },
+  { label: "About", section: "about" },
+  { label: "Experience", section: "experience" },
+  { label: "Projects", section: "projects" },
+  { label: "Hobbies", to: "/hobbies" },
+  { label: "Contact", section: "contact" },
 ];

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { PROFILE, SOCIALS } from "@/data/portfolio";
 import { Reveal, Section, SectionHeading } from "./section";
@@ -167,6 +168,14 @@ export function Footer() {
           </p>
         </div>
         <div className="flex gap-5">
+          {/* The nav is hidden below 768px, so this is the only route to /hobbies on mobile. */}
+          <Link
+            to="/hobbies"
+            className="font-display text-muted-portfolio no-underline transition-colors hover:text-accent-bright"
+            style={{ fontSize: 14 }}
+          >
+            Hobbies
+          </Link>
           {SOCIALS.map((s) => (
             <a
               key={s.label}
