@@ -219,6 +219,6 @@ export const NAV_LINKS: NavLink[] = [
   { label: "About", section: "about" },
   { label: "Experience", section: "experience" },
   { label: "Projects", section: "projects" },
-  { label: "Hobbies", to: "/hobbies" },
   { label: "Contact", section: "contact" },
+  { label: "Hobbies", to: "/hobbies" },
 ];
