@@ -8,9 +8,7 @@ import {
   wrap,
   type MotionValue,
 } from "framer-motion";
-import { Pause, Play, Shuffle } from "lucide-react";
-
-import type { HobbyPhoto, HobbyTag } from "@/data/hobbies";
+import type { HobbyPhoto } from "@/data/hobbies";
 import { assetUrl } from "@/lib/assets";
 import { HobbyLightbox } from "@/components/portfolio/hobby-lightbox";
 import { SectionHeading } from "@/components/portfolio/section";
@@ -43,8 +41,6 @@ const TUNING = {
 const MOTION_MIN_WIDTH = 768;
 const THREE_ROW_MIN_WIDTH = 1024;
 
-/** Opacity applied to tiles whose hobby doesn't match the active tag filter. */
-const DIM_OPACITY = 0.14;
 /** Per-row depth cue: each row back is this much smaller and this much blurrier. */
 const DEPTH_SCALE_STEP = 0.03;
 const DEPTH_BLUR_STEP = 0.55;
@@ -315,20 +311,8 @@ function MotionStage({
 }) {
   const { total, perRow, rows, tileW, tileH, pitch } = layout;
 
-  const [paused, setPaused] = useState(false);
   const [focused, setFocused] = useState(false);
   const [ready, setReady] = useState(false);
-  // Bumped by Shuffle; included in the RAF effect deps so the full spiral intro replays.
-  const [runId, setRunId] = useState(0);
-  // A permutation of photo indices — the tile→photo assignment. Shuffle reshuffles it.
-  const [order, setOrder] = useState<number[]>(() => photos.map((_, i) => i));
-  // Active tag filter (dim non-matching tiles). null = show everything.
-  const [activeTag, setActiveTag] = useState<HobbyTag | null>(null);
-
-  // Keep `order` sized to the photo set if the prop ever changes shape.
-  useEffect(() => {
-    setOrder((prev) => (prev.length === photos.length ? prev : photos.map((_, i) => i)));
-  }, [photos]);
 
   // Hover pauses only the row under the cursor — written by pointer move, read by the RAF
   // loop, so moving the mouse never triggers a React re-render of the tile grid.
@@ -343,25 +327,21 @@ function MotionStage({
   const visibleRef = useRef(true);
   const suppressClickRef = useRef(false);
 
-  // The distinct hobbies present, in first-seen order — the tag legend near the controls.
-  const tags = useMemo(() => Array.from(new Set(photos.map((p) => p.hobby))), [photos]);
-
-  // Every belt tile: photos cycle to fill the rows following the shuffled `order`. The first
-  // occurrence of each photo is the "original" — the only one in the tab order / a11y tree.
+  // Every belt tile: photos cycle to fill the rows. The first occurrence of each photo is the
+  // "original" — the only one in the tab order / a11y tree.
   const tiles = useMemo(
     () =>
       Array.from({ length: total }, (_, i) => {
         const slot = i % photos.length;
-        const originalIndex = order[slot] ?? slot;
-        const photo = photos[originalIndex];
+        const photo = photos[slot];
         return {
           key: `${photo.id}#${Math.floor(i / photos.length)}`,
           photo,
-          photoIndex: originalIndex,
+          photoIndex: slot,
           isOriginal: i < photos.length,
         };
       }),
-    [total, photos, order],
+    [total, photos],
   );
 
   // Created once per tile count; the RAF loop writes to these, React never re-renders.
@@ -377,9 +357,9 @@ function MotionStage({
   }
   const values = valuesRef.current;
 
-  // Global pause: the button, keyboard focus, and the open lightbox freeze every belt.
-  // Per-row hover pausing is handled separately, inside the RAF loop.
-  const globalPaused = paused || focused || lightboxOpen;
+  // Global pause: keyboard focus and the open lightbox freeze every belt. Per-row hover
+  // pausing is handled separately, inside the RAF loop.
+  const globalPaused = focused || lightboxOpen;
   const pausedRef = useRef(false);
   pausedRef.current = globalPaused;
 
@@ -432,9 +412,9 @@ function MotionStage({
 
     const settleStart = (total - 1) * TUNING.FLY_STAGGER + TUNING.FLY_IN + TUNING.HOLD;
 
-    // Replay the full spiral on every visit / shuffle. Reset tiles to the collapsed, invisible
-    // start state so a remount (or reshuffle) always animates fresh instead of showing a
-    // half-finished or stale frame — that inconsistency was the "strange lag" on revisits.
+    // Replay the full spiral on every visit. Reset tiles to the collapsed, invisible start
+    // state so a remount always animates fresh instead of showing a half-finished or stale
+    // frame — that inconsistency was the "strange lag" on revisits.
     for (const v of values) {
       v.scale.set(0.28);
       v.opacity.set(0);
@@ -652,32 +632,9 @@ function MotionStage({
         layerEl.removeEventListener("pointercancel", endDrag);
       }
     };
-    // Re-seeded only when the tile grid genuinely changes shape, or Shuffle bumps runId.
+    // Re-seeded only when the tile grid genuinely changes shape.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [total, perRow, rows, pitch, runId]);
-
-  // Tag filter: dim non-matching tiles via the opacity motionValue. Safe only once the belts
-  // have settled — before that the RAF loop still owns opacity. Re-applies after every replay
-  // (ready flips false→true) and every reshuffle (tiles identity changes).
-  useEffect(() => {
-    if (!ready) return;
-    for (let i = 0; i < tiles.length; i++) {
-      const match = activeTag === null || tiles[i].photo.hobby === activeTag;
-      values[i]?.opacity.set(match ? 1 : DIM_OPACITY);
-    }
-  }, [activeTag, ready, tiles, runId, values]);
-
-  const shuffle = useCallback(() => {
-    setOrder((prev) => {
-      const next = prev.slice();
-      for (let i = next.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [next[i], next[j]] = [next[j], next[i]];
-      }
-      return next;
-    });
-    setRunId((n) => n + 1);
-  }, []);
+  }, [total, perRow, rows, pitch]);
 
   const moving = !globalPaused;
 
@@ -743,79 +700,6 @@ function MotionStage({
             />
           );
         })}
-      </div>
-
-      {/* Controls pinned to the bottom of the immersive stage (WCAG 2.2.2): tag legend,
-          then Pause/Play + Shuffle. */}
-      <div
-        className="absolute inset-x-0 flex flex-col items-center gap-3"
-        style={{ bottom: "clamp(24px,5vh,56px)", zIndex: 3, padding: "0 clamp(16px,4vw,48px)" }}
-      >
-        {tags.length > 1 && (
-          <div
-            className="flex flex-wrap items-center justify-center gap-1.5"
-            role="group"
-            aria-label="Filter photos by hobby"
-          >
-            {tags.map((tag) => {
-              const active = activeTag === tag;
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setActiveTag((t) => (t === tag ? null : tag))}
-                  aria-pressed={active}
-                  className="rounded-full font-display capitalize transition-colors"
-                  style={{
-                    fontSize: 11,
-                    padding: "4px 11px",
-                    color: active ? "#fff" : "rgba(203,225,255,0.66)",
-                    background: active ? "rgba(47,155,255,0.22)" : "rgba(4,10,24,0.5)",
-                    backdropFilter: "blur(6px)",
-                    border: `1px solid ${active ? "rgba(93,182,255,0.5)" : "rgba(47,155,255,0.18)"}`,
-                  }}
-                >
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPaused((p) => !p)}
-            aria-pressed={paused}
-            className="inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-white"
-            style={{
-              fontSize: 13,
-              padding: "7px 15px",
-              background: "rgba(4,10,24,0.55)",
-              backdropFilter: "blur(6px)",
-              border: "1px solid rgba(47,155,255,0.22)",
-            }}
-          >
-            {paused ? <Play size={14} strokeWidth={2} /> : <Pause size={14} strokeWidth={2} />}
-            {paused ? "Play" : "Pause"}
-          </button>
-
-          <button
-            type="button"
-            onClick={shuffle}
-            className="inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-white"
-            style={{
-              fontSize: 13,
-              padding: "7px 15px",
-              background: "rgba(4,10,24,0.55)",
-              backdropFilter: "blur(6px)",
-              border: "1px solid rgba(47,155,255,0.22)",
-            }}
-          >
-            <Shuffle size={14} strokeWidth={2} />
-            Shuffle
-          </button>
-        </div>
       </div>
 
       <p aria-live="polite" className="sr-only">
