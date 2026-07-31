@@ -1,10 +1,23 @@
-import { useCallback, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { X, ChevronLeft, ChevronRight, Info } from "lucide-react";
 
 import type { HobbyPhoto } from "@/data/hobbies";
 import { assetUrl } from "@/lib/assets";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+
+/**
+ * Injects an alpha channel into a space-syntax HSL string, e.g.
+ * "hsl(205 85% 62%)" -> "hsl(205 85% 62% / 0.4)". Returns null for a
+ * missing/unexpected value so callers can fall back gracefully.
+ */
+function tint(accent: string | undefined, alpha: number): string | null {
+  if (!accent || !accent.trim().endsWith(")")) return null;
+  return accent.replace(/\)\s*$/, ` / ${alpha})`);
+}
+
+/** Minimum horizontal travel (px) before a touch drag counts as a swipe. */
+const SWIPE_THRESHOLD = 44;
 
 /** Keeps the neighbours warm so arrowing through doesn't flash empty. */
 function usePreloadNeighbours(photos: HobbyPhoto[], index: number) {
@@ -32,12 +45,33 @@ export function HobbyLightbox({
   const panelRef = useRef<HTMLDivElement>(null);
   const photo = photos[index];
 
+  const [captionVisible, setCaptionVisible] = useState(true);
+  const reduceMotion = useReducedMotion();
+  const touchStartX = useRef<number | null>(null);
+
   useFocusTrap(panelRef, true);
   usePreloadNeighbours(photos, index);
 
   const step = useCallback(
     (delta: number) => onNavigate((index + delta + photos.length) % photos.length),
     [index, photos.length, onNavigate],
+  );
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  }, []);
+
+  const onTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const start = touchStartX.current;
+      touchStartX.current = null;
+      if (start === null) return;
+      const delta = (e.changedTouches[0]?.clientX ?? start) - start;
+      if (Math.abs(delta) < SWIPE_THRESHOLD) return;
+      // Swipe left -> next, swipe right -> previous.
+      step(delta < 0 ? 1 : -1);
+    },
+    [step],
   );
 
   useEffect(() => {
@@ -55,7 +89,22 @@ export function HobbyLightbox({
     };
   }, [onClose, step]);
 
+  const meta = useMemo(
+    () => (photo ? [photo.location, photo.date, photo.gear].filter(Boolean) : []),
+    [photo],
+  );
+
   if (!photo) return null;
+
+  const accentBorder = tint(photo.accent, 0.45);
+  const accentRing = tint(photo.accent, 0.18);
+  const accentGlow = tint(photo.accent, 0.28);
+  const panelBorder = accentBorder
+    ? `1px solid ${accentBorder}`
+    : "1px solid rgba(93,182,255,0.25)";
+  const panelShadow = photo.accent
+    ? `0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px ${accentRing}, 0 0 44px ${accentGlow}`
+    : "0 30px 80px rgba(0,0,0,0.6)";
 
   return (
     <motion.div
@@ -77,8 +126,8 @@ export function HobbyLightbox({
           maxWidth: 980,
           maxHeight: "88vh",
           background: "#0a1526",
-          border: "1px solid rgba(93,182,255,0.25)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+          border: panelBorder,
+          boxShadow: panelShadow,
         }}
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -86,6 +135,23 @@ export function HobbyLightbox({
         transition={{ duration: 0.2, ease: "easeOut" }}
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          onClick={() => setCaptionVisible((v) => !v)}
+          aria-pressed={captionVisible}
+          aria-label={captionVisible ? "Hide caption" : "Show caption"}
+          className="absolute left-3 top-3 z-10 grid place-items-center rounded-full transition-colors hover:text-white"
+          style={{
+            width: 36,
+            height: 36,
+            background: captionVisible ? "rgba(93,182,255,0.22)" : "rgba(10,20,36,0.85)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            color: "#cfe2f5",
+          }}
+        >
+          <Info size={17} strokeWidth={2} />
+        </button>
+
         <button
           type="button"
           onClick={onClose}
@@ -103,14 +169,26 @@ export function HobbyLightbox({
         </button>
 
         <div
-          className="w-full"
+          className="w-full overflow-hidden"
           style={{ aspectRatio: String(photo.aspect ?? 4 / 3), background: "#050c18" }}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
         >
-          <img
+          <motion.img
+            key={photo.id}
             src={assetUrl(photo.full ?? photo.src)}
             alt={photo.alt}
-            className="w-full h-full"
+            sizes="(max-width: 980px) 100vw, 980px"
+            className="w-full h-full select-none"
             style={{ objectFit: "contain" }}
+            draggable={false}
+            initial={reduceMotion ? undefined : { scale: 1, x: 0, y: 0 }}
+            animate={reduceMotion ? undefined : { scale: 1.07, x: -10, y: -6 }}
+            transition={
+              reduceMotion
+                ? undefined
+                : { duration: 20, ease: "easeInOut", repeat: Infinity, repeatType: "reverse" }
+            }
           />
         </div>
 
@@ -118,13 +196,38 @@ export function HobbyLightbox({
           className="flex items-center justify-between gap-4"
           style={{ padding: "14px clamp(16px,3vw,24px) 18px" }}
         >
-          <p
-            id="hobby-lightbox-caption"
-            className="font-body text-muted-portfolio"
-            style={{ fontSize: 14.5, lineHeight: 1.6 }}
-          >
-            {photo.caption ?? photo.alt}
-          </p>
+          {captionVisible ? (
+            <div className="min-w-0">
+              <p
+                id="hobby-lightbox-caption"
+                className="font-body text-muted-portfolio"
+                style={{ fontSize: 14.5, lineHeight: 1.6 }}
+              >
+                {photo.caption ?? photo.alt}
+              </p>
+              {meta.length > 0 ? (
+                <p
+                  className="font-body text-muted-portfolio"
+                  style={{
+                    marginTop: 4,
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                    opacity: 0.7,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  {meta.map((item, i) => (
+                    <span key={i}>
+                      {i > 0 ? <span style={{ margin: "0 7px", opacity: 0.6 }}>·</span> : null}
+                      {item}
+                    </span>
+                  ))}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <span aria-hidden="true" />
+          )}
           <div className="flex items-center gap-2 shrink-0">
             <NavButton label="Previous photo" onClick={() => step(-1)}>
               <ChevronLeft size={19} strokeWidth={2} />

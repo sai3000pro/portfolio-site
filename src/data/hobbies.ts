@@ -24,6 +24,14 @@ export interface HobbyPhoto {
   hobby: HobbyTag;
   /** width / height. Sizes the lightbox before load so it doesn't jump. */
   aspect?: number;
+  /** EXIF-style capture location, e.g. "Waterloo, ON". Shown in the lightbox metadata row. */
+  location?: string;
+  /** Human-readable capture date, e.g. "Jul 2025". Not parsed — display only. */
+  date?: string;
+  /** Camera/lens string, e.g. "Sony A7 IV - 35mm". Shown in the lightbox metadata row. */
+  gear?: string;
+  /** HSL accent color matching the tile, e.g. "hsl(205 85% 62%)". Tints border/glow. */
+  accent?: string;
 }
 
 const TILE_W = 640;
@@ -50,17 +58,41 @@ function placeholderSrc(label: string, hue: number): string {
 const HUES = [205, 265, 12, 158, 38, 320];
 const TAGS: HobbyTag[] = ["tennis", "f1", "basketball", "baseball", "soccer", "travel"];
 
+/** Sample EXIF-style values so the lightbox metadata UI is testable against placeholders. */
+const LOCATIONS = [
+  "Waterloo, ON",
+  "Montreal, QC",
+  "Toronto, ON",
+  "Vancouver, BC",
+  "Austin, TX",
+  "Monaco",
+];
+const DATES = ["Jul 2025", "Jun 2025", "Apr 2025", "Feb 2025", "Nov 2024", "Sep 2024"];
+const GEAR = [
+  "Sony A7 IV - 35mm",
+  "Sony A7 IV - 85mm",
+  "Fujifilm X-T5 - 23mm",
+  "Canon R6 - 70-200mm",
+  "Nikon Z6 II - 50mm",
+  "iPhone 15 Pro",
+];
+
 function makePlaceholders(count: number, offset = 0): HobbyPhoto[] {
   return Array.from({ length: count }, (_, k) => {
     const i = k + offset;
     const tag = TAGS[i % TAGS.length];
     const label = `${tag} ${String(i + 1).padStart(2, "0")}`;
+    const hue = HUES[i % HUES.length];
     return {
       id: `placeholder-${i}`,
-      src: placeholderSrc(label, HUES[i % HUES.length]),
+      src: placeholderSrc(label, hue),
       alt: `Placeholder tile ${i + 1} — a ${tag} photo will go here`,
       hobby: tag,
       aspect: TILE_W / TILE_H,
+      location: LOCATIONS[i % LOCATIONS.length],
+      date: DATES[i % DATES.length],
+      gear: GEAR[i % GEAR.length],
+      accent: `hsl(${hue} 85% 62%)`,
     };
   });
 }
