@@ -173,147 +173,137 @@ export function Nav() {
   };
 
   return (
-    <>
-      <motion.nav
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
-        style={{
-          padding: "20px clamp(24px,5vw,80px)",
-          backdropFilter: "blur(8px)",
-          background: "var(--portfolio-nav)",
-          borderBottom: "1px solid var(--portfolio-border)",
-          height: NAV_HEIGHT,
-        }}
-        initial={false}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-      >
-        <Link to="/" hash="home" className="flex items-center gap-3 no-underline">
-          <img
-            src={assetUrl(PROFILE.logo)}
-            alt="Sai logo"
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: "9999px",
-              boxShadow: "0 0 16px rgba(47,155,255,0.5)",
-            }}
-          />
-          <span className="font-display font-semibold text-ink" style={{ fontSize: 18 }}>
-            {PROFILE.name}
-            <b className="text-accent-bright">.</b>
+    <motion.nav
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
+      style={{
+        padding: "20px clamp(24px,5vw,80px)",
+        backdropFilter: "blur(8px)",
+        background: "var(--portfolio-nav)",
+        borderBottom: "1px solid var(--portfolio-border)",
+        height: NAV_HEIGHT,
+      }}
+      initial={false}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, delay: 0.2 }}
+    >
+      <Link to="/" hash="home" className="flex items-center gap-3 no-underline">
+        <img
+          src={assetUrl(PROFILE.logo)}
+          alt="Sai logo"
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: "9999px",
+            boxShadow: "0 0 16px rgba(47,155,255,0.5)",
+          }}
+        />
+        <span className="font-display font-semibold text-ink" style={{ fontSize: 18 }}>
+          {PROFILE.name}
+          <b className="text-accent-bright">.</b>
+        </span>
+      </Link>
+
+      {/* Desktop links */}
+      <div className="hidden md:flex items-center gap-1">
+        {NAV_LINKS.map((l) => renderLink(l, LINK_CLASS, LINK_STYLE))}
+
+        {/* Command palette trigger */}
+        <button
+          type="button"
+          onClick={openCommandPalette}
+          aria-label="Open command palette"
+          className="ml-1 inline-flex items-center gap-2 rounded-full px-[12px] py-[7px] font-display text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+          style={PILL_STYLE}
+        >
+          <Search size={14} aria-hidden="true" />
+          <span
+            className="font-medium"
+            style={{ fontSize: 12.5, letterSpacing: 0.5 }}
+            aria-hidden="true"
+          >
+            {shortcutHint}
           </span>
-        </Link>
+        </button>
 
-        {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-1">
-          {NAV_LINKS.map((l) => renderLink(l, LINK_CLASS, LINK_STYLE))}
+        <ThemeToggle className="ml-1" />
 
-          {/* Command palette trigger */}
+        <a
+          href={assetUrl(PROFILE.resumeUrl)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`${RESUME_CLASS} ml-1`}
+          style={RESUME_STYLE}
+        >
+          Résumé
+        </a>
+      </div>
+
+      {/* Mobile controls: the theme switch sits beside the menu button. */}
+      <div className="md:hidden flex items-center gap-2">
+        <ThemeToggle />
+        <button
+          type="button"
+          className="flex items-center justify-center rounded-full text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+          style={{ width: 42, height: 42, ...PILL_STYLE }}
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          aria-controls={MENU_ID}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+        </button>
+      </div>
+
+      {/* Mobile dropdown sheet */}
+      {open && (
+        <div
+          id={MENU_ID}
+          className="md:hidden absolute right-[clamp(24px,5vw,80px)] top-full flex flex-col gap-1"
+          style={{
+            marginTop: 10,
+            padding: 12,
+            minWidth: 200,
+            borderRadius: 18,
+            background: "var(--portfolio-sheet)",
+            border: "1px solid var(--portfolio-border-strong)",
+            backdropFilter: "blur(12px)",
+            boxShadow: "0 12px 40px var(--portfolio-shadow)",
+          }}
+        >
+          {NAV_LINKS.map((l) =>
+            renderLink(
+              l,
+              `${LINK_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright`,
+              LINK_STYLE,
+            ),
+          )}
+
           <button
             type="button"
-            onClick={openCommandPalette}
+            onClick={() => {
+              setOpen(false);
+              openCommandPalette();
+            }}
             aria-label="Open command palette"
-            className="ml-1 inline-flex items-center gap-2 rounded-full px-[12px] py-[7px] font-display text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-            style={PILL_STYLE}
+            className="inline-flex items-center gap-2 rounded-full px-[15px] py-[8px] text-left font-display font-medium text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+            style={LINK_STYLE}
           >
-            <Search size={14} aria-hidden="true" />
-            <span
-              className="font-medium"
-              style={{ fontSize: 12.5, letterSpacing: 0.5 }}
-              aria-hidden="true"
-            >
-              {shortcutHint}
-            </span>
+            <Search size={15} aria-hidden="true" />
+            Search
           </button>
 
           <a
             href={assetUrl(PROFILE.resumeUrl)}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${RESUME_CLASS} ml-1`}
+            className={`${RESUME_CLASS} mt-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright`}
             style={RESUME_STYLE}
+            onClick={() => setOpen(false)}
           >
             Résumé
           </a>
         </div>
-
-        {/* Mobile controls: the theme switch is a separate fixed control, so just the menu here. */}
-        <div className="md:hidden flex items-center gap-2">
-          <button
-            type="button"
-            className="flex items-center justify-center rounded-full text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-            style={{ width: 42, height: 42, ...PILL_STYLE }}
-            aria-label={open ? "Close menu" : "Open menu"}
-            aria-expanded={open}
-            aria-controls={MENU_ID}
-            onClick={() => setOpen((v) => !v)}
-          >
-            {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
-          </button>
-        </div>
-
-        {/* Mobile dropdown sheet */}
-        {open && (
-          <div
-            id={MENU_ID}
-            className="md:hidden absolute right-[clamp(24px,5vw,80px)] top-full flex flex-col gap-1"
-            style={{
-              marginTop: 10,
-              padding: 12,
-              minWidth: 200,
-              borderRadius: 18,
-              background: "var(--portfolio-sheet)",
-              border: "1px solid var(--portfolio-border-strong)",
-              backdropFilter: "blur(12px)",
-              boxShadow: "0 12px 40px var(--portfolio-shadow)",
-            }}
-          >
-            {NAV_LINKS.map((l) =>
-              renderLink(
-                l,
-                `${LINK_CLASS} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright`,
-                LINK_STYLE,
-              ),
-            )}
-
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                openCommandPalette();
-              }}
-              aria-label="Open command palette"
-              className="inline-flex items-center gap-2 rounded-full px-[15px] py-[8px] text-left font-display font-medium text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-              style={LINK_STYLE}
-            >
-              <Search size={15} aria-hidden="true" />
-              Search
-            </button>
-
-            <a
-              href={assetUrl(PROFILE.resumeUrl)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${RESUME_CLASS} mt-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright`}
-              style={RESUME_STYLE}
-              onClick={() => setOpen(false)}
-            >
-              Résumé
-            </a>
-          </div>
-        )}
-      </motion.nav>
-
-      {/* Theme switch: deliberately NOT part of the navbar. A separate fixed control
-          pinned just below the bar on the left, so it stays put while the page scrolls
-          and the nav keeps its original height. */}
-      <ThemeToggle
-        className="fixed z-40"
-        style={{
-          top: NAV_HEIGHT + 12,
-          left: "clamp(24px,5vw,80px)",
-        }}
-      />
-    </>
+      )}
+    </motion.nav>
   );
 }
