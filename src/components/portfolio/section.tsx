@@ -77,7 +77,7 @@ export function Section({ id, children }: { id: string; children: ReactNode }) {
   return (
     <section
       id={id}
-      className="relative mx-auto w-full scroll-mt-32"
+      className="relative mx-auto w-full scroll-mt-24"
       style={{ maxWidth: 1180, padding: "clamp(70px,10vh,130px) clamp(24px,5vw,80px)" }}
     >
       {children}

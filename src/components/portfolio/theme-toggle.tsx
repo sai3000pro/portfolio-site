@@ -18,7 +18,13 @@ import {
  * hydration never mismatches. The real page theme is applied even earlier by
  * `THEME_INIT_SCRIPT` in the document head, so there is no flash.
  */
-export function ThemeToggle({ className = "" }: { className?: string }) {
+export function ThemeToggle({
+  className = "",
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
 
   useEffect(() => {
@@ -43,9 +49,10 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
       style={{
         width: 34,
         height: 34,
-        background: "var(--portfolio-surface-2)",
+        background: "var(--portfolio-nav)",
         border: "1px solid var(--portfolio-border-strong)",
         backdropFilter: "blur(8px)",
+        ...style,
       }}
       aria-label={`Switch to ${upcoming} theme`}
       title={`Switch to ${upcoming} theme`}

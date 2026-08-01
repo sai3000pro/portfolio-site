@@ -390,7 +390,7 @@ function Hero() {
       style={{
         minHeight: "100vh",
         gap: "clamp(16px,2.2vh,28px)",
-        padding: "clamp(120px,16vh,170px) clamp(20px,6vw,40px) clamp(56px,9vh,90px)",
+        padding: "clamp(96px,14vh,150px) clamp(20px,6vw,40px) clamp(56px,9vh,90px)",
       }}
       variants={container}
       initial={false}

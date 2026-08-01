@@ -243,7 +243,7 @@ function StaticGallery({
       style={{
         maxWidth: 1180,
         zIndex: 2,
-        padding: "clamp(128px,17vh,180px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
+        padding: "clamp(112px,16vh,168px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
       }}
     >
       <SectionHeading eyebrow="Off the clock" title="Hobbies" as="h1" />
@@ -646,7 +646,7 @@ function MotionStage({
       {/* Heading floats over the spiral so the whole viewport reads as one immersive scene. */}
       <div
         className="pointer-events-none absolute inset-x-0 flex justify-center"
-        style={{ top: "clamp(118px,16vh,158px)", zIndex: 3, padding: "0 clamp(24px,5vw,80px)" }}
+        style={{ top: "clamp(96px,15vh,150px)", zIndex: 3, padding: "0 clamp(24px,5vw,80px)" }}
       >
         <SectionHeading eyebrow="Off the clock" title="Hobbies" as="h1" />
       </div>
