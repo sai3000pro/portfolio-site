@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Camera } from "lucide-react";
 import { EXPERIENCES, type Experience } from "@/data/portfolio";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { Section, SectionHeading } from "./section";
 
 // Globe geometry. The texture is equirectangular (lon -180..180, lat 90..-90).
@@ -191,6 +192,10 @@ function EarthNode({
 }
 
 function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => void }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useFocusTrap(panelRef, true);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -220,9 +225,11 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={`${exp.title} at ${exp.company}`}
+      aria-labelledby="experience-modal-title"
+      aria-describedby="experience-modal-desc"
     >
       <motion.div
+        ref={panelRef}
         className="relative w-full rounded-2xl overflow-hidden"
         style={{
           maxWidth: 860,
@@ -297,6 +304,7 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
                 {exp.duration}
               </span>
               <h3
+                id="experience-modal-title"
                 className="font-display font-extrabold text-white mt-1"
                 style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1 }}
               >
@@ -320,6 +328,7 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
                 </span>
               </p>
               <p
+                id="experience-modal-desc"
                 className="text-muted-portfolio mt-4"
                 style={{ fontSize: 15.5, lineHeight: 1.75, textWrap: "pretty" }}
               >

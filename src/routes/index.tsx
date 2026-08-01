@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, type TargetAndTransition, type Transition } from "framer-motion";
+import { useEffect, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  type TargetAndTransition,
+  type Transition,
+} from "framer-motion";
 import { Github, Linkedin, Mail, ArrowUp } from "lucide-react";
 
 import { PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
@@ -529,42 +537,82 @@ function Hero() {
   );
 }
 
+/** Thin accent bar at the very top that tracks scroll progress. Hidden entirely
+ *  when the visitor prefers reduced motion. */
+function ScrollProgress() {
+  const prefersReduced = useReducedMotion();
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 140,
+    damping: 30,
+    restDelta: 0.001,
+  });
+
+  if (prefersReduced) return null;
+
+  return (
+    <motion.div
+      className="fixed top-0 left-0 right-0 z-[60] origin-left"
+      style={{
+        scaleX,
+        height: 3,
+        background: "linear-gradient(90deg,#2f9bff,#5db6ff)",
+        boxShadow: "0 0 10px rgba(47,155,255,0.6)",
+        pointerEvents: "none",
+      }}
+      aria-hidden="true"
+    />
+  );
+}
+
 function ScrollTop() {
+  const prefersReduced = useReducedMotion();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 400);
+    // Reveal after roughly one viewport of scrolling.
+    const onScroll = () => setShow(window.scrollY > window.innerHeight * 0.9);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const enterExit = prefersReduced
+    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        initial: { opacity: 0, y: 12 },
+        animate: { opacity: 1, y: 0 },
+        exit: { opacity: 0, y: 12 },
+      };
+
   return (
     <AnimatePresence>
       {show && (
         <motion.button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="Scroll to top"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
-          whileHover={{ y: -2, background: "rgba(255,255,255,0.1)" }}
-          whileTap={{ scale: 0.94 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed z-50 grid place-items-center rounded-full"
+          onClick={() => window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" })}
+          aria-label="Back to top"
+          initial={enterExit.initial}
+          animate={enterExit.animate}
+          exit={enterExit.exit}
+          whileHover={prefersReduced ? undefined : { y: -2 }}
+          whileTap={prefersReduced ? undefined : { scale: 0.94 }}
+          transition={{ duration: prefersReduced ? 0 : 0.25, ease: "easeOut" }}
+          className="fixed z-50 grid place-items-center rounded-full text-ink transition-colors hover:text-accent-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
           style={{
             bottom: 24,
             right: 24,
             width: 46,
             height: 46,
-            color: "#ffffff",
-            background: "transparent",
+            background: "rgba(47,155,255,0.14)",
+            border: "1px solid rgba(93,182,255,0.35)",
+            backdropFilter: "blur(8px)",
           }}
         >
           <ArrowUp
-            size={26}
+            size={22}
             strokeWidth={2.2}
-            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
+            aria-hidden="true"
+            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4))" }}
           />
         </motion.button>
       )}
@@ -575,6 +623,7 @@ function ScrollTop() {
 function Index() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-space font-body text-ink">
+      <ScrollProgress />
       <Starfield />
 
       <Nav />

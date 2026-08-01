@@ -84,6 +84,10 @@ export function useStarfield(
       s.speed += (s.target - s.speed) * 0.04;
       ctx.clearRect(0, 0, s.w, s.h);
       const warpish = s.speed > 0.02;
+      // Resolved theme, sampled ONCE per frame (not per star). In light mode the same
+      // particles are drawn in ink instead of white, so a clean white background gets
+      // dark particles flying in rather than invisible white ones.
+      const light = document.documentElement.classList.contains("light");
       for (const star of s.stars) {
         const pz = star.z;
         star.z -= s.speed;
@@ -102,7 +106,13 @@ export function useStarfield(
           ? Math.min(1, (1 - star.z) * 1.4)
           : Math.min(1, 0.45 + (1 - star.z) * 0.9);
         if (!warpish) alpha *= 0.6 + 0.4 * Math.sin(t * 0.002 + star.tw);
-        const color = star.hue ? `rgba(150,200,255,${alpha})` : `rgba(255,255,255,${alpha})`;
+        const color = light
+          ? star.hue
+            ? `rgba(26,115,216,${alpha * 0.72})`
+            : `rgba(12,24,44,${alpha * 0.62})`
+          : star.hue
+            ? `rgba(150,200,255,${alpha})`
+            : `rgba(255,255,255,${alpha})`;
         if (warpish) {
           const k0 = fov / pz;
           const px = s.cx + star.x * k0 * s.cx;

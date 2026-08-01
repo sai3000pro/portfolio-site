@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion, motionValue } from "framer-motion";
 import type { MotionValue } from "framer-motion";
-import { X, Camera } from "lucide-react";
+import { X, Camera, ArrowRight } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@/data/portfolio";
+import { slugify } from "@/lib/slug";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -420,6 +423,9 @@ function ProjectNode({
 // ─── ProjectModal ─────────────────────────────────────────────────────────────
 
 function ProjectModal({ project, onClose }: { project: Project | null; onClose: () => void }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, project !== null);
+
   useEffect(() => {
     if (!project) return;
     const onKey = (e: KeyboardEvent) => {
@@ -450,9 +456,10 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
           onClick={onClose}
           role="dialog"
           aria-modal="true"
-          aria-label={project.title}
+          aria-labelledby="project-modal-title"
         >
           <motion.div
+            ref={panelRef}
             className="relative w-full rounded-2xl overflow-hidden"
             style={{
               maxWidth: 860,
@@ -560,6 +567,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                     </span>
                   )}
                   <h3
+                    id="project-modal-title"
                     className="font-display font-extrabold text-white"
                     style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1, margin: 0 }}
                   >
@@ -595,6 +603,21 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                   )}
 
                   <div className="flex flex-wrap gap-3 mt-6">
+                    <Link
+                      to="/projects/$slug"
+                      params={{ slug: slugify(project.title) }}
+                      className="font-display font-semibold no-underline inline-flex items-center gap-1.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+                      style={{
+                        fontSize: 13,
+                        padding: "8px 18px",
+                        borderRadius: 8,
+                        color: "#021024",
+                        background: "linear-gradient(180deg,#5db6ff,#2f9bff)",
+                        boxShadow: "0 6px 20px rgba(47,155,255,0.35)",
+                      }}
+                    >
+                      Read case study <ArrowRight size={15} aria-hidden="true" />
+                    </Link>
                     <a
                       href={project.link}
                       target="_blank"
@@ -646,6 +669,44 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [openProject, setOpenProject] = useState<Project | null>(null);
   const [activeNode, setActiveNode] = useState<number | null>(null);
+
+  // ── Deep-linking: mirror the open modal in the URL (?p=<slug>) ────────────────
+  // The URL is the single source of truth for "which modal is open". Node clicks
+  // and the close button only mutate the query string; the effect below opens or
+  // closes the modal to match, so shared links and the browser Back button both
+  // behave correctly.
+  const navigate = useNavigate();
+  const pParam = useRouterState({
+    select: (s) => (s.location.search as { p?: string }).p,
+  });
+
+  const handleOpen = useCallback(
+    (project: Project) => {
+      navigate({
+        to: ".",
+        search: (prev) => ({ ...prev, p: slugify(project.title) }),
+        resetScroll: false,
+      });
+    },
+    [navigate],
+  );
+
+  const handleClose = useCallback(() => {
+    navigate({
+      to: ".",
+      search: (prev) => ({ ...prev, p: undefined }),
+      resetScroll: false,
+    });
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!pParam) {
+      setOpenProject((cur) => (cur === null ? cur : null));
+      return;
+    }
+    const match = projects.find((p) => slugify(p.title) === pParam) ?? null;
+    setOpenProject((cur) => (cur === match ? cur : match));
+  }, [pParam, projects]);
 
   const reducedMotion =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -867,13 +928,13 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
             isMobile={isMobile}
             onDragStart={() => handleDragStart(i)}
             onDragEnd={(vel) => handleDragEnd(i, vel)}
-            onClick={() => setOpenProject(project)}
+            onClick={() => handleOpen(project)}
             onHover={(on) => setActiveNode(on ? i : null)}
           />
         ))}
       </div>
 
-      <ProjectModal project={openProject} onClose={() => setOpenProject(null)} />
+      <ProjectModal project={openProject} onClose={handleClose} />
     </>
   );
 }

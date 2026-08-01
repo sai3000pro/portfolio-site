@@ -2,6 +2,9 @@ import { writeFile, copyFile, mkdir, stat } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
+import { ROUTES } from "./routes.mjs";
+import { generateSeoArtifacts } from "./seo.mjs";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // pathToFileURL: on Windows a bare "C:\..." path is not a valid ESM specifier.
@@ -22,13 +25,13 @@ async function findPublicDir() {
   return candidates[0];
 }
 
-// Keep in sync with nitro.prerender.routes in vite.config.ts.
-const ROUTES = ["/", "/hobbies"];
-
 const origin = "http://localhost:3000";
 const publicDir = await findPublicDir();
 await mkdir(publicDir, { recursive: true });
 
+// ROUTES is the single source of truth (scripts/routes.mjs). It derives the
+// /projects/<slug> case-study routes from src/data/portfolio.ts, so new projects
+// are prerendered automatically without touching this file.
 for (const route of ROUTES) {
   let url = origin + route;
   let response = await ssr.fetch(new Request(url));
@@ -56,4 +59,15 @@ for (const route of ROUTES) {
   }
 
   console.log(`Prerendered ${url} → ${join(outDir, "index.html")}`);
+}
+
+// Emit sitemap.xml, robots.txt and per-route OG images from the same route list.
+try {
+  const { sitemap, robots, ogFiles } = await generateSeoArtifacts(publicDir);
+  console.log(`Wrote ${sitemap}`);
+  console.log(`Wrote ${robots}`);
+  console.log(`Wrote ${ogFiles.length} OG image(s): ${ogFiles.join(", ")}`);
+} catch (err) {
+  console.error(`SEO artifact generation failed: ${err instanceof Error ? err.message : err}`);
+  process.exit(1);
 }

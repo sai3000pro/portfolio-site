@@ -1,24 +1,42 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { motion } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Menu, Search, X } from "lucide-react";
 
+import { ThemeToggle } from "@/components/portfolio/theme-toggle";
+import { openCommandPalette } from "@/components/portfolio/command-palette";
 import { NAV_LINKS, PROFILE } from "@/data/portfolio";
+import { useScrollSpy } from "@/hooks/use-scroll-spy";
 import { assetUrl } from "@/lib/assets";
 
 const LINK_CLASS =
-  "font-display font-medium no-underline rounded-full px-[15px] py-[8px] text-muted-portfolio hover:text-white transition-colors";
+  "font-display font-medium no-underline rounded-full px-[15px] py-[8px] text-muted-portfolio hover:text-ink transition-colors";
 const LINK_STYLE = { fontSize: 14.5 } as const;
 
+const ACTIVE_LINK_STYLE = {
+  ...LINK_STYLE,
+  textShadow: "0 0 14px rgba(93,182,255,0.55)",
+} as const;
+
 const RESUME_CLASS =
-  "font-display font-semibold no-underline rounded-full px-[16px] py-[8px] text-white transition-colors";
+  "font-display font-semibold no-underline rounded-full px-[16px] py-[8px] text-ink transition-colors";
 const RESUME_STYLE = {
   fontSize: 14.5,
   background: "rgba(47,155,255,0.14)",
   border: "1px solid rgba(93,182,255,0.35)",
 } as const;
 
+const PILL_STYLE = {
+  background: "rgba(47,155,255,0.14)",
+  border: "1px solid rgba(93,182,255,0.35)",
+  backdropFilter: "blur(8px)",
+} as const;
+
 const MENU_ID = "mobile-nav-menu";
+
+// Landing sections tracked by the scroll-spy, in document order. Kept at module
+// scope so the hook receives a stable reference and never re-subscribes.
+const SECTION_IDS = ["home", "about", "experience", "projects", "contact"];
 
 /**
  * Fixed top bar. Section links are plain anchors while on the landing page and
@@ -28,6 +46,24 @@ export function Nav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const onLanding = pathname === "/";
   const [open, setOpen] = useState(false);
+  const prefersReduced = useReducedMotion();
+
+  // Highlight the section currently in view — only on the landing route.
+  const activeSection = useScrollSpy(SECTION_IDS, onLanding);
+
+  // Platform-aware shortcut hint for the palette pill; resolved after mount to
+  // stay SSR-safe (server + first client render both show the ⌘K default).
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    const platform =
+      // navigator.userAgentData is not in all lib.dom versions.
+      (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData
+        ?.platform ||
+      navigator.platform ||
+      navigator.userAgent;
+    setIsMac(/mac/i.test(platform));
+  }, []);
+  const shortcutHint = isMac ? "⌘K" : "Ctrl K";
 
   // Close the mobile menu on navigation.
   useEffect(() => {
@@ -43,6 +79,17 @@ export function Nav() {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open]);
+
+  // Smooth-scroll an in-page section into view (honouring reduced motion) and
+  // keep the URL hash in sync so links stay shareable, without the browser's
+  // default instant jump fighting the smooth scroll.
+  const scrollToSection = (section: string) => {
+    const el = document.getElementById(section);
+    if (!el) return false;
+    el.scrollIntoView({ behavior: prefersReduced ? "auto" : "smooth", block: "start" });
+    window.history.pushState(null, "", `#${section}`);
+    return true;
+  };
 
   // Shared renderer so desktop and mobile stay in sync.
   const renderLink = (
@@ -63,16 +110,44 @@ export function Nav() {
         </Link>
       );
     }
+
+    const isActive = onLanding && activeSection === l.section;
+    const activeClass = isActive ? `${className} text-ink` : className;
+    const activeStyle = isActive ? { ...style, ...ACTIVE_LINK_STYLE } : style;
+    const label = (
+      <span className="relative inline-block">
+        {l.label}
+        {isActive && (
+          <motion.span
+            layoutId="nav-active-underline"
+            className="absolute left-1/2 -translate-x-1/2 rounded-full"
+            style={{
+              bottom: -6,
+              width: "60%",
+              height: 2,
+              background: "rgba(93,182,255,0.9)",
+              boxShadow: "0 0 10px rgba(93,182,255,0.8)",
+            }}
+            aria-hidden="true"
+          />
+        )}
+      </span>
+    );
+
     if (onLanding) {
       return (
         <a
           key={l.label}
           href={`#${l.section}`}
-          className={className}
-          style={style}
-          onClick={() => setOpen(false)}
+          className={activeClass}
+          style={activeStyle}
+          aria-current={isActive ? "location" : undefined}
+          onClick={(e) => {
+            if (l.section && scrollToSection(l.section)) e.preventDefault();
+            setOpen(false);
+          }}
         >
-          {l.label}
+          {label}
         </a>
       );
     }
@@ -113,7 +188,7 @@ export function Nav() {
             boxShadow: "0 0 16px rgba(47,155,255,0.5)",
           }}
         />
-        <span className="font-display font-semibold text-white" style={{ fontSize: 18 }}>
+        <span className="font-display font-semibold text-ink" style={{ fontSize: 18 }}>
           {PROFILE.name}
           <b className="text-accent-bright">.</b>
         </span>
@@ -122,6 +197,27 @@ export function Nav() {
       {/* Desktop links */}
       <div className="hidden md:flex items-center gap-1">
         {NAV_LINKS.map((l) => renderLink(l, LINK_CLASS, LINK_STYLE))}
+
+        {/* Command palette trigger */}
+        <button
+          type="button"
+          onClick={openCommandPalette}
+          aria-label="Open command palette"
+          className="ml-1 inline-flex items-center gap-2 rounded-full px-[12px] py-[7px] font-display text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+          style={PILL_STYLE}
+        >
+          <Search size={14} aria-hidden="true" />
+          <span
+            className="font-medium"
+            style={{ fontSize: 12.5, letterSpacing: 0.5 }}
+            aria-hidden="true"
+          >
+            {shortcutHint}
+          </span>
+        </button>
+
+        <ThemeToggle />
+
         <a
           href={assetUrl(PROFILE.resumeUrl)}
           target="_blank"
@@ -133,24 +229,21 @@ export function Nav() {
         </a>
       </div>
 
-      {/* Mobile hamburger toggle */}
-      <button
-        type="button"
-        className="md:hidden flex items-center justify-center rounded-full text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-        style={{
-          width: 42,
-          height: 42,
-          background: "rgba(47,155,255,0.14)",
-          border: "1px solid rgba(93,182,255,0.35)",
-          backdropFilter: "blur(8px)",
-        }}
-        aria-label={open ? "Close menu" : "Open menu"}
-        aria-expanded={open}
-        aria-controls={MENU_ID}
-        onClick={() => setOpen((v) => !v)}
-      >
-        {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
-      </button>
+      {/* Mobile controls: theme toggle sits beside the hamburger. */}
+      <div className="md:hidden flex items-center gap-2">
+        <ThemeToggle />
+        <button
+          type="button"
+          className="flex items-center justify-center rounded-full text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+          style={{ width: 42, height: 42, ...PILL_STYLE }}
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          aria-controls={MENU_ID}
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+        </button>
+      </div>
 
       {/* Mobile dropdown sheet */}
       {open && (
@@ -175,6 +268,21 @@ export function Nav() {
               LINK_STYLE,
             ),
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              openCommandPalette();
+            }}
+            aria-label="Open command palette"
+            className="inline-flex items-center gap-2 rounded-full px-[15px] py-[8px] text-left font-display font-medium text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+            style={LINK_STYLE}
+          >
+            <Search size={15} aria-hidden="true" />
+            Search
+          </button>
+
           <a
             href={assetUrl(PROFILE.resumeUrl)}
             target="_blank"

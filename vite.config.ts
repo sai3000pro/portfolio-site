@@ -6,6 +6,11 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Single source of truth for the prerendered route list (incl. derived
+// /projects/<slug> case studies). Also consumed by scripts/prerender.mjs so the
+// two can never drift.
+import { ROUTES } from "./scripts/routes.mjs";
+
 const repoName = process.env.GITHUB_REPOSITORY
   ? process.env.GITHUB_REPOSITORY.split("/")[1]
   : undefined;
@@ -38,7 +43,8 @@ export default defineConfig({
       serverDir: "dist/server",
     },
     prerender: {
-      routes: ["/", "/hobbies"],
+      // Shared with scripts/prerender.mjs — see ./scripts/routes.mjs.
+      routes: ROUTES,
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any,

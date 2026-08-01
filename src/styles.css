@@ -144,6 +144,7 @@
 }
 
 /* ===== Portfolio landing tokens & utilities ===== */
+/* Dark is the default identity of the site — light is an opt-in override. */
 :root {
   --portfolio-accent: #2f9bff;
   --portfolio-accent-bright: #5db6ff;
@@ -151,6 +152,69 @@
   --portfolio-ink: #ffffff;
   --portfolio-muted: #9fb3c8;
   --portfolio-space: #000005;
+}
+
+/*
+ * Light palette. Scoped to `html.light` (toggled by src/lib/theme.ts). Keeps the
+ * blue accent identity while re-expressing the hardcoded dark tokens for a
+ * readable page. Contrast (on --portfolio-space #ffffff):
+ *   ink   #0a1526  ~ 17.4:1  (AAA body)
+ *   muted #435268  ~  6.7:1  (AA  body)
+ *   accent-bright #0f62c9 ~ 5.2:1 (AA text / links)
+ */
+html.light {
+  --portfolio-accent: #1a73d8;
+  --portfolio-accent-bright: #0f62c9;
+  --portfolio-accent-deep: #0a4f99;
+  --portfolio-ink: #0a1526;
+  --portfolio-muted: #435268;
+  --portfolio-space: #ffffff;
+}
+
+/* Softer role gradient so it reads as ink, not a glow, on a light background. */
+html.light .role-gradient {
+  background: linear-gradient(100deg, #1a73d8, #0f62c9 50%, #0a4f99);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: none;
+}
+
+/* Dial the nebula wash right down; it's decorative and harsh on white. */
+html.light .nebula {
+  opacity: 0.5;
+}
+html.light .nebula::after {
+  background:
+    radial-gradient(120% 80% at 50% 18%, rgba(47, 155, 255, 0.05), transparent 60%),
+    radial-gradient(90% 60% at 80% 100%, rgba(10, 79, 153, 0.06), transparent 65%);
+}
+
+/* The starfield draws DARK particles in light mode (see src/hooks/use-starfield.ts,
+   which reads the resolved theme each frame), so the canvas stays fully visible —
+   same drifting-particle motion, just ink-on-white instead of white-on-black. */
+
+/* Pleasant cross-fade when switching themes — but not for reduced-motion users. */
+html,
+body,
+.bg-space,
+.text-ink,
+.text-muted-portfolio,
+.text-accent-bright,
+.role-gradient {
+  transition:
+    background-color 0.4s ease,
+    color 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  .bg-space,
+  .text-ink,
+  .text-muted-portfolio,
+  .text-accent-bright,
+  .role-gradient {
+    transition: none;
+  }
 }
 
 .font-display {
@@ -318,5 +382,71 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .globe-pin::after {
     animation: none;
+  }
+}
+
+
+/* ===== Cross-route view transitions ===== */
+/* Router sets defaultViewTransition; keep the cross-fade quick and unobtrusive. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.2s;
+}
+
+/* View transitions are motion. Honour the OS preference and disable them outright. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ===== Print / résumé styles ===== */
+/* Strip the cosmic chrome and print clean black-on-white for résumé/PDF export. */
+@media print {
+  /* Force a plain page regardless of the active theme. */
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body,
+  body * {
+    color: #000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide fixed chrome, the decorative backdrop, and any floating controls. */
+  nav,
+  canvas,
+  .nebula,
+  footer,
+  .theme-toggle {
+    display: none !important;
+  }
+
+  /* Gradient text has no fill in print — render it as solid ink. */
+  .role-gradient {
+    background: none !important;
+    -webkit-text-fill-color: #000 !important;
+    color: #000 !important;
+  }
+
+  /* Keep cards and sections from splitting across pages. */
+  section,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Expand external link targets so they survive on paper. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    word-break: break-all;
   }
 }
