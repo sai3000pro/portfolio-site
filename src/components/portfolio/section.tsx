@@ -44,20 +44,25 @@ export function SectionHeading({
             fontSize: 12,
             letterSpacing: 3,
             padding: "6px 14px",
-            background: "rgba(47,155,255,0.08)",
-            border: "1px solid rgba(47,155,255,0.22)",
+            background: "var(--portfolio-surface-2)",
+            border: "1px solid var(--portfolio-border)",
           }}
         >
           <span
             className="rounded-full"
-            style={{ width: 5, height: 5, background: "#5db6ff", boxShadow: "0 0 8px #5db6ff" }}
+            style={{
+              width: 5,
+              height: 5,
+              background: "var(--portfolio-accent-bright)",
+              boxShadow: "0 0 8px var(--portfolio-accent-bright)",
+            }}
           />
           {eyebrow}
         </span>
       </Reveal>
       <Reveal delay={0.08}>
         <Heading
-          className="font-display font-extrabold text-white mt-5"
+          className="font-display font-extrabold text-ink mt-5"
           style={{ fontSize: "clamp(30px,4.4vw,52px)", letterSpacing: "-0.02em", lineHeight: 1.05 }}
         >
           {title}
@@ -72,7 +77,7 @@ export function Section({ id, children }: { id: string; children: ReactNode }) {
   return (
     <section
       id={id}
-      className="relative mx-auto w-full scroll-mt-24"
+      className="relative mx-auto w-full scroll-mt-32"
       style={{ maxWidth: 1180, padding: "clamp(70px,10vh,130px) clamp(24px,5vw,80px)" }}
     >
       {children}

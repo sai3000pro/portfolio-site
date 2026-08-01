@@ -215,7 +215,7 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
     <motion.div
       className="fixed inset-0 z-[70] flex items-center justify-center"
       style={{
-        background: "rgba(2,6,18,0.82)",
+        background: "var(--portfolio-scrim)",
         padding: "clamp(16px,4vw,40px)",
       }}
       initial={{ opacity: 0 }}
@@ -234,9 +234,9 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
         style={{
           maxWidth: 860,
           maxHeight: "88vh",
-          background: "#0a1526",
-          border: "1px solid rgba(93,182,255,0.25)",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+          background: "var(--portfolio-panel)",
+          border: "1px solid var(--portfolio-border-strong)",
+          boxShadow: "0 30px 80px var(--portfolio-shadow)",
         }}
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -248,13 +248,13 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-colors hover:text-white"
+          className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-colors hover:text-ink"
           style={{
             width: 36,
             height: 36,
-            background: "rgba(10,20,36,0.85)",
-            border: "1px solid rgba(255,255,255,0.14)",
-            color: "#cfe2f5",
+            background: "var(--portfolio-surface)",
+            border: "1px solid var(--portfolio-border)",
+            color: "var(--portfolio-ink)",
           }}
         >
           <X size={18} />
@@ -280,8 +280,8 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
                   className="flex-1 rounded-xl grid place-items-center text-muted-portfolio"
                   style={{
                     aspectRatio: "3 / 4",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px dashed rgba(93,182,255,0.25)",
+                    background: "var(--portfolio-surface)",
+                    border: "1px dashed var(--portfolio-border)",
                   }}
                 >
                   <div className="flex flex-col items-center gap-2" style={{ fontSize: 13 }}>
@@ -305,12 +305,12 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
               </span>
               <h3
                 id="experience-modal-title"
-                className="font-display font-extrabold text-white mt-1"
+                className="font-display font-extrabold text-ink mt-1"
                 style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1 }}
               >
                 {exp.title}
               </h3>
-              <p className="font-display text-white/75 mt-1" style={{ fontSize: 15 }}>
+              <p className="font-display text-muted-portfolio mt-1" style={{ fontSize: 15 }}>
                 {exp.company}
               </p>
               <p className="flex items-center gap-1.5 mt-1.5">
@@ -389,7 +389,7 @@ export function Experience() {
         <div
           className="relative"
           style={{
-            borderLeft: "1px solid rgba(93,182,255,0.25)",
+            borderLeft: "1px solid var(--portfolio-border)",
             paddingLeft: "clamp(28px,4vw,48px)",
           }}
         >
@@ -415,14 +415,14 @@ export function Experience() {
                 className="group w-full text-left rounded-2xl cursor-pointer transition-colors"
                 style={{
                   padding: "22px 24px",
-                  background: "rgba(255,255,255,0.035)",
-                  border: "1px solid rgba(93,182,255,0.16)",
+                  background: "var(--portfolio-surface)",
+                  border: "1px solid var(--portfolio-border)",
                   backdropFilter: "blur(6px)",
                 }}
                 aria-label={`Learn more about ${exp.title} at ${exp.company}`}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                  <h3 className="font-display font-semibold text-white" style={{ fontSize: 19 }}>
+                  <h3 className="font-display font-semibold text-ink" style={{ fontSize: 19 }}>
                     {exp.title}
                   </h3>
                   <span
@@ -433,7 +433,7 @@ export function Experience() {
                   </span>
                 </div>
 
-                <p className="font-display text-white/70 mt-0.5" style={{ fontSize: 15 }}>
+                <p className="font-display text-muted-portfolio mt-0.5" style={{ fontSize: 15 }}>
                   {exp.company}
                 </p>
 

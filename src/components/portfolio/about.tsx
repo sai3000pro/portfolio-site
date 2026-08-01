@@ -24,12 +24,12 @@ export function About() {
             {TAGS.map((tag) => (
               <span
                 key={tag}
-                className="font-display font-medium rounded-full text-white/90"
+                className="font-display font-medium rounded-full text-ink"
                 style={{
                   fontSize: 13.5,
                   padding: "9px 17px",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(93,182,255,0.22)",
+                  background: "var(--portfolio-surface)",
+                  border: "1px solid var(--portfolio-border)",
                 }}
               >
                 {tag}
@@ -45,16 +45,16 @@ export function About() {
             rel="noopener noreferrer"
             whileHover={{
               y: -2,
-              borderColor: "rgba(93,182,255,0.55)",
-              background: "rgba(47,155,255,0.08)",
+              borderColor: "var(--portfolio-border-strong)",
+              background: "var(--portfolio-surface-2)",
             }}
             whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2.5 font-display font-semibold no-underline rounded-full text-white mt-10"
+            className="inline-flex items-center gap-2.5 font-display font-semibold no-underline rounded-full text-ink mt-10"
             style={{
               fontSize: 15,
               padding: "13px 26px",
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "rgba(255,255,255,0.03)",
+              border: "1px solid var(--portfolio-border-strong)",
+              background: "var(--portfolio-surface)",
             }}
           >
             View Résumé →

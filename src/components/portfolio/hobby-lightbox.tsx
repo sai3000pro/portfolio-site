@@ -200,14 +200,14 @@ export function HobbyLightbox({
             <div className="min-w-0">
               <p
                 id="hobby-lightbox-caption"
-                className="font-body text-muted-portfolio"
+                className="font-body text-muted-portfolio on-dark"
                 style={{ fontSize: 14.5, lineHeight: 1.6 }}
               >
                 {photo.caption ?? photo.alt}
               </p>
               {meta.length > 0 ? (
                 <p
-                  className="font-body text-muted-portfolio"
+                  className="font-body text-muted-portfolio on-dark"
                   style={{
                     marginTop: 4,
                     fontSize: 12,
@@ -232,7 +232,7 @@ export function HobbyLightbox({
             <NavButton label="Previous photo" onClick={() => step(-1)}>
               <ChevronLeft size={19} strokeWidth={2} />
             </NavButton>
-            <span className="font-display text-muted-portfolio" style={{ fontSize: 13 }}>
+            <span className="font-display text-muted-portfolio on-dark" style={{ fontSize: 13 }}>
               {index + 1} / {photos.length}
             </span>
             <NavButton label="Next photo" onClick={() => step(1)}>

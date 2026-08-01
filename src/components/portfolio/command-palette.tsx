@@ -51,10 +51,10 @@ export function openCommandPalette(): void {
 // Shared cmdk item styling to match the site's cosmic accent language.
 const ITEM_CLASS =
   "font-display cursor-pointer gap-3 rounded-lg text-muted-portfolio " +
-  "data-[selected=true]:bg-[rgba(47,155,255,0.14)] data-[selected=true]:text-white";
+  "data-[selected=true]:bg-[var(--portfolio-surface-2)] data-[selected=true]:text-[var(--portfolio-ink)]";
 
 const GROUP_CLASS =
-  "[&_[cmdk-group-heading]]:font-display [&_[cmdk-group-heading]]:text-accent-bright " +
+  "[&_[cmdk-group-heading]]:font-display [&_[cmdk-group-heading]]:text-[var(--portfolio-accent-bright)] " +
   "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 " +
   "[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold " +
   "[&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider";
@@ -148,17 +148,17 @@ export function CommandPalette() {
       <DialogContent
         className="max-w-[640px] gap-0 overflow-hidden p-0"
         style={{
-          background: "rgba(0,0,5,0.85)",
-          border: "1px solid rgba(93,182,255,0.25)",
+          background: "var(--portfolio-sheet)",
+          border: "1px solid var(--portfolio-border-strong)",
           backdropFilter: "blur(14px)",
-          boxShadow: "0 16px 60px rgba(0,0,0,0.55)",
+          boxShadow: "0 16px 60px var(--portfolio-shadow)",
         }}
       >
         <DialogTitle className="sr-only">Command palette</DialogTitle>
-        <Command className="bg-transparent text-white [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-[rgba(93,182,255,0.18)]">
+        <Command className="bg-transparent text-ink [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-[var(--portfolio-border)]">
           <CommandInput
             placeholder="Type a command or search…"
-            className="font-display text-white placeholder:text-muted-portfolio"
+            className="font-display text-ink placeholder:text-[var(--portfolio-muted)]"
           />
           <CommandList className="max-h-[360px] px-1 pb-2">
             <CommandEmpty className="font-display py-8 text-center text-sm text-muted-portfolio">
@@ -194,7 +194,7 @@ export function CommandPalette() {
               })}
             </CommandGroup>
 
-            <CommandSeparator className="my-1 bg-[rgba(93,182,255,0.15)]" />
+            <CommandSeparator className="my-1 bg-[var(--portfolio-border)]" />
 
             <CommandGroup heading="Projects" className={GROUP_CLASS}>
               {PROJECTS.map((project) => (
@@ -212,7 +212,7 @@ export function CommandPalette() {
               ))}
             </CommandGroup>
 
-            <CommandSeparator className="my-1 bg-[rgba(93,182,255,0.15)]" />
+            <CommandSeparator className="my-1 bg-[var(--portfolio-border)]" />
 
             <CommandGroup heading="Actions" className={GROUP_CLASS}>
               <CommandItem

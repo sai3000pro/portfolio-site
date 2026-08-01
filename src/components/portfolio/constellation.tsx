@@ -198,10 +198,10 @@ function StrandLayer({
             ref={(el) => {
               glowRefs.current[i] = el;
             }}
-            stroke={`rgba(47,155,255,${alpha})`}
             strokeWidth={width}
             strokeLinecap="round"
             filter="url(#cst-bloom)"
+            style={{ stroke: "var(--portfolio-accent)", strokeOpacity: alpha }}
           />
         );
       })}
@@ -220,10 +220,10 @@ function StrandLayer({
             ref={(el) => {
               coreRefs.current[i] = el;
             }}
-            stroke={`rgba(210,230,255,${alpha})`}
             strokeWidth={width}
             strokeLinecap="round"
             filter="url(#cst-core)"
+            style={{ stroke: "var(--portfolio-ink)", strokeOpacity: alpha }}
           />
         );
       })}
@@ -273,12 +273,14 @@ function ProjectNode({
         width: NODE_W,
         borderRadius: 14,
         overflow: "hidden",
-        background: "rgba(8,15,30,0.88)",
+        background: "var(--portfolio-panel)",
         zIndex: 1,
-        border: `1px solid ${isActive ? "rgba(93,182,255,0.45)" : "rgba(93,182,255,0.17)"}`,
+        border: `1px solid ${
+          isActive ? "var(--portfolio-border-strong)" : "var(--portfolio-border)"
+        }`,
         boxShadow: isActive
-          ? "0 8px 32px rgba(93,182,255,0.18), 0 2px 8px rgba(0,0,0,0.4)"
-          : "0 2px 12px rgba(0,0,0,0.35)",
+          ? "0 8px 32px rgba(93,182,255,0.18), 0 2px 8px var(--portfolio-shadow)"
+          : "0 2px 12px var(--portfolio-shadow)",
         cursor: isMobile ? "default" : "grab",
         userSelect: "none",
         touchAction: "manipulation",
@@ -330,7 +332,7 @@ function ProjectNode({
             }}
           >
             <span
-              className="font-display font-bold text-white/90 text-center"
+              className="font-display font-bold text-white/90 text-center on-dark"
               style={{ fontSize: 15, padding: "0 12px", lineHeight: 1.25 }}
             >
               {project.title}
@@ -365,7 +367,7 @@ function ProjectNode({
       {/* Text area */}
       <div style={{ padding: "12px 14px 14px" }}>
         <h3
-          className="font-display font-semibold text-white"
+          className="font-display font-semibold text-ink"
           style={{
             fontSize: 14,
             margin: 0,
@@ -448,7 +450,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
         <motion.div
           key="backdrop"
           className="fixed inset-0 z-[70] flex items-center justify-center"
-          style={{ background: "rgba(2,6,18,0.82)", padding: "clamp(16px,4vw,40px)" }}
+          style={{ background: "var(--portfolio-scrim)", padding: "clamp(16px,4vw,40px)" }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -464,9 +466,9 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
             style={{
               maxWidth: 860,
               maxHeight: "88vh",
-              background: "#0a1526",
-              border: "1px solid rgba(93,182,255,0.25)",
-              boxShadow: "0 30px 80px rgba(0,0,0,0.6)",
+              background: "var(--portfolio-panel)",
+              border: "1px solid var(--portfolio-border-strong)",
+              boxShadow: "0 30px 80px var(--portfolio-shadow)",
             }}
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -478,13 +480,13 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
               type="button"
               onClick={onClose}
               aria-label="Close"
-              className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-colors hover:text-white"
+              className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-opacity hover:opacity-80"
               style={{
                 width: 36,
                 height: 36,
-                background: "rgba(10,20,36,0.85)",
-                border: "1px solid rgba(255,255,255,0.14)",
-                color: "#cfe2f5",
+                background: "var(--portfolio-panel-deep)",
+                border: "1px solid var(--portfolio-border)",
+                color: "var(--portfolio-muted)",
               }}
             >
               <X size={18} />
@@ -537,7 +539,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                         </span>
                       ) : (
                         <div
-                          className="flex flex-col items-center gap-2 text-muted-portfolio"
+                          className="flex flex-col items-center gap-2 text-muted-portfolio on-dark"
                           style={{ fontSize: 13 }}
                         >
                           <Camera size={22} />
@@ -568,7 +570,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                   )}
                   <h3
                     id="project-modal-title"
-                    className="font-display font-extrabold text-white"
+                    className="font-display font-extrabold text-ink"
                     style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1, margin: 0 }}
                   >
                     {project.title}
@@ -585,15 +587,14 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                       {project.tech.map((t) => (
                         <span
                           key={t}
-                          className="font-display"
+                          className="font-display text-accent-bright"
                           style={{
                             fontSize: 11,
                             fontWeight: 500,
                             padding: "2px 9px",
                             borderRadius: 6,
-                            background: "rgba(93,182,255,0.1)",
-                            border: "1px solid rgba(93,182,255,0.22)",
-                            color: "#5db6ff",
+                            background: "var(--portfolio-surface-2)",
+                            border: "1px solid var(--portfolio-border)",
                           }}
                         >
                           {t}
@@ -622,14 +623,13 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                       href={project.link}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-display font-semibold no-underline transition-colors hover:text-white"
+                      className="font-display font-semibold no-underline text-accent-bright transition-opacity hover:opacity-80"
                       style={{
                         fontSize: 13,
                         padding: "8px 18px",
                         borderRadius: 8,
-                        background: "rgba(47,155,255,0.15)",
-                        border: "1px solid rgba(93,182,255,0.4)",
-                        color: "#5db6ff",
+                        background: "var(--portfolio-surface-2)",
+                        border: "1px solid var(--portfolio-border-strong)",
                       }}
                     >
                       {project.cta ?? "View on Devpost →"}
@@ -639,14 +639,13 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                         href={project.repo}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-display font-semibold no-underline transition-colors hover:text-white"
+                        className="font-display font-semibold no-underline text-muted-portfolio transition-opacity hover:opacity-80"
                         style={{
                           fontSize: 13,
                           padding: "8px 18px",
                           borderRadius: 8,
-                          background: "rgba(255,255,255,0.05)",
-                          border: "1px solid rgba(255,255,255,0.15)",
-                          color: "#9fb3c8",
+                          background: "var(--portfolio-surface)",
+                          border: "1px solid var(--portfolio-border)",
                         }}
                       >
                         GitHub →
@@ -910,7 +909,7 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
           borderRadius: 18,
           background:
             "radial-gradient(ellipse at 50% 55%, rgba(10,79,153,0.12) 0%, transparent 68%)",
-          border: "1px solid rgba(93,182,255,0.08)",
+          border: "1px solid var(--portfolio-border)",
         }}
       >
         <StrandLayer edges={edges} motionValues={mvs} activeNode={activeNode} />

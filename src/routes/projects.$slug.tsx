@@ -93,8 +93,8 @@ function NotFound() {
             fontSize: 12,
             letterSpacing: 3,
             padding: "6px 14px",
-            background: "rgba(47,155,255,0.08)",
-            border: "1px solid rgba(47,155,255,0.22)",
+            background: "var(--portfolio-surface-2)",
+            border: "1px solid var(--portfolio-border)",
           }}
         >
           404
@@ -115,8 +115,8 @@ function NotFound() {
           style={{
             fontSize: 14,
             padding: "12px 22px",
-            background: "rgba(47,155,255,0.12)",
-            border: "1px solid rgba(93,182,255,0.4)",
+            background: "var(--portfolio-surface-2)",
+            border: "1px solid var(--portfolio-border-strong)",
           }}
         >
           <ArrowLeft size={16} aria-hidden="true" /> Back to projects
@@ -136,8 +136,8 @@ function StatChip({ icon, children }: { icon: React.ReactNode; children: React.R
         fontWeight: 500,
         padding: "7px 13px",
         borderRadius: 9,
-        background: "rgba(93,182,255,0.08)",
-        border: "1px solid rgba(93,182,255,0.22)",
+        background: "var(--portfolio-surface-2)",
+        border: "1px solid var(--portfolio-border)",
       }}
     >
       <span className="text-accent-bright" aria-hidden="true">
@@ -236,8 +236,8 @@ function CaseStudy() {
                     fontWeight: 500,
                     padding: "4px 11px",
                     borderRadius: 7,
-                    background: "rgba(93,182,255,0.1)",
-                    border: "1px solid rgba(93,182,255,0.24)",
+                    background: "var(--portfolio-surface-2)",
+                    border: "1px solid var(--portfolio-border)",
                   }}
                 >
                   {t}
@@ -272,8 +272,8 @@ function CaseStudy() {
                 style={{
                   fontSize: 14,
                   padding: "12px 22px",
-                  background: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(93,182,255,0.28)",
+                  background: "var(--portfolio-surface)",
+                  border: "1px solid var(--portfolio-border)",
                 }}
               >
                 <Github size={16} aria-hidden="true" /> View source
@@ -317,8 +317,8 @@ function CaseStudy() {
                   className="w-full rounded-xl object-cover"
                   style={{
                     aspectRatio: "4 / 3",
-                    border: "1px solid rgba(93,182,255,0.18)",
-                    background: "rgba(8,15,30,0.6)",
+                    border: "1px solid var(--portfolio-border)",
+                    background: "var(--portfolio-surface)",
                   }}
                 />
               ))}
@@ -330,7 +330,7 @@ function CaseStudy() {
         <nav
           aria-label="Project navigation"
           className="mt-14 flex flex-col gap-3 sm:flex-row sm:justify-between"
-          style={{ borderTop: "1px solid rgba(93,182,255,0.16)", paddingTop: 28 }}
+          style={{ borderTop: "1px solid var(--portfolio-border)", paddingTop: 28 }}
         >
           {prev ? (
             <Link

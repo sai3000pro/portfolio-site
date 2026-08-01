@@ -390,7 +390,7 @@ function Hero() {
       style={{
         minHeight: "100vh",
         gap: "clamp(16px,2.2vh,28px)",
-        padding: "clamp(96px,14vh,150px) clamp(20px,6vw,40px) clamp(56px,9vh,90px)",
+        padding: "clamp(120px,16vh,170px) clamp(20px,6vw,40px) clamp(56px,9vh,90px)",
       }}
       variants={container}
       initial={false}
@@ -409,8 +409,8 @@ function Hero() {
           fontSize: 12.5,
           letterSpacing: 3,
           padding: "7px 15px",
-          background: "rgba(47,155,255,0.08)",
-          border: "1px solid rgba(47,155,255,0.22)",
+          background: "var(--portfolio-surface-2)",
+          border: "1px solid var(--portfolio-border)",
         }}
       >
         <motion.span
@@ -425,7 +425,7 @@ function Hero() {
       {/* Name */}
       <motion.h1
         variants={item}
-        className="font-display font-extrabold text-white"
+        className="font-display font-extrabold text-ink"
         style={{ fontSize: "clamp(42px,6.6vw,88px)", lineHeight: 1.0, letterSpacing: "-0.02em" }}
       >
         Hi there,
@@ -492,16 +492,16 @@ function Hero() {
           href="#projects"
           whileHover={{
             y: -2,
-            borderColor: "rgba(93,182,255,0.55)",
-            background: "rgba(47,155,255,0.08)",
+            borderColor: "var(--portfolio-border-strong)",
+            background: "var(--portfolio-surface-2)",
           }}
           whileTap={{ scale: 0.97 }}
-          className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full text-white"
+          className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full text-ink"
           style={{
             fontSize: 15,
             padding: "15px 28px",
-            border: "1px solid rgba(255,255,255,0.18)",
-            background: "rgba(255,255,255,0.03)",
+            border: "1px solid var(--portfolio-border-strong)",
+            background: "var(--portfolio-surface)",
           }}
         >
           Explore Work
@@ -519,13 +519,17 @@ function Hero() {
               target={s.href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
               aria-label={s.label}
-              whileHover={{ y: -3, borderColor: "rgba(93,182,255,0.55)", color: "#5db6ff" }}
+              whileHover={{
+                y: -3,
+                borderColor: "var(--portfolio-border-strong)",
+                color: "var(--portfolio-accent-bright)",
+              }}
               className="grid place-items-center rounded-full text-muted-portfolio"
               style={{
                 width: 44,
                 height: 44,
-                border: "1px solid rgba(255,255,255,0.14)",
-                background: "rgba(255,255,255,0.03)",
+                border: "1px solid var(--portfolio-border)",
+                background: "var(--portfolio-surface)",
               }}
             >
               <Icon size={19} strokeWidth={1.8} />
@@ -556,8 +560,8 @@ function ScrollProgress() {
       style={{
         scaleX,
         height: 3,
-        background: "linear-gradient(90deg,#2f9bff,#5db6ff)",
-        boxShadow: "0 0 10px rgba(47,155,255,0.6)",
+        background: "linear-gradient(90deg,var(--portfolio-accent),var(--portfolio-accent-bright))",
+        boxShadow: "0 0 10px var(--portfolio-shadow)",
         pointerEvents: "none",
       }}
       aria-hidden="true"
@@ -603,8 +607,8 @@ function ScrollTop() {
             right: 24,
             width: 46,
             height: 46,
-            background: "rgba(47,155,255,0.14)",
-            border: "1px solid rgba(93,182,255,0.35)",
+            background: "var(--portfolio-surface-2)",
+            border: "1px solid var(--portfolio-border-strong)",
             backdropFilter: "blur(8px)",
           }}
         >

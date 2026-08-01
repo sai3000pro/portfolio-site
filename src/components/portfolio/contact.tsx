@@ -17,8 +17,9 @@ const MIN_SUBMIT_MS = 2000;
 
 const inputStyle: React.CSSProperties = {
   padding: "11px 13px",
-  background: "rgba(0,0,0,0.25)",
-  border: "1px solid rgba(93,182,255,0.18)",
+  background: "var(--portfolio-surface)",
+  border: "1px solid var(--portfolio-border)",
+  color: "var(--portfolio-ink)",
 };
 
 export function Contact() {
@@ -74,8 +75,8 @@ export function Contact() {
   };
 
   const fieldStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.04)",
-    border: "1px solid rgba(93,182,255,0.2)",
+    background: "var(--portfolio-surface)",
+    border: "1px solid var(--portfolio-border)",
   };
 
   const status = isSubmitting ? "Sending your message…" : "";
@@ -111,7 +112,7 @@ export function Contact() {
                 target={s.href.startsWith("http") ? "_blank" : undefined}
                 rel="noopener noreferrer"
                 whileHover={{ x: 4 }}
-                className="inline-flex items-center justify-between rounded-xl no-underline text-white font-display"
+                className="inline-flex items-center justify-between rounded-xl no-underline text-ink font-display"
                 style={{ fontSize: 15.5, padding: "14px 18px", ...fieldStyle }}
               >
                 <span>{s.label}</span>
@@ -125,12 +126,12 @@ export function Contact() {
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <a
               {...getVCardDownloadProps()}
-              className="inline-flex items-center gap-2 rounded-full no-underline font-display font-medium text-muted-portfolio transition-colors hover:text-white"
+              className="inline-flex items-center gap-2 rounded-full no-underline font-display font-medium text-muted-portfolio transition-colors hover:text-ink"
               style={{
                 fontSize: 13.5,
                 padding: "9px 15px",
-                background: "rgba(47,155,255,0.08)",
-                border: "1px solid rgba(47,155,255,0.22)",
+                background: "var(--portfolio-surface-2)",
+                border: "1px solid var(--portfolio-border)",
               }}
             >
               <Download size={14} strokeWidth={2} aria-hidden />
@@ -139,12 +140,12 @@ export function Contact() {
             <button
               type="button"
               onClick={() => window.print()}
-              className="inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-white"
+              className="inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-ink"
               style={{
                 fontSize: 13.5,
                 padding: "9px 15px",
-                background: "rgba(47,155,255,0.08)",
-                border: "1px solid rgba(47,155,255,0.22)",
+                background: "var(--portfolio-surface-2)",
+                border: "1px solid var(--portfolio-border)",
               }}
             >
               <Printer size={14} strokeWidth={2} aria-hidden />
@@ -170,7 +171,7 @@ export function Contact() {
                   aria-describedby={describedBy}
                   placeholder="Your name"
                   autoComplete="name"
-                  className="w-full rounded-lg text-white outline-none"
+                  className="w-full rounded-lg text-ink placeholder:text-[var(--portfolio-muted)] outline-none"
                   style={inputStyle}
                 />
               )}
@@ -185,7 +186,7 @@ export function Contact() {
                   aria-describedby={describedBy}
                   placeholder="you@example.com"
                   autoComplete="email"
-                  className="w-full rounded-lg text-white outline-none"
+                  className="w-full rounded-lg text-ink placeholder:text-[var(--portfolio-muted)] outline-none"
                   style={inputStyle}
                 />
               )}
@@ -199,7 +200,7 @@ export function Contact() {
                   aria-describedby={describedBy}
                   placeholder="What's on your mind?"
                   rows={4}
-                  className="w-full rounded-lg text-white outline-none resize-y"
+                  className="w-full rounded-lg text-ink placeholder:text-[var(--portfolio-muted)] outline-none resize-y"
                   style={inputStyle}
                 />
               )}
@@ -284,14 +285,14 @@ function Field({
   return (
     <label htmlFor={id} className="block mb-4">
       <span
-        className="font-display font-medium text-white/80 block mb-2"
+        className="font-display font-medium text-muted-portfolio block mb-2"
         style={{ fontSize: 13.5 }}
       >
         {label}
       </span>
       {children({ id, describedBy: invalid ? errorId : undefined, invalid })}
       {error && (
-        <span id={errorId} className="block mt-1.5" style={{ fontSize: 12.5, color: "#ff9b9b" }}>
+        <span id={errorId} className="block mt-1.5" style={{ fontSize: 12.5, color: "#d83a42" }}>
           {error}
         </span>
       )}
@@ -306,12 +307,12 @@ export function Footer() {
       style={{
         maxWidth: 1180,
         padding: "32px clamp(24px,5vw,80px) 48px",
-        borderTop: "1px solid rgba(93,182,255,0.14)",
+        borderTop: "1px solid var(--portfolio-border)",
       }}
     >
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-center md:text-left">
-          <p className="font-display font-semibold text-white" style={{ fontSize: 15.5 }}>
+          <p className="font-display font-semibold text-ink" style={{ fontSize: 15.5 }}>
             © 2024 - {new Date().getFullYear()} | {PROFILE.fullName}
           </p>
           <p className="text-muted-portfolio" style={{ fontSize: 13.5 }}>

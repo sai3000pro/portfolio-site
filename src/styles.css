@@ -152,6 +152,19 @@
   --portfolio-ink: #ffffff;
   --portfolio-muted: #9fb3c8;
   --portfolio-space: #000005;
+
+  /* Themeable surfaces. Components must use these instead of hardcoding dark
+     hex/rgba values, or they turn into grey slabs in light mode. */
+  --portfolio-nav: rgba(0, 0, 5, 0.35);
+  --portfolio-surface: rgba(255, 255, 255, 0.04);
+  --portfolio-surface-2: rgba(47, 155, 255, 0.08);
+  --portfolio-panel: #0a1526;
+  --portfolio-panel-deep: #050c18;
+  --portfolio-sheet: rgba(0, 0, 5, 0.85);
+  --portfolio-border: rgba(93, 182, 255, 0.2);
+  --portfolio-border-strong: rgba(93, 182, 255, 0.35);
+  --portfolio-scrim: rgba(2, 6, 18, 0.82);
+  --portfolio-shadow: rgba(0, 0, 0, 0.45);
 }
 
 /*
@@ -169,6 +182,37 @@ html.light {
   --portfolio-ink: #0a1526;
   --portfolio-muted: #435268;
   --portfolio-space: #ffffff;
+
+  /* Light equivalents of the themeable surfaces. */
+  --portfolio-nav: rgba(255, 255, 255, 0.82);
+  --portfolio-surface: rgba(10, 21, 38, 0.035);
+  --portfolio-surface-2: rgba(26, 115, 216, 0.07);
+  --portfolio-panel: #ffffff;
+  --portfolio-panel-deep: #f2f6fd;
+  --portfolio-sheet: rgba(255, 255, 255, 0.95);
+  --portfolio-border: rgba(26, 115, 216, 0.22);
+  --portfolio-border-strong: rgba(26, 115, 216, 0.38);
+  --portfolio-scrim: rgba(226, 234, 246, 0.86);
+  --portfolio-shadow: rgba(15, 40, 80, 0.16);
+}
+
+/*
+ * SAFETY NET for light mode.
+ *
+ * Many components predate the theme and hardcode `text-white` / white-ish inline
+ * colours, which are invisible on a white page. Remap them to ink here so no text
+ * can disappear, then exempt the cases that genuinely sit on a permanently dark or
+ * saturated surface (see `.on-dark` below).
+ */
+html.light .text-white {
+  color: var(--portfolio-ink);
+}
+
+/* Opt-out: put `.on-dark` on any element whose own background stays dark/saturated
+   in light mode (e.g. a filled accent button or a photo overlay). */
+html.light .on-dark,
+html.light .on-dark .text-white {
+  color: #ffffff;
 }
 
 /* Softer role gradient so it reads as ink, not a glow, on a light background. */
@@ -219,8 +263,7 @@ body,
 
 .font-display {
   font-family: "Sora", system-ui, sans-serif;
-}
-.font-body {
+}.font-body {
   font-family: "Space Grotesk", system-ui, sans-serif;
 }
 

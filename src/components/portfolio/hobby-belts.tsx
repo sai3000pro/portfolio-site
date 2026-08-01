@@ -243,7 +243,7 @@ function StaticGallery({
       style={{
         maxWidth: 1180,
         zIndex: 2,
-        padding: "clamp(112px,16vh,168px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
+        padding: "clamp(128px,17vh,180px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
       }}
     >
       <SectionHeading eyebrow="Off the clock" title="Hobbies" as="h1" />
@@ -264,7 +264,7 @@ function StaticGallery({
             style={{
               ...TILE_SHELL,
               aspectRatio: String(photo.aspect ?? 4 / 3),
-              borderColor: accentTint(photo.accent, 0.4) ?? "rgba(93,182,255,0.17)",
+              borderColor: accentTint(photo.accent, 0.4) ?? "var(--portfolio-border)",
             }}
             initial={reduced ? false : { opacity: 0, y: 14 }}
             animate={reduced ? undefined : { opacity: 1, y: 0 }}
@@ -646,7 +646,7 @@ function MotionStage({
       {/* Heading floats over the spiral so the whole viewport reads as one immersive scene. */}
       <div
         className="pointer-events-none absolute inset-x-0 flex justify-center"
-        style={{ top: "clamp(96px,15vh,150px)", zIndex: 3, padding: "0 clamp(24px,5vw,80px)" }}
+        style={{ top: "clamp(118px,16vh,158px)", zIndex: 3, padding: "0 clamp(24px,5vw,80px)" }}
       >
         <SectionHeading eyebrow="Off the clock" title="Hobbies" as="h1" />
       </div>
@@ -713,16 +713,16 @@ function MotionStage({
         onClick={() => setPaused((p) => !p)}
         aria-pressed={paused}
         aria-label={paused ? "Play the photo wall" : "Pause the photo wall"}
-        className="absolute inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-white"
+        className="absolute inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-opacity hover:opacity-80"
         style={{
           right: "clamp(16px,4vw,40px)",
           bottom: "clamp(16px,4vh,36px)",
           zIndex: 3,
           fontSize: 12.5,
           padding: "7px 14px",
-          background: "rgba(4,10,24,0.6)",
+          background: "var(--portfolio-nav)",
           backdropFilter: "blur(6px)",
-          border: "1px solid rgba(47,155,255,0.22)",
+          border: "1px solid var(--portfolio-border)",
         }}
       >
         {paused ? <Play size={13} strokeWidth={2} /> : <Pause size={13} strokeWidth={2} />}
@@ -740,8 +740,8 @@ function MotionStage({
 
 const TILE_SHELL: React.CSSProperties = {
   borderRadius: 14,
-  border: "1px solid rgba(93,182,255,0.17)",
-  background: "#050c18",
+  border: "1px solid var(--portfolio-border)",
+  background: "var(--portfolio-panel-deep)",
   overflow: "hidden",
 };
 
@@ -776,7 +776,7 @@ function BeltTile({
   onOpen: () => void;
 }) {
   // Accent tint (falls back to the default cool border/glow when a photo has no accent).
-  const borderColor = accentTint(photo.accent, 0.42) ?? "rgba(93,182,255,0.17)";
+  const borderColor = accentTint(photo.accent, 0.42) ?? "var(--portfolio-border)";
   const glow = accentTint(photo.accent, 0.26);
 
   // Depth cue + accent live on an inner shell as CONSTANTS, never touched by the RAF loop —

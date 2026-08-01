@@ -22,13 +22,13 @@ const RESUME_CLASS =
   "font-display font-semibold no-underline rounded-full px-[16px] py-[8px] text-ink transition-colors";
 const RESUME_STYLE = {
   fontSize: 14.5,
-  background: "rgba(47,155,255,0.14)",
-  border: "1px solid rgba(93,182,255,0.35)",
+  background: "var(--portfolio-surface-2)",
+  border: "1px solid var(--portfolio-border-strong)",
 } as const;
 
 const PILL_STYLE = {
-  background: "rgba(47,155,255,0.14)",
-  border: "1px solid rgba(93,182,255,0.35)",
+  background: "var(--portfolio-surface-2)",
+  border: "1px solid var(--portfolio-border-strong)",
   backdropFilter: "blur(8px)",
 } as const;
 
@@ -97,21 +97,9 @@ export function Nav() {
     className: string,
     style: React.CSSProperties,
   ) => {
-    if (l.to) {
-      return (
-        <Link
-          key={l.label}
-          to={l.to}
-          className={className}
-          style={style}
-          onClick={() => setOpen(false)}
-        >
-          {l.label}
-        </Link>
-      );
-    }
-
-    const isActive = onLanding && activeSection === l.section;
+    // A route link (e.g. /hobbies) is active when it IS the current page; a section
+    // link is active when the scroll-spy says its section is in view.
+    const isActive = l.to ? pathname === l.to : onLanding && activeSection === l.section;
     const activeClass = isActive ? `${className} text-ink` : className;
     const activeStyle = isActive ? { ...style, ...ACTIVE_LINK_STYLE } : style;
     const label = (
@@ -125,14 +113,29 @@ export function Nav() {
               bottom: -6,
               width: "60%",
               height: 2,
-              background: "rgba(93,182,255,0.9)",
-              boxShadow: "0 0 10px rgba(93,182,255,0.8)",
+              background: "var(--portfolio-accent-bright)",
+              boxShadow: "0 0 10px var(--portfolio-accent-bright)",
             }}
             aria-hidden="true"
           />
         )}
       </span>
     );
+
+    if (l.to) {
+      return (
+        <Link
+          key={l.label}
+          to={l.to}
+          className={activeClass}
+          style={activeStyle}
+          aria-current={isActive ? "page" : undefined}
+          onClick={() => setOpen(false)}
+        >
+          {label}
+        </Link>
+      );
+    }
 
     if (onLanding) {
       return (
@@ -167,35 +170,40 @@ export function Nav() {
 
   return (
     <motion.nav
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
+      className="fixed top-0 left-0 right-0 z-50 flex items-start justify-between"
       style={{
-        padding: "20px clamp(24px,5vw,80px)",
+        padding: "12px clamp(24px,5vw,80px)",
         backdropFilter: "blur(8px)",
-        background: "rgba(0,0,5,0.35)",
+        background: "var(--portfolio-nav)",
+        borderBottom: "1px solid var(--portfolio-border)",
       }}
       initial={false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.2 }}
     >
-      <Link to="/" hash="home" className="flex items-center gap-3 no-underline">
-        <img
-          src={assetUrl(PROFILE.logo)}
-          alt="Sai logo"
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: "9999px",
-            boxShadow: "0 0 16px rgba(47,155,255,0.5)",
-          }}
-        />
-        <span className="font-display font-semibold text-ink" style={{ fontSize: 18 }}>
-          {PROFILE.name}
-          <b className="text-accent-bright">.</b>
-        </span>
-      </Link>
+      {/* Brand, with the theme switch tucked directly beneath it. */}
+      <div className="flex flex-col items-start gap-1.5">
+        <Link to="/" hash="home" className="flex items-center gap-3 no-underline">
+          <img
+            src={assetUrl(PROFILE.logo)}
+            alt="Sai logo"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: "9999px",
+              boxShadow: "0 0 16px rgba(47,155,255,0.5)",
+            }}
+          />
+          <span className="font-display font-semibold text-ink" style={{ fontSize: 18 }}>
+            {PROFILE.name}
+            <b className="text-accent-bright">.</b>
+          </span>
+        </Link>
+        <ThemeToggle />
+      </div>
 
       {/* Desktop links */}
-      <div className="hidden md:flex items-center gap-1">
+      <div className="hidden md:flex items-center gap-1" style={{ marginTop: 4 }}>
         {NAV_LINKS.map((l) => renderLink(l, LINK_CLASS, LINK_STYLE))}
 
         {/* Command palette trigger */}
@@ -216,8 +224,6 @@ export function Nav() {
           </span>
         </button>
 
-        <ThemeToggle />
-
         <a
           href={assetUrl(PROFILE.resumeUrl)}
           target="_blank"
@@ -229,9 +235,8 @@ export function Nav() {
         </a>
       </div>
 
-      {/* Mobile controls: theme toggle sits beside the hamburger. */}
-      <div className="md:hidden flex items-center gap-2">
-        <ThemeToggle />
+      {/* Mobile controls: the theme switch lives under the brand, so just the menu here. */}
+      <div className="md:hidden flex items-center gap-2" style={{ marginTop: 4 }}>
         <button
           type="button"
           className="flex items-center justify-center rounded-full text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
@@ -255,10 +260,10 @@ export function Nav() {
             padding: 12,
             minWidth: 200,
             borderRadius: 18,
-            background: "rgba(0,0,5,0.85)",
-            border: "1px solid rgba(93,182,255,0.25)",
+            background: "var(--portfolio-sheet)",
+            border: "1px solid var(--portfolio-border-strong)",
             backdropFilter: "blur(12px)",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
+            boxShadow: "0 12px 40px var(--portfolio-shadow)",
           }}
         >
           {NAV_LINKS.map((l) =>
