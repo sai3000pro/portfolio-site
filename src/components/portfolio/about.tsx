@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { PROFILE } from "@/data/portfolio";
+import { assetUrl } from "@/lib/assets";
 import { Reveal, Section, SectionHeading } from "./section";
 
 const TAGS = ["Web Development", "Photography", "Machine Learning", "Student Advocacy"];
@@ -40,7 +41,7 @@ export function About() {
 
         <Reveal delay={0.18}>
           <motion.a
-            href={PROFILE.resumeUrl}
+            href={assetUrl(PROFILE.resumeUrl)}
             target="_blank"
             rel="noopener noreferrer"
             whileHover={{

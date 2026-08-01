@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { PROFILE, SOCIALS } from "@/data/portfolio";
 import { buildMailtoUrl, contactSchema, submitContact, type ContactValues } from "@/lib/contact";
+import { assetUrl } from "@/lib/assets";
+import { printResume } from "@/lib/print-resume";
 import { getVCardDownloadProps } from "@/lib/vcard";
 import { Reveal, Section, SectionHeading } from "./section";
 
@@ -139,7 +141,7 @@ export function Contact() {
             </a>
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={() => printResume(assetUrl(PROFILE.resumeUrl))}
               className="inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-ink"
               style={{
                 fontSize: 13.5,
