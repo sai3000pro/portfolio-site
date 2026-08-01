@@ -3,11 +3,12 @@ import { Link } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { Download, Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { PROFILE, SOCIALS } from "@/data/portfolio";
 import { buildMailtoUrl, contactSchema, submitContact, type ContactValues } from "@/lib/contact";
+import { getVCardDownloadProps } from "@/lib/vcard";
 import { Reveal, Section, SectionHeading } from "./section";
 
 // Reject submissions that arrive implausibly fast — real humans take a moment
@@ -117,6 +118,38 @@ export function Contact() {
                 <span className="text-accent-bright">→</span>
               </motion.a>
             ))}
+          </div>
+
+          {/* Save-contact / print affordances. The print styles in styles.css strip the
+              cosmic chrome so this produces a clean black-on-white résumé page. */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <a
+              {...getVCardDownloadProps()}
+              className="inline-flex items-center gap-2 rounded-full no-underline font-display font-medium text-muted-portfolio transition-colors hover:text-white"
+              style={{
+                fontSize: 13.5,
+                padding: "9px 15px",
+                background: "rgba(47,155,255,0.08)",
+                border: "1px solid rgba(47,155,255,0.22)",
+              }}
+            >
+              <Download size={14} strokeWidth={2} aria-hidden />
+              Download vCard
+            </a>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-white"
+              style={{
+                fontSize: 13.5,
+                padding: "9px 15px",
+                background: "rgba(47,155,255,0.08)",
+                border: "1px solid rgba(47,155,255,0.22)",
+              }}
+            >
+              <Printer size={14} strokeWidth={2} aria-hidden />
+              Print résumé
+            </button>
           </div>
         </Reveal>
 
