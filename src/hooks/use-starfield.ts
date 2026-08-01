@@ -18,6 +18,17 @@ export interface StarfieldOptions {
 }
 
 /**
+ * Particle palettes, interpolated on theme change.
+ *
+ * Dark: white/pale-blue stars on near-black. Light: dark ink motes (and a deeper
+ * blue for the tinted minority) on white — the same drifting motion, inverted.
+ */
+const DARK_PLAIN_RGB = [255, 255, 255] as const;
+const DARK_ACCENT_RGB = [150, 200, 255] as const;
+const LIGHT_PLAIN_RGB = [12, 24, 44] as const;
+const LIGHT_ACCENT_RGB = [26, 115, 216] as const;
+
+/**
  * Perspective-projected starfield drawn to a 2D canvas by a single RAF loop.
  *
  * Stars travel toward the camera (`z` shrinking); `speed` eases toward `target`,
@@ -39,6 +50,8 @@ export function useStarfield(
     target: 0.0025,
     dpr: 1,
     running: false,
+    /** 0 = dark palette, 1 = light palette; eased so theme changes cross-fade. */
+    lightMix: 0,
   });
 
   const setTarget = useCallback((t: number) => {
@@ -53,6 +66,9 @@ export function useStarfield(
     const s = stateRef.current;
     s.n = count;
     s.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Start at the theme already applied by THEME_INIT_SCRIPT, so the first frame
+    // paints the correct palette rather than easing into it.
+    s.lightMix = document.documentElement.classList.contains("light") ? 1 : 0;
 
     const size = () => {
       s.dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -84,10 +100,12 @@ export function useStarfield(
       s.speed += (s.target - s.speed) * 0.04;
       ctx.clearRect(0, 0, s.w, s.h);
       const warpish = s.speed > 0.02;
-      // Resolved theme, sampled ONCE per frame (not per star). In light mode the same
-      // particles are drawn in ink instead of white, so a clean white background gets
-      // dark particles flying in rather than invisible white ones.
-      const light = document.documentElement.classList.contains("light");
+      // Ease between the dark and light particle palettes instead of snapping on the
+      // frame the class flips — a hard colour swap on ~700 particles is the most
+      // visible part of a choppy theme change.
+      const target = document.documentElement.classList.contains("light") ? 1 : 0;
+      s.lightMix += (target - s.lightMix) * 0.08;
+      const mix = s.lightMix;
       for (const star of s.stars) {
         const pz = star.z;
         star.z -= s.speed;
@@ -106,13 +124,14 @@ export function useStarfield(
           ? Math.min(1, (1 - star.z) * 1.4)
           : Math.min(1, 0.45 + (1 - star.z) * 0.9);
         if (!warpish) alpha *= 0.6 + 0.4 * Math.sin(t * 0.002 + star.tw);
-        const color = light
-          ? star.hue
-            ? `rgba(26,115,216,${alpha * 0.72})`
-            : `rgba(12,24,44,${alpha * 0.62})`
-          : star.hue
-            ? `rgba(150,200,255,${alpha})`
-            : `rgba(255,255,255,${alpha})`;
+        // Interpolate white-on-black → ink-on-white across `mix`.
+        const dark = star.hue ? DARK_ACCENT_RGB : DARK_PLAIN_RGB;
+        const lightRgb = star.hue ? LIGHT_ACCENT_RGB : LIGHT_PLAIN_RGB;
+        const r = Math.round(dark[0] + (lightRgb[0] - dark[0]) * mix);
+        const g = Math.round(dark[1] + (lightRgb[1] - dark[1]) * mix);
+        const b = Math.round(dark[2] + (lightRgb[2] - dark[2]) * mix);
+        const fade = 1 + ((star.hue ? 0.72 : 0.62) - 1) * mix;
+        const color = `rgba(${r},${g},${b},${alpha * fade})`;
         if (warpish) {
           const k0 = fov / pz;
           const px = s.cx + star.x * k0 * s.cx;

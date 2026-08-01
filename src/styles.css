@@ -237,33 +237,57 @@ html.light .nebula::after {
    which reads the resolved theme each frame), so the canvas stays fully visible —
    same drifting-particle motion, just ink-on-white instead of white-on-black. */
 
-/* Pleasant cross-fade when switching themes — but not for reduced-motion users. */
-html,
-body,
-.bg-space,
-.text-ink,
-.text-muted-portfolio,
-.text-accent-bright,
-.role-gradient {
+/*
+ * Theme cross-fade.
+ *
+ * Most colours now come from `var(--portfolio-*)` used in INLINE styles, and a custom
+ * property swap repaints instantly — which is what made switching look choppy. Listing
+ * a few utility classes here could never cover it.
+ *
+ * So instead: `src/lib/theme.ts` adds `.theme-switching` to <html> for the duration of
+ * the swap, which turns on a colour transition for every element (and pseudo-element),
+ * then removes it. Scoping it to the swap means we don't pay for a global transition
+ * during normal use, and we don't interfere with hover/focus transitions either.
+ *
+ * Keep the duration in sync with THEME_TRANSITION_MS in src/lib/theme.ts.
+ */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
   transition:
-    background-color 0.4s ease,
-    color 0.4s ease;
+    background-color 320ms ease,
+    border-color 320ms ease,
+    color 320ms ease,
+    fill 320ms ease,
+    stroke 320ms ease,
+    box-shadow 320ms ease,
+    text-shadow 320ms ease !important;
+  transition-delay: 0s !important;
 }
+
+/*
+ * `opacity` is deliberately EXCLUDED above: the photo wall and the constellation write
+ * opacity from RAF loops every frame, and forcing a 320ms transition on it would fight
+ * those engines and smear their animation. The nebula is static, so it gets its own.
+ */
+html.theme-switching .nebula {
+  transition: opacity 320ms ease !important;
+}
+
+/* Never animate the swap for reduced-motion users — flip instantly instead. */
 @media (prefers-reduced-motion: reduce) {
-  html,
-  body,
-  .bg-space,
-  .text-ink,
-  .text-muted-portfolio,
-  .text-accent-bright,
-  .role-gradient {
-    transition: none;
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
   }
 }
 
 .font-display {
   font-family: "Sora", system-ui, sans-serif;
-}.font-body {
+}
+
+.font-body {
   font-family: "Space Grotesk", system-ui, sans-serif;
 }
 

@@ -52,12 +52,34 @@ export function setStoredTheme(theme: Theme): void {
 }
 
 /**
+ * Duration of the colour cross-fade, in ms. Must stay in sync with the
+ * `html.theme-switching` transition duration in src/styles.css.
+ */
+export const THEME_TRANSITION_MS = 320;
+
+/** Pending cleanup for the transition class, so rapid toggles don't strand it. */
+let transitionTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
  * Apply a theme by toggling the `light` / `dark` class on `<html>` and syncing
  * `color-scheme` for native UI (scrollbars, form controls). No-op on SSR.
+ *
+ * `animate` briefly adds `.theme-switching`, which enables a global colour
+ * transition (see styles.css) so the swap cross-fades instead of snapping. Skip it
+ * for the initial paint — you only want it for a deliberate user toggle.
  */
-export function applyTheme(theme: Theme): Theme {
+export function applyTheme(theme: Theme, animate = false): Theme {
   if (typeof document === "undefined") return theme;
   const root = document.documentElement;
+
+  if (animate) {
+    root.classList.add("theme-switching");
+    clearTimeout(transitionTimer);
+    transitionTimer = setTimeout(() => {
+      root.classList.remove("theme-switching");
+    }, THEME_TRANSITION_MS);
+  }
+
   root.classList.remove("light", "dark");
   root.classList.add(theme);
   root.style.colorScheme = theme;

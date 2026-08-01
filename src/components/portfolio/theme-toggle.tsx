@@ -35,7 +35,7 @@ export function ThemeToggle({
     const next = nextTheme(theme);
     setTheme(next);
     setStoredTheme(next);
-    applyTheme(next);
+    applyTheme(next, true);
   };
 
   const upcoming = nextTheme(theme);
