@@ -31,10 +31,10 @@ VITE_ACHIEVEMENTS_ENDPOINT=https://achievement-stats.<your-subdomain>.workers.de
 
 ## API
 
-| | |
-|---|---|
+|                 |                                                                                                                        |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `POST /unlocks` | `{ visitorId: string, ids: string[] }` → `204`. Ids are validated against an allowlist; max 40 per request, 4 kB body. |
-| `GET /rarity` | `{ visitors: number, counts: Record<string, number> }`, cached at the edge for 5 minutes. |
+| `GET /rarity`   | `{ visitors: number, counts: Record<string, number> }`, cached at the edge for 5 minutes.                              |
 
 ## Keeping the allowlist in sync
 

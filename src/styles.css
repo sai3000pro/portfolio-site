@@ -452,7 +452,6 @@ body {
   }
 }
 
-
 /* ===== Cross-route view transitions ===== */
 /* Router sets defaultViewTransition; keep the cross-fade quick and unobtrusive. */
 ::view-transition-old(root),

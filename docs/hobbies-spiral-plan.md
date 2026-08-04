@@ -43,14 +43,14 @@ Mapped into `[-tileW, period - tileW)`, a tile leaving the left edge at `x = -ti
 at `period - tileW`, which is `>= W` — always offscreen at the instant it teleports. Violating
 that invariant is what makes a marquee visibly "snap", so clone count is derived from it.
 
-**The handoff is then free, because the settle's target *is* the belt formula:**
+**The handoff is then free, because the settle's target _is_ the belt formula:**
 
 ```ts
-const k = settleEase(u);        // cubicBezier(0.2, 0.7, 0.3, 1), the site's signature curve
+const k = settleEase(u); // cubicBezier(0.2, 0.7, 0.3, 1), the site's signature curve
 mx[i].set(from + (target - from) * k);
 ```
 
-At `u = 1`, `k = 1`, so `x === beltX(...)` exactly. It doesn't approach the conveyor — it *is*
+At `u = 1`, `k = 1`, so `x === beltX(...)` exactly. It doesn't approach the conveyor — it _is_
 the conveyor. No measurement, no reparent, no state transition, nothing to reconcile. Position
 continuity is guaranteed by construction rather than by careful measurement.
 
@@ -92,7 +92,7 @@ its entire physics loop below 768.
 
 - Belt tiles are duplicated to satisfy the wrap invariant. **Clones carry `aria-hidden`,
   `inert`, `tabIndex={-1}` and empty `alt`** — duplicate images in the a11y tree and duplicate
-  tab stops is *the* classic marquee bug. Verified: 24 focusable buttons for 24 photos.
+  tab stops is _the_ classic marquee bug. Verified: 24 focusable buttons for 24 photos.
 - **Focus pauses every belt** (`onFocusCapture` on the stage), so tabbing freezes the wall and
   focus never chases a moving target. Tab order follows DOM order and is stable because belts
   move by transform only and never reorder the DOM.
@@ -115,7 +115,7 @@ its entire physics loop below 768.
    landing page — so visitors see the hero flash before the client router corrects.
    (`scripts/prerender.mjs` also needed `pathToFileURL`; a bare `C:\` path is not a valid ESM
    specifier, so `build:static` had never run on Windows.)
-3. **No mobile nav exists.** `NAV_LINKS` are `hidden md:flex`, so the Footer link is the *only*
+3. **No mobile nav exists.** `NAV_LINKS` are `hidden md:flex`, so the Footer link is the _only_
    path to `/hobbies` on a phone.
 4. **Lighthouse only audits `/`** (`lighthouserc.json`), so `/hobbies` is not CI-gated. Adding
    `http://localhost/hobbies/` is the responsible follow-up — after the animation stabilizes,

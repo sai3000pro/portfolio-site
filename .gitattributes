@@ -1,0 +1,41 @@
+# Line endings: LF everywhere, in the repository AND in the working tree.
+#
+# WHY THIS FILE EXISTS: without it, `core.autocrlf=true` (the Git for Windows
+# default) checks files out with CRLF while the index stores LF. Prettier
+# defaults to `endOfLine: "lf"`, so eslint-plugin-prettier then reports a
+# `Delete ␍` error on every single line of every CRLF file — `bun lint` failed
+# with ~4,600 errors on a clean Windows checkout while CI stayed green, because
+# GitHub Actions runs ubuntu-latest and checks out LF.
+#
+# `eol=lf` overrides core.autocrlf, so every contributor on every platform gets
+# exactly the line endings CI lints against. Git still normalizes on commit, so
+# this changes no committed content — only what lands on disk.
+#
+# After changing this file, refresh existing working copies with:
+#   git add --renormalize .
+#   git rm --cached -r . && git reset --hard
+* text=auto eol=lf
+
+# vCard is the one format that genuinely requires CRLF: RFC 6350 §3.2 defines
+# the line break as CRLF, and this file is served straight to contact apps from
+# public/. It was already being deployed with LF (CI builds on ubuntu, so the
+# checkout was LF regardless of what Windows had locally) — pinning it here fixes
+# that for the deployed artifact too, not just the working copy.
+*.vcf text eol=crlf
+
+# Binaries — never normalize, never diff as text.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+
+# Generated: keep it out of diffs and review noise. TanStack regenerates it on
+# every build; it is committed only so typecheck works on a fresh clone.
+src/routeTree.gen.ts linguist-generated=true
