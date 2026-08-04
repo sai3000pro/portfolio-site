@@ -4,6 +4,8 @@ import type { MotionValue } from "framer-motion";
 import { X, Camera, ArrowRight } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@/data/portfolio";
+import { KEYS } from "@/data/achievements";
+import { trackMember, unlock } from "@/lib/achievements";
 import { slugify } from "@/lib/slug";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 
@@ -22,6 +24,8 @@ const RESTITUTION = 0.55; // energy kept on bounce / collision
 const NODE_GAP = 12; // minimum gap (px) between panel edges
 const THROW_SCALE = 1 / 60; // FM velocity (px/s) → px/frame
 const MAX_THROW = 14; // px/frame cap
+/** Release speed (px/s) that counts as a deliberate fling for Gravity Assist. */
+const THROW_ACHIEVEMENT_SPEED = 900;
 
 // ─── Edge derivation ──────────────────────────────────────────────────────────
 
@@ -681,6 +685,7 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
 
   const handleOpen = useCallback(
     (project: Project) => {
+      trackMember(KEYS.projectModals, slugify(project.title));
       navigate({
         to: ".",
         search: (prev) => ({ ...prev, p: slugify(project.title) }),
@@ -890,6 +895,9 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
 
   const handleDragEnd = useCallback((i: number, vel: { x: number; y: number }) => {
     dragging.current.delete(i);
+    // A genuine fling, not a nudge — the cards are a physics toy and almost
+    // nobody realises it until they throw one.
+    if (Math.hypot(vel.x, vel.y) >= THROW_ACHIEVEMENT_SPEED) unlock("gravity-assist");
     vels.current[i] = {
       vx: Math.max(-MAX_THROW, Math.min(MAX_THROW, vel.x * THROW_SCALE)),
       vy: Math.max(-MAX_THROW, Math.min(MAX_THROW, vel.y * THROW_SCALE)),

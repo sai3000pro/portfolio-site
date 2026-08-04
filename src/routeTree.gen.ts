@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as HobbiesRouteImport } from './routes/hobbies'
+import { Route as AchievementsRouteImport } from './routes/achievements'
+import { Route as AcheivementsRouteImport } from './routes/acheivements'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
 
 const HobbiesRoute = HobbiesRouteImport.update({
   id: '/hobbies',
   path: '/hobbies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcheivementsRoute = AcheivementsRouteImport.update({
+  id: '/acheivements',
+  path: '/acheivements',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,30 +43,49 @@ const ProjectsSlugRoute = ProjectsSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acheivements': typeof AcheivementsRoute
+  '/achievements': typeof AchievementsRoute
   '/hobbies': typeof HobbiesRoute
   '/projects/$slug': typeof ProjectsSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acheivements': typeof AcheivementsRoute
+  '/achievements': typeof AchievementsRoute
   '/hobbies': typeof HobbiesRoute
   '/projects/$slug': typeof ProjectsSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acheivements': typeof AcheivementsRoute
+  '/achievements': typeof AchievementsRoute
   '/hobbies': typeof HobbiesRoute
   '/projects/$slug': typeof ProjectsSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/hobbies' | '/projects/$slug'
+  fullPaths:
+    | '/'
+    | '/acheivements'
+    | '/achievements'
+    | '/hobbies'
+    | '/projects/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/hobbies' | '/projects/$slug'
-  id: '__root__' | '/' | '/hobbies' | '/projects/$slug'
+  to: '/' | '/acheivements' | '/achievements' | '/hobbies' | '/projects/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/acheivements'
+    | '/achievements'
+    | '/hobbies'
+    | '/projects/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcheivementsRoute: typeof AcheivementsRoute
+  AchievementsRoute: typeof AchievementsRoute
   HobbiesRoute: typeof HobbiesRoute
   ProjectsSlugRoute: typeof ProjectsSlugRoute
 }
@@ -66,6 +97,20 @@ declare module '@tanstack/react-router' {
       path: '/hobbies'
       fullPath: '/hobbies'
       preLoaderRoute: typeof HobbiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acheivements': {
+      id: '/acheivements'
+      path: '/acheivements'
+      fullPath: '/acheivements'
+      preLoaderRoute: typeof AcheivementsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -87,6 +132,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcheivementsRoute: AcheivementsRoute,
+  AchievementsRoute: AchievementsRoute,
   HobbiesRoute: HobbiesRoute,
   ProjectsSlugRoute: ProjectsSlugRoute,
 }

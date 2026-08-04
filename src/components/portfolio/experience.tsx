@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Camera } from "lucide-react";
+import { KEYS } from "@/data/achievements";
 import { EXPERIENCES, type Experience } from "@/data/portfolio";
+import { trackMember } from "@/lib/achievements";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { Section, SectionHeading } from "./section";
 
@@ -410,7 +412,11 @@ export function Experience() {
 
               <motion.button
                 type="button"
-                onClick={() => setSelected(exp)}
+                onClick={() => {
+                  trackMember(KEYS.experiences, exp.company);
+                  if (exp.coords) trackMember(KEYS.globeCities, exp.location);
+                  setSelected(exp);
+                }}
                 whileHover={{ y: -3 }}
                 className="group w-full text-left rounded-2xl cursor-pointer transition-colors"
                 style={{

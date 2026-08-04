@@ -1,22 +1,34 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
-/** Fades + lifts children into view once when scrolled to. */
+/**
+ * Fades + lifts children into view once when scrolled to.
+ *
+ * Pass `immediate` for content that is already above the fold on load — a
+ * dedicated route's page header, for example. The default `whileInView` trigger
+ * waits for a scroll that such content never receives, leaving it invisible.
+ */
 export function Reveal({
   children,
   delay = 0,
   className,
+  immediate = false,
 }: {
   children: ReactNode;
   delay?: number;
   className?: string;
+  /** Animate on mount instead of on scroll. Use for above-the-fold content. */
+  immediate?: boolean;
 }) {
+  const motionProps = immediate
+    ? { animate: { opacity: 1, y: 0 } }
+    : { whileInView: { opacity: 1, y: 0 }, viewport: { once: true, margin: "-80px" } };
+
   return (
     <motion.div
       className={className}
       initial={{ opacity: 0, y: 36 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-80px" }}
+      {...motionProps}
       transition={{ duration: 0.7, delay, ease: [0.2, 0.7, 0.3, 1] }}
     >
       {children}
@@ -29,15 +41,18 @@ export function SectionHeading({
   eyebrow,
   title,
   as: Heading = "h2",
+  immediate = false,
 }: {
   eyebrow: string;
   title: string;
   /** Use "h1" when the heading is the page's primary title (a dedicated route). */
   as?: "h1" | "h2";
+  /** Animate on mount — for a page header that loads above the fold. */
+  immediate?: boolean;
 }) {
   return (
     <div className="flex flex-col items-center text-center">
-      <Reveal>
+      <Reveal immediate={immediate}>
         <span
           className="inline-flex items-center gap-2.5 font-display font-medium uppercase text-accent-bright rounded-full"
           style={{
@@ -60,7 +75,7 @@ export function SectionHeading({
           {eyebrow}
         </span>
       </Reveal>
-      <Reveal delay={0.08}>
+      <Reveal delay={0.08} immediate={immediate}>
         <Heading
           className="font-display font-extrabold text-ink mt-5"
           style={{ fontSize: "clamp(30px,4.4vw,52px)", letterSpacing: "-0.02em", lineHeight: 1.05 }}

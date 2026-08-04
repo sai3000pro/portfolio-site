@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
+import { KEYS } from "@/data/achievements";
+import { trackBurst, unlock } from "@/lib/achievements";
 import {
   DEFAULT_THEME,
   applyTheme,
@@ -36,6 +38,9 @@ export function ThemeToggle({
     setTheme(next);
     setStoredTheme(next);
     applyTheme(next, true);
+
+    if (next === "light") unlock("let-there-be-light");
+    trackBurst(KEYS.themeFlips);
   };
 
   const upcoming = nextTheme(theme);

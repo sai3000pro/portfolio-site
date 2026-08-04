@@ -8,6 +8,8 @@ export interface RouteMeta {
   changefreq: string;
   priority: number;
   ogFile: string;
+  /** False to prerender the route but exclude it from sitemap.xml. */
+  sitemap?: boolean;
 }
 
 export function slugify(title: string): string;

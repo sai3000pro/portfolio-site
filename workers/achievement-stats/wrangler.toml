@@ -1,0 +1,15 @@
+name = "achievement-stats"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Origins allowed to call this Worker. Comma-separated, no trailing slash.
+# Spoofable by design — it turns away scanners, it is not a security boundary.
+[vars]
+ALLOWED_ORIGINS = "https://sai3000pro.github.io,http://localhost:3000"
+
+# Create with:  wrangler d1 create achievement-stats
+# then paste the returned database_id below.
+[[d1_databases]]
+binding = "DB"
+database_name = "achievement-stats"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"

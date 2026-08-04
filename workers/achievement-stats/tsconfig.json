@@ -1,0 +1,14 @@
+{
+  "//": "Self-contained: the site's root tsconfig deliberately excludes workers/, so this Worker owns its own types and is never bundled into the site.",
+  "include": ["src/**/*.ts"],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true
+  }
+}

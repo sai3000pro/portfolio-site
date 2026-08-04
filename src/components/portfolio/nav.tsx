@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "framer-motion";
-import { Menu, Search, X } from "lucide-react";
+import { Menu, Search, Trophy, X } from "lucide-react";
 
+import { AchievementNavButton } from "@/components/portfolio/achievement-nav-button";
 import { ThemeToggle } from "@/components/portfolio/theme-toggle";
 import { openCommandPalette } from "@/components/portfolio/command-palette";
+import { KEYS } from "@/data/achievements";
 import { NAV_LINKS, PROFILE } from "@/data/portfolio";
 import { useScrollSpy } from "@/hooks/use-scroll-spy";
+import { trackBurst, unlock } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
 
 const LINK_CLASS =
@@ -186,7 +189,13 @@ export function Nav() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.2 }}
     >
-      <Link to="/" hash="home" className="flex items-center gap-3 no-underline">
+      <Link
+        to="/"
+        hash="home"
+        className="flex items-center gap-3 no-underline"
+        // Seven rapid clicks on an unresponsive thing is a time-honoured fix.
+        onClick={() => trackBurst(KEYS.logoClicks)}
+      >
         <img
           src={assetUrl(PROFILE.logo)}
           alt="Sai logo"
@@ -225,6 +234,8 @@ export function Nav() {
           </span>
         </button>
 
+        <AchievementNavButton className="ml-1" />
+
         <ThemeToggle className="ml-1" />
 
         <a
@@ -233,6 +244,7 @@ export function Nav() {
           rel="noopener noreferrer"
           className={`${RESUME_CLASS} ml-1`}
           style={RESUME_STYLE}
+          onClick={() => unlock("paper-trail")}
         >
           Résumé
         </a>
@@ -292,13 +304,28 @@ export function Nav() {
             Search
           </button>
 
+          {/* The trophy room lives in the sheet on mobile — the top bar is too
+              cramped for a fourth control beside the theme switch and hamburger. */}
+          <Link
+            to="/achievements"
+            className={`${LINK_CLASS} inline-flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright`}
+            style={LINK_STYLE}
+            onClick={() => setOpen(false)}
+          >
+            <Trophy size={15} aria-hidden="true" />
+            Achievements
+          </Link>
+
           <a
             href={assetUrl(PROFILE.resumeUrl)}
             target="_blank"
             rel="noopener noreferrer"
             className={`${RESUME_CLASS} mt-1 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright`}
             style={RESUME_STYLE}
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              unlock("paper-trail");
+              setOpen(false);
+            }}
           >
             Résumé
           </a>

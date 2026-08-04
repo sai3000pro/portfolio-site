@@ -35,6 +35,9 @@ function escapeXml(value) {
 export function buildSitemapXml(now = new Date()) {
   const lastmod = now.toISOString().slice(0, 10); // YYYY-MM-DD
   const urls = getRouteMeta()
+    // Routes flagged `sitemap: false` are still prerendered, but must not be
+    // advertised for indexing (see the /acheivements alias in routes.mjs).
+    .filter((route) => route.sitemap !== false)
     .map((route) => {
       const loc = escapeXml(absoluteUrl(route.path));
       return [

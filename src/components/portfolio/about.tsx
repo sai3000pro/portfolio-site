@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { PROFILE } from "@/data/portfolio";
+import { unlock } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
 import { Reveal, Section, SectionHeading } from "./section";
 
@@ -44,6 +45,7 @@ export function About() {
             href={assetUrl(PROFILE.resumeUrl)}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => unlock("paper-trail")}
             whileHover={{
               y: -2,
               borderColor: "var(--portfolio-border-strong)",

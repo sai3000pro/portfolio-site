@@ -11,7 +11,9 @@ import {
 } from "framer-motion";
 import { Github, Linkedin, Mail, ArrowUp } from "lucide-react";
 
+import { KEYS } from "@/data/achievements";
 import { PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
+import { trackMember, unlock } from "@/lib/achievements";
 import { About } from "@/components/portfolio/about";
 import { Experience } from "@/components/portfolio/experience";
 import { Projects } from "@/components/portfolio/projects";
@@ -367,11 +369,18 @@ function SaiName() {
     const id = setInterval(() => setI((n) => n + 1), 10_000);
     return () => clearInterval(id);
   }, []);
+
+  // Only a deliberate hover counts toward Hat Trick — the 10s auto-rotation would
+  // otherwise hand out the badge to anyone who left the tab open.
+  const flip = () =>
+    setI((n) => {
+      const next = n + 1;
+      trackMember(KEYS.tittles, BALLS[next % BALLS.length].id);
+      return next;
+    });
+
   return (
-    <span
-      className="relative inline-block whitespace-nowrap cursor-default"
-      onMouseEnter={() => setI((n) => n + 1)}
-    >
+    <span className="relative inline-block whitespace-nowrap cursor-default" onMouseEnter={flip}>
       Sa
       {/* dotless i (U+0131) so the spinning ball can stand in for the dot */}
       <span className="relative inline-block">
@@ -475,6 +484,7 @@ function Hero() {
           href={assetUrl(PROFILE.resumeUrl)}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => unlock("paper-trail")}
           whileHover={{ y: -2, boxShadow: "0 12px 36px rgba(47,155,255,0.6)" }}
           whileTap={{ scale: 0.97 }}
           className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full"
@@ -519,6 +529,7 @@ function Hero() {
               target={s.href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
               aria-label={s.label}
+              onClick={() => trackMember(KEYS.socials, s.label)}
               whileHover={{
                 y: -3,
                 borderColor: "var(--portfolio-border-strong)",
@@ -593,7 +604,10 @@ function ScrollTop() {
     <AnimatePresence>
       {show && (
         <motion.button
-          onClick={() => window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" })}
+          onClick={() => {
+            unlock("elevator-pitch");
+            window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
+          }}
           aria-label="Back to top"
           initial={enterExit.initial}
           animate={enterExit.animate}

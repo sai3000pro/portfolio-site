@@ -6,7 +6,9 @@ import { motion } from "framer-motion";
 import { Download, Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { KEYS } from "@/data/achievements";
 import { PROFILE, SOCIALS } from "@/data/portfolio";
+import { trackMember, unlock } from "@/lib/achievements";
 import { buildMailtoUrl, contactSchema, submitContact, type ContactValues } from "@/lib/contact";
 import { assetUrl } from "@/lib/assets";
 import { printResume } from "@/lib/print-resume";
@@ -55,6 +57,7 @@ export function Contact() {
         window.location.href = outcome.url;
         return;
       case "success":
+        unlock("cold-call");
         toast.success("Message sent — thanks for reaching out!", {
           description: "I'll get back to you as soon as I can.",
         });
@@ -114,6 +117,7 @@ export function Contact() {
                 target={s.href.startsWith("http") ? "_blank" : undefined}
                 rel="noopener noreferrer"
                 whileHover={{ x: 4 }}
+                onClick={() => trackMember(KEYS.socials, s.label)}
                 className="inline-flex items-center justify-between rounded-xl no-underline text-ink font-display"
                 style={{ fontSize: 15.5, padding: "14px 18px", ...fieldStyle }}
               >
@@ -128,6 +132,7 @@ export function Contact() {
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <a
               {...getVCardDownloadProps()}
+              onClick={() => unlock("analog-backup")}
               className="inline-flex items-center gap-2 rounded-full no-underline font-display font-medium text-muted-portfolio transition-colors hover:text-ink"
               style={{
                 fontSize: 13.5,
@@ -141,7 +146,10 @@ export function Contact() {
             </a>
             <button
               type="button"
-              onClick={() => printResume(assetUrl(PROFILE.resumeUrl))}
+              onClick={() => {
+                unlock("dead-tree-format");
+                printResume(assetUrl(PROFILE.resumeUrl));
+              }}
               className="inline-flex items-center gap-2 rounded-full font-display font-medium text-muted-portfolio transition-colors hover:text-ink"
               style={{
                 fontSize: 13.5,
@@ -336,6 +344,7 @@ export function Footer() {
               href={s.href}
               target={s.href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
+              onClick={() => trackMember(KEYS.socials, s.label)}
               className="font-display text-muted-portfolio no-underline transition-colors hover:text-accent-bright"
               style={{ fontSize: 14 }}
             >

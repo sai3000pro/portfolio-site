@@ -10,8 +10,11 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { AchievementToaster } from "../components/portfolio/achievement-toast";
+import { AchievementTracker } from "../components/portfolio/achievement-tracker";
 import { CommandPalette } from "../components/portfolio/command-palette";
 import { PROFILE, SOCIALS } from "../data/portfolio";
+import { unlock } from "../lib/achievements";
 import { initAnalytics } from "../lib/analytics";
 import { assetUrl } from "../lib/assets";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -64,6 +67,11 @@ function buildJsonLd(): string {
 const JSON_LD = buildJsonLd();
 
 function NotFoundComponent() {
+  // Finding a page that doesn't exist is itself a secret achievement.
+  useEffect(() => {
+    unlock("lost-in-space");
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-space px-4">
       <div className="max-w-md text-center">
@@ -233,6 +241,10 @@ function RootComponent() {
       <Outlet />
       {/* ⌘K command palette — mounted once so it works on every route. */}
       <CommandPalette />
+      {/* Achievements: ambient tracking + the bottom-left unlock popup. Both are
+          mounted here so they survive route changes and work off the landing page. */}
+      <AchievementTracker />
+      <AchievementToaster />
     </QueryClientProvider>
   );
 }

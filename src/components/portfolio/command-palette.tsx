@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useReducedMotion } from "framer-motion";
 import {
@@ -14,6 +14,8 @@ import {
   Linkedin,
   Mail,
   Palette,
+  Sparkles,
+  Trophy,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -29,7 +31,9 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { CONSOLE_CODE_WORD, KEYS } from "@/data/achievements";
 import { NAV_LINKS, PROFILE, PROJECTS, SOCIALS } from "@/data/portfolio";
+import { trackMember, unlock } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
 
 /**
@@ -90,35 +94,70 @@ function openInNewTab(url: string): void {
  */
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
+  // Controlled so the console easter-egg item can require an exact match rather
+  // than surfacing under cmdk's fuzzy scoring.
+  const [search, setSearch] = useState("");
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const onLanding = pathname === "/";
   const prefersReduced = useReducedMotion();
   const scrollBehavior: ScrollBehavior = prefersReduced ? "auto" : "smooth";
 
+  // Whether this session's palette was opened by keyboard, and whether the most
+  // recent interaction was a key rather than a pointer. Both true when an action
+  // runs means the visitor never touched the mouse — that's Keyboard Warrior.
+  const openedViaKeyboard = useRef(false);
+  const lastInputWasKeyboard = useRef(false);
+
   // ⌘K / Ctrl+K toggles, Escape closes. Registered once on the client.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+        openedViaKeyboard.current = true;
+        lastInputWasKeyboard.current = true;
         setOpen((v) => !v);
       } else if (e.key === "Escape") {
         setOpen(false);
+      } else {
+        lastInputWasKeyboard.current = true;
       }
     };
+    const onPointerDown = () => {
+      lastInputWasKeyboard.current = false;
+    };
+
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
   }, []);
 
   // Let other components open the palette via a custom window event.
   useEffect(() => {
-    const onOpen = () => setOpen(true);
+    const onOpen = () => {
+      openedViaKeyboard.current = false;
+      setOpen(true);
+    };
     window.addEventListener(OPEN_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_EVENT, onOpen);
   }, []);
 
+  // Opening the palette at all is an achievement; clear the search each time so
+  // a stale query (including the easter-egg word) doesn't persist.
+  useEffect(() => {
+    if (!open) return;
+    setSearch("");
+    unlock("power-user");
+  }, [open]);
+
   // Close the palette, then run the selected action.
   const runAction = (fn: () => void) => {
+    if (openedViaKeyboard.current && lastInputWasKeyboard.current) {
+      unlock("keyboard-warrior");
+    }
     setOpen(false);
     fn();
   };
@@ -139,7 +178,10 @@ export function CommandPalette() {
     }
     navigator.clipboard
       .writeText(PROFILE.email)
-      .then(() => toast.success("Email copied to clipboard"))
+      .then(() => {
+        unlock("copy-that");
+        toast.success("Email copied to clipboard");
+      })
       .catch(() => toast.error("Couldn't copy email"));
   };
 
@@ -157,6 +199,8 @@ export function CommandPalette() {
         <DialogTitle className="sr-only">Command palette</DialogTitle>
         <Command className="bg-transparent text-ink [&_[cmdk-input-wrapper]]:border-b [&_[cmdk-input-wrapper]]:border-[var(--portfolio-border)]">
           <CommandInput
+            value={search}
+            onValueChange={setSearch}
             placeholder="Type a command or search…"
             className="font-display text-ink placeholder:text-[var(--portfolio-muted)]"
           />
@@ -192,6 +236,17 @@ export function CommandPalette() {
                   </CommandItem>
                 );
               })}
+
+              {/* Not in NAV_LINKS — a seventh text link would crowd the desktop bar. */}
+              <CommandItem
+                value="nav achievements trophies badges"
+                keywords={["achievements", "trophies", "badges"]}
+                className={ITEM_CLASS}
+                onSelect={() => runAction(() => navigate({ to: "/achievements" }))}
+              >
+                <Trophy aria-hidden="true" />
+                <span>Achievements</span>
+              </CommandItem>
             </CommandGroup>
 
             <CommandSeparator className="my-1 bg-[var(--portfolio-border)]" />
@@ -214,11 +269,31 @@ export function CommandPalette() {
 
             <CommandSeparator className="my-1 bg-[var(--portfolio-border)]" />
 
+            {/* The console easter egg. Rendered only on an exact match so cmdk's
+                fuzzy scoring can't surface it to someone who just typed "s". */}
+            {search.trim().toLowerCase() === CONSOLE_CODE_WORD && (
+              <CommandGroup heading="???" className={GROUP_CLASS}>
+                <CommandItem
+                  value={CONSOLE_CODE_WORD}
+                  className={ITEM_CLASS}
+                  onSelect={() => runAction(() => unlock("inspector-gadget"))}
+                >
+                  <Sparkles aria-hidden="true" />
+                  <span>Claim your badge</span>
+                </CommandItem>
+              </CommandGroup>
+            )}
+
             <CommandGroup heading="Actions" className={GROUP_CLASS}>
               <CommandItem
                 value="open résumé resume cv"
                 className={ITEM_CLASS}
-                onSelect={() => runAction(() => openInNewTab(assetUrl(PROFILE.resumeUrl)))}
+                onSelect={() =>
+                  runAction(() => {
+                    unlock("paper-trail");
+                    openInNewTab(assetUrl(PROFILE.resumeUrl));
+                  })
+                }
               >
                 <FileText aria-hidden="true" />
                 <span>Open Résumé</span>
@@ -246,6 +321,7 @@ export function CommandPalette() {
                     className={ITEM_CLASS}
                     onSelect={() =>
                       runAction(() => {
+                        trackMember(KEYS.socials, social.label);
                         if (isMailto) {
                           window.location.href = social.href;
                         } else {

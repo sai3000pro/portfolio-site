@@ -103,6 +103,9 @@ export function getFullName() {
  * @property {string} changefreq  sitemap <changefreq>.
  * @property {number} priority    sitemap <priority>.
  * @property {string} ogFile      OG image path relative to the public dir.
+ * @property {boolean} [sitemap]  Set false to prerender the route but keep it out
+ *                                of sitemap.xml (e.g. the /acheivements alias,
+ *                                which is noindex and forwards to /achievements).
  */
 
 /**
@@ -120,6 +123,23 @@ export function getRouteMeta() {
       changefreq: "monthly",
       priority: 0.7,
       ogFile: "og/hobbies.svg",
+    },
+    {
+      path: "/achievements",
+      title: "Achievements",
+      changefreq: "weekly",
+      priority: 0.6,
+      ogFile: "og/achievements.svg",
+    },
+    // The load-bearing typo: prerendered so the URL resolves and forwards, but
+    // noindex + excluded from the sitemap so it never competes with the real page.
+    {
+      path: "/acheivements",
+      title: "Achievements",
+      changefreq: "yearly",
+      priority: 0.1,
+      ogFile: "og/achievements.svg",
+      sitemap: false,
     },
   ];
 

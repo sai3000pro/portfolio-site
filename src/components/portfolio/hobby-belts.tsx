@@ -10,7 +10,9 @@ import {
 } from "framer-motion";
 import { Pause, Play } from "lucide-react";
 
+import { KEYS } from "@/data/achievements";
 import type { HobbyPhoto } from "@/data/hobbies";
+import { trackMember } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
 import { HobbyLightbox } from "@/components/portfolio/hobby-lightbox";
 import { SectionHeading } from "@/components/portfolio/section";
@@ -189,6 +191,17 @@ export function HobbyWall({ photos }: { photos: HobbyPhoto[] }) {
 
   const close = useCallback(() => setOpenIndex(null), []);
 
+  // Every distinct photo viewed counts toward Shutterbug / Gallery Crawl. Used for
+  // both opening a tile and stepping through with the lightbox arrows.
+  const openAt = useCallback(
+    (i: number) => {
+      setOpenIndex(i);
+      const photo = photos[i];
+      if (photo) trackMember(KEYS.photosViewed, photo.id);
+    },
+    [photos],
+  );
+
   return (
     <>
       <div ref={stageRef} className="relative w-full">
@@ -197,21 +210,16 @@ export function HobbyWall({ photos }: { photos: HobbyPhoto[] }) {
             photos={photos}
             layout={layout}
             lightboxOpen={openIndex !== null}
-            onOpen={setOpenIndex}
+            onOpen={openAt}
           />
         ) : (
-          <StaticGallery photos={photos} reduced={!!reduced} onOpen={setOpenIndex} />
+          <StaticGallery photos={photos} reduced={!!reduced} onOpen={openAt} />
         )}
       </div>
 
       <AnimatePresence>
         {openIndex !== null && (
-          <HobbyLightbox
-            photos={photos}
-            index={openIndex}
-            onClose={close}
-            onNavigate={setOpenIndex}
-          />
+          <HobbyLightbox photos={photos} index={openIndex} onClose={close} onNavigate={openAt} />
         )}
       </AnimatePresence>
     </>
