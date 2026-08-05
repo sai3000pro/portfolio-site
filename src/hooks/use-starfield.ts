@@ -29,6 +29,15 @@ const LIGHT_PLAIN_RGB = [12, 24, 44] as const;
 const LIGHT_ACCENT_RGB = [26, 115, 216] as const;
 
 /**
+ * Per-star twinkle oscillation rate, in radians per millisecond.
+ *
+ * Deliberately proportional to DEFAULT_SPEED in starfield.tsx — the drift and the
+ * twinkle are separate clocks, and moving only one makes the effect read as two
+ * unrelated animations rather than one system. Retune both by the same ratio.
+ */
+const TWINKLE_RATE = 0.0017;
+
+/**
  * Perspective-projected starfield drawn to a 2D canvas by a single RAF loop.
  *
  * Stars travel toward the camera (`z` shrinking); `speed` eases toward `target`,
@@ -123,7 +132,7 @@ export function useStarfield(
         let alpha = warpish
           ? Math.min(1, (1 - star.z) * 1.4)
           : Math.min(1, 0.45 + (1 - star.z) * 0.9);
-        if (!warpish) alpha *= 0.6 + 0.4 * Math.sin(t * 0.002 + star.tw);
+        if (!warpish) alpha *= 0.6 + 0.4 * Math.sin(t * TWINKLE_RATE + star.tw);
         // Interpolate white-on-black → ink-on-white across `mix`.
         const dark = star.hue ? DARK_ACCENT_RGB : DARK_PLAIN_RGB;
         const lightRgb = star.hue ? LIGHT_ACCENT_RGB : LIGHT_PLAIN_RGB;

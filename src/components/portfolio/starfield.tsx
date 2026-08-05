@@ -2,8 +2,13 @@ import { useEffect, useRef } from "react";
 
 import { useStarfield } from "@/hooks/use-starfield";
 
-/** Cruise speed once the page has settled. */
-const DEFAULT_SPEED = 0.006;
+/**
+ * Cruise speed once the page has settled.
+ *
+ * Kept in step with TWINKLE_RATE in use-starfield.ts: retuning one without the other
+ * makes the two clocks come apart (slow travel under fast-blinking stars).
+ */
+const DEFAULT_SPEED = 0.005;
 
 /**
  * Fixed, full-viewport starfield canvas plus the nebula gradient wash.
