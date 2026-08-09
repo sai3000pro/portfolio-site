@@ -102,7 +102,8 @@ export function getFullName() {
  * @property {string} title       Human title used on the OG image.
  * @property {string} changefreq  sitemap <changefreq>.
  * @property {number} priority    sitemap <priority>.
- * @property {string} ogFile      OG image path relative to the public dir.
+ * @property {string} ogFile      OG image path relative to the public dir. PNG — the
+ *                                major social scrapers reject SVG (see scripts/seo.mjs).
  * @property {boolean} [sitemap]  Set false to prerender the route but keep it out
  *                                of sitemap.xml (e.g. the /acheivements alias,
  *                                which is noindex and forwards to /achievements).
@@ -116,20 +117,20 @@ export function getFullName() {
 export function getRouteMeta() {
   const fullName = getFullName();
   const meta = [
-    { path: "/", title: fullName, changefreq: "monthly", priority: 1.0, ogFile: "og/index.svg" },
+    { path: "/", title: fullName, changefreq: "monthly", priority: 1.0, ogFile: "og/index.png" },
     {
       path: "/hobbies",
-      title: "Hobbies",
+      title: "Photography",
       changefreq: "monthly",
       priority: 0.7,
-      ogFile: "og/hobbies.svg",
+      ogFile: "og/hobbies.png",
     },
     {
       path: "/achievements",
       title: "Achievements",
       changefreq: "weekly",
       priority: 0.6,
-      ogFile: "og/achievements.svg",
+      ogFile: "og/achievements.png",
     },
     // The load-bearing typo: prerendered so the URL resolves and forwards, but
     // noindex + excluded from the sitemap so it never competes with the real page.
@@ -138,7 +139,7 @@ export function getRouteMeta() {
       title: "Achievements",
       changefreq: "yearly",
       priority: 0.1,
-      ogFile: "og/achievements.svg",
+      ogFile: "og/achievements.png",
       sitemap: false,
     },
   ];
@@ -150,7 +151,7 @@ export function getRouteMeta() {
       title,
       changefreq: "yearly",
       priority: 0.8,
-      ogFile: `og/projects-${slug}.svg`,
+      ogFile: `og/projects-${slug}.png`,
     });
   }
 
@@ -184,11 +185,26 @@ export const SITE_ORIGIN = (process.env.SITE_ORIGIN || "https://sai3000pro.githu
 /**
  * Deploy base path (always leading + trailing slash), e.g. "/portfolio-site/".
  *
- * Mirrors the base-path logic in vite.config.ts so sitemap/robots URLs match the
- * asset URLs the build emits:
- *   - SITE_BASE wins if set (CI's Lighthouse job sets it to "/").
- *   - else derive "/<repo>/" from GITHUB_REPOSITORY (root for *.github.io repos).
- *   - else fall back to this repo's documented default, "/portfolio-site/".
+ * THE definition of the deploy base — not a mirror of one. vite.config.ts imports
+ * this for Vite's `base`, so the asset URLs the build emits and the absolute URLs
+ * baked into sitemap.xml, robots.txt and the HTML canonicals all come from this one
+ * expression. They used to be two expressions that disagreed: vite.config.ts fell
+ * back to "/" with no GITHUB_REPOSITORY while this function fell back to
+ * "/portfolio-site/", so a local build shipped root-relative assets and a canonical
+ * of https://sai3000pro.github.io/ next to a sitemap full of
+ * https://sai3000pro.github.io/portfolio-site/ URLs. Under Actions both derived
+ * "/portfolio-site/" and agreed, which is why it stayed hidden.
+ *
+ * Resolution order:
+ *   - SITE_BASE wins if set. The explicit escape hatch for serving the build from
+ *     somewhere other than /<repo>/ — a custom domain, a local static server, a
+ *     self-hosted path. "/" is accepted and normalizes to root. (Nothing in CI sets
+ *     it today: the Lighthouse job audits the real base-path artifact rather than
+ *     rebuilding at the root, precisely so the audit cannot drift from the deploy.)
+ *   - else "/<repo>/" derived from GITHUB_REPOSITORY, which Actions always sets.
+ *     username.github.io user/org pages are served from the root, so those get "/".
+ *   - else "/": no GITHUB_REPOSITORY means a local build, and `vite dev`,
+ *     `vite preview` and any plain static server all serve dist from the root.
  *
  * @returns {string}
  */
@@ -201,11 +217,17 @@ export function getBase() {
     : undefined;
   if (repo) return repo.endsWith(".github.io") ? "/" : withSlashes(repo);
 
-  return "/portfolio-site/";
+  return "/";
 }
 
 /**
  * Absolute, deploy-correct URL for a route path.
+ *
+ * Non-root routes ALWAYS get a trailing slash. scripts/prerender.mjs writes each one as
+ * `<route>/index.html`, and GitHub Pages 301-redirects the slashless form onto the
+ * slashed one — so a sitemap full of slashless URLs is a sitemap full of redirects, and
+ * it disagrees with the runtime canonicals. `absoluteUrl` in src/lib/site-url.ts applies
+ * the identical rule; the two must stay in step.
  *
  * @param {string} route  e.g. "/" or "/projects/verbalyst".
  * @returns {string}
@@ -213,5 +235,5 @@ export function getBase() {
 export function absoluteUrl(route) {
   const base = getBase(); // e.g. "/portfolio-site/"
   if (route === "/") return SITE_ORIGIN + base;
-  return SITE_ORIGIN + base.replace(/\/$/, "") + route;
+  return SITE_ORIGIN + base.replace(/\/$/, "") + route.replace(/\/+$/, "") + "/";
 }

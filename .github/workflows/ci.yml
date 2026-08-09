@@ -1,9 +1,11 @@
 name: CI
 
+# Pull requests only. Pushes to main/master are covered by deploy.yml, which runs the
+# same `verify` + `lighthouse` jobs before it publishes — running this workflow on push
+# too meant every merge did two full verify builds plus a third Lighthouse build, under
+# two concurrency groups that could not coordinate with each other.
 on:
   pull_request:
-    branches: [main, master]
-  push:
     branches: [main, master]
 
 concurrency:
@@ -16,41 +18,4 @@ jobs:
 
   lighthouse:
     needs: verify
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache Bun install
-        uses: actions/cache@v6
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      # SITE_BASE=/ forces root-relative asset paths, matching how Lighthouse's local static
-      # server serves the site. (Clearing GITHUB_REPOSITORY doesn't work — Actions silently
-      # ignores overrides of reserved GITHUB_* variables.) The `verify` job's build is
-      # deliberately different: its assets are prefixed with /<repo>/, which is required for
-      # the real GitHub Pages deployment.
-      - name: Build (root-relative, for local Lighthouse audit)
-        run: bun run build:static
-        env:
-          NITRO_PRESET: node-server
-          SITE_BASE: "/"
-
-      - name: Run Lighthouse CI
-        uses: treosh/lighthouse-ci-action@v12
-        with:
-          configPath: "./lighthouserc.json"
-          uploadArtifacts: true
-          temporaryPublicStorage: true
+    uses: ./.github/workflows/lighthouse.yml

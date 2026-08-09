@@ -1,12 +1,11 @@
 {
   "ci": {
     "collect": {
-      "staticDistDir": "./dist/public",
-      "url": ["http://localhost/", "http://localhost/hobbies/"],
+      "staticDistDir": "./dist/lhci",
+      "url": ["http://localhost/portfolio-site/", "http://localhost/portfolio-site/hobbies/"],
       "numberOfRuns": 3,
       "settings": {
-        "chromeFlags": "--disable-gpu --no-sandbox --disable-dev-shm-usage --headless",
-        "blockedUrlPatterns": ["https://fonts.googleapis.com/*", "https://fonts.gstatic.com/*"]
+        "chromeFlags": "--disable-gpu --no-sandbox --disable-dev-shm-usage --headless"
       }
     },
     "assert": {

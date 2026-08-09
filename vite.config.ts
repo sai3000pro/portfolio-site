@@ -6,21 +6,18 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// Single source of truth for the prerendered route list (incl. derived
-// /projects/<slug> case studies). Also consumed by scripts/prerender.mjs so the
-// two can never drift.
-import { ROUTES } from "./scripts/routes.mjs";
+// Single source of truth for BOTH the prerendered route list (incl. derived
+// /projects/<slug> case studies) and the deploy base path. scripts/prerender.mjs
+// and scripts/seo.mjs import from the same module, so the asset URLs this build
+// emits and the absolute URLs in sitemap.xml / robots.txt / the HTML canonicals
+// are all derived from one expression and cannot drift.
+import { ROUTES, getBase } from "./scripts/routes.mjs";
 
-const repoName = process.env.GITHUB_REPOSITORY
-  ? process.env.GITHUB_REPOSITORY.split("/")[1]
-  : undefined;
-
-// User/organization pages (username.github.io) are served from the root.
-// SITE_BASE overrides the GitHub-Pages-derived base — CI's Lighthouse job sets it to "/"
-// because its local static server serves the build from the root, and Actions silently
-// ignores attempts to override the reserved GITHUB_REPOSITORY variable.
-const base =
-  process.env.SITE_BASE || (repoName && !repoName.endsWith(".github.io") ? `/${repoName}/` : "/");
+// See getBase() in scripts/routes.mjs for the full derivation: SITE_BASE wins if
+// set, else "/<repo>/" from GITHUB_REPOSITORY (root for username.github.io user
+// pages), else "/" for local builds. This used to be a second, subtly different
+// copy of that logic living here — see the note in routes.mjs.
+const base = getBase();
 
 export default defineConfig({
   tanstackStart: {
