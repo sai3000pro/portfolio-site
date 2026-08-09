@@ -1,20 +1,48 @@
 /**
  * Photo manifest for the /hobbies screen.
  *
- * There is no image pipeline in this repo — files in public/assets/hobbies/ ship exactly
- * as committed. Export tiles at roughly 640px on the long edge (WebP, ~80KB) and put the
- * full-resolution version in `full` if you want the lightbox to load something sharper.
+ * Two halves, deliberately kept apart:
  *
- * `src` stays a bare, base-less path; assetUrl() in @/lib/assets applies BASE_URL at
- * render time so the paths survive being loaded from the /hobbies sub-route.
+ *   ./hobbies.generated.ts   machine-derived — sizes, aspect, EXIF date/camera, accent
+ *                            colour. Written by `bun run photos`; never edit by hand.
+ *   PHOTO_TEXT (below)       hand-written — alt text, captions, locations, and any hobby
+ *                            the filename guessed wrong. The generator only reads this.
+ *
+ * To add photos: drop the originals into photos/hobbies/ and run `bun run photos`. It
+ * resizes, converts to WebP, reads the EXIF, and rewrites the generated half. Then write
+ * alt text here for the ids it lists.
  */
 
-export type HobbyTag = "tennis" | "f1" | "basketball" | "baseball" | "soccer" | "travel" | "music";
+import { GENERATED_PHOTOS } from "./hobbies.generated";
+
+/**
+ * Photo subjects, not pastimes. These describe what is *in* the frame, which is what a
+ * viewer of a photo wall actually wants — and unlike a list of sports, it stays accurate as
+ * the collection grows. The pipeline guesses a tag from the filename prefix, so naming a
+ * file "water-01.jpg" tags it for free.
+ *
+ * The runtime list is the source of truth; HobbyTag is derived from it.
+ */
+export const HOBBY_TAGS = [
+  "landscape",
+  "water",
+  "sky",
+  "forest",
+  "urban",
+  "travel",
+  "wildlife",
+] as const;
+
+export type HobbyTag = (typeof HOBBY_TAGS)[number];
+
+function isHobbyTag(value: string): value is HobbyTag {
+  return (HOBBY_TAGS as readonly string[]).includes(value);
+}
 
 export interface HobbyPhoto {
   /** Stable slug — React key, clone identity, lightbox addressing. */
   id: string;
-  /** Tile-sized image, e.g. "assets/hobbies/kart-01.webp". */
+  /** Tile-sized image, e.g. "assets/hobbies/kart-01.webp". Base-less; assetUrl() prefixes it. */
   src: string;
   /** Optional full-resolution source, loaded only when the lightbox opens. */
   full?: string;
@@ -33,6 +61,83 @@ export interface HobbyPhoto {
   /** HSL accent color matching the tile, e.g. "hsl(205 85% 62%)". Tints border/glow. */
   accent?: string;
 }
+
+/** The half a machine can't write. Keyed by photo id — the filename slug. */
+type PhotoText = {
+  alt: string;
+  caption?: string;
+  location?: string;
+  /** Only needed when the filename prefix didn't name the hobby. */
+  hobby?: HobbyTag;
+  /** Override EXIF, which reports model codes ("ILCE-7M4") rather than names ("A7 IV"). */
+  gear?: string;
+  date?: string;
+};
+
+/**
+ * `bun run photos` prints a ready-to-paste line for every photo missing an entry here.
+ * Nothing in this object is ever overwritten by the generator.
+ */
+const PHOTO_TEXT: Record<string, PhotoText> = {
+  // `location` is left blank throughout — these files carry no GPS EXIF and guessing at
+  // places would put invented facts on the page. Fill them in as you like.
+  "img-0021": {
+    alt: "View from an aeroplane window over a reservoir and patchwork farmland, wing in frame",
+    caption: "Somewhere over the approach, wing down",
+    hobby: "travel",
+  },
+  "img-0034": {
+    alt: "Green plains and farmland stretching to distant hills, seen from a hilltop viewpoint",
+    caption: "Monsoon green, all the way out",
+    hobby: "landscape",
+  },
+  "img-0048": {
+    alt: "Tall trees framing a clear deep-blue twilight sky",
+    caption: "Blue hour through the canopy",
+    hobby: "sky",
+  },
+  "img-0060": {
+    alt: "Sunset glowing pink and violet through silhouetted branches and leaves",
+    caption: "The good ten minutes",
+    hobby: "sky",
+  },
+  "img-0095": {
+    alt: "A calm lake framed by overhanging maple leaves, pine forest on the far shore",
+    caption: "Found the good spot on the shoreline",
+    hobby: "water",
+  },
+  "img-0105": {
+    alt: "Late summer sun over a rocky clearing, a cabin roof just visible through the trees",
+    hobby: "forest",
+  },
+  "img-0108": {
+    alt: "Canoes pulled up on a lakeshore at dusk, low sun over the water and pines on the point",
+    caption: "Canoes in for the night",
+    hobby: "water",
+  },
+};
+
+/**
+ * Merge the two halves. A photo with no text entry still renders — with weak alt text and a
+ * guessed hobby — because a missing caption should never be able to break the wall.
+ */
+const REAL_PHOTOS: HobbyPhoto[] = GENERATED_PHOTOS.map((g) => {
+  const text = PHOTO_TEXT[g.id];
+  const hobby = text?.hobby ?? (isHobbyTag(g.hobby) ? g.hobby : HOBBY_TAGS[0]);
+  return {
+    id: g.id,
+    src: g.src,
+    full: g.full,
+    aspect: g.aspect,
+    date: text?.date ?? g.date,
+    gear: text?.gear ?? g.gear,
+    accent: g.accent,
+    hobby,
+    alt: text?.alt ?? `A ${hobby} photo`,
+    caption: text?.caption,
+    location: text?.location,
+  };
+});
 
 const TILE_W = 640;
 const TILE_H = 480;
@@ -56,27 +161,21 @@ function placeholderSrc(label: string, hue: number): string {
 }
 
 const HUES = [205, 265, 12, 158, 38, 320];
-const TAGS: HobbyTag[] = ["tennis", "f1", "basketball", "baseball", "soccer", "travel"];
+const TAGS: HobbyTag[] = ["landscape", "water", "sky", "forest", "urban", "travel"];
 
-/** Sample EXIF-style values so the lightbox metadata UI is testable against placeholders. */
-const LOCATIONS = [
-  "Waterloo, ON",
-  "Montreal, QC",
-  "Toronto, ON",
-  "Vancouver, BC",
-  "Austin, TX",
-  "Monaco",
-];
-const DATES = ["Jul 2025", "Jun 2025", "Apr 2025", "Feb 2025", "Nov 2024", "Sep 2024"];
-const GEAR = [
-  "Sony A7 IV - 35mm",
-  "Sony A7 IV - 85mm",
-  "Fujifilm X-T5 - 23mm",
-  "Canon R6 - 70-200mm",
-  "Nikon Z6 II - 50mm",
-  "iPhone 15 Pro",
-];
-
+/**
+ * Placeholders carry no `location`, `date` or `gear` — on purpose.
+ *
+ * They used to be seeded from sample EXIF arrays ("Monaco", "Sony A7 IV - 35mm") so the
+ * lightbox metadata row had something to render against. But the lightbox prints those
+ * values verbatim, as capture data, and the real photos have none of them: the files carry
+ * no GPS EXIF and the rest was stripped on import. The result was that the only photos on
+ * the wall claiming a camera and a place were the ones that never existed — exactly the
+ * invented facts the note at the top of PHOTO_TEXT says not to put on the page.
+ *
+ * The lightbox filters the row's items and skips the whole <p> when none survive, so a
+ * placeholder simply shows its caption with no metadata line beneath it.
+ */
 function makePlaceholders(count: number, offset = 0): HobbyPhoto[] {
   return Array.from({ length: count }, (_, k) => {
     const i = k + offset;
@@ -89,16 +188,10 @@ function makePlaceholders(count: number, offset = 0): HobbyPhoto[] {
       alt: `Placeholder tile ${i + 1} — a ${tag} photo will go here`,
       hobby: tag,
       aspect: TILE_W / TILE_H,
-      location: LOCATIONS[i % LOCATIONS.length],
-      date: DATES[i % DATES.length],
-      gear: GEAR[i % GEAR.length],
       accent: `hsl(${hue} 85% 62%)`,
     };
   });
 }
-
-/** Real photos go here. Append as files land in public/assets/hobbies/. */
-const REAL_PHOTOS: HobbyPhoto[] = [];
 
 /**
  * The belts need enough tiles to fill a wide viewport twice over; below this the wrap
