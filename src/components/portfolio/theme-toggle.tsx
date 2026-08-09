@@ -1,24 +1,19 @@
-import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
 import { KEYS } from "@/data/achievements";
 import { trackBurst, unlock } from "@/lib/achievements";
-import {
-  DEFAULT_THEME,
-  applyTheme,
-  getStoredTheme,
-  nextTheme,
-  setStoredTheme,
-  type Theme,
-} from "@/lib/theme";
+import { applyTheme, nextTheme, setStoredTheme, useTheme } from "@/lib/theme";
 
 /**
  * Binary light/dark switch, styled to match the nav's translucent pills.
  *
- * State is initialized in an effect — never during render — so the server render
- * and the first client render agree (both start at {@link DEFAULT_THEME}) and
- * hydration never mismatches. The real page theme is applied even earlier by
- * `THEME_INIT_SCRIPT` in the document head, so there is no flash.
+ * The theme is read from {@link useTheme}, not held locally, so this button and
+ * every other consumer (the contact form's toaster, for one) always agree. That
+ * hook keeps the same hydration contract this component used to implement by
+ * hand: the server render and the first client render both show the dark
+ * default, and the stored preference arrives after hydration. The real page theme
+ * is applied even earlier by `THEME_INIT_SCRIPT` in the document head, so there is
+ * no flash.
  */
 export function ThemeToggle({
   className = "",
@@ -27,16 +22,12 @@ export function ThemeToggle({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
-
-  useEffect(() => {
-    setTheme(getStoredTheme());
-  }, []);
+  const theme = useTheme();
 
   const handleClick = () => {
     const next = nextTheme(theme);
-    setTheme(next);
     setStoredTheme(next);
+    // Applying the theme is what notifies useTheme, so this re-renders the button.
     applyTheme(next, true);
 
     if (next === "light") unlock("let-there-be-light");

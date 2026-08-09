@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { Lock, RotateCcw, Sparkles } from "lucide-react";
 
 import {
@@ -252,10 +252,16 @@ export function TrophyCase() {
  * One badge tile. Four visual states, driven entirely by `clueLevel`:
  * earned, locked-with-hint, secret-with-clue, and fully hidden.
  *
- * A hidden secret is a real `<button>`, not a hover-only `<div>`, so keyboard and
- * touch users can reach the "interact more" message. The message is swapped in
- * React state rather than CSS `:hover` because a CSS-only reveal is invisible to
- * assistive tech.
+ * A fully hidden secret is a disclosure: activating it swaps the body copy for the
+ * "interact more" message. The swap is React state rather than CSS `:hover` because
+ * a CSS-only reveal is invisible to assistive tech, and the control carries
+ * `aria-expanded` plus real Enter/Space handling so it is operable without a mouse.
+ *
+ * WHY NOT A NATIVE `<button>`: a button's content model is phrasing content, and
+ * this tile's children are flow content — `<p>`, the layout `<div>`s, and the
+ * `<div>` that `AchievementBadge` renders. Rewriting all of that into spans would
+ * mean reshaping the shared badge component for one caller. `role="button"` with an
+ * explicit key handler is the supported ARIA equivalent, so that is what this uses.
  */
 function AchievementCard({
   achievement,
@@ -294,24 +300,43 @@ function AchievementCard({
     }
   })();
 
-  const interactive = achievement.secret && !earned;
+  // Every unearned secret keeps the "there is something to read here" cursor...
+  const hinting = achievement.secret && !earned;
+
+  // ...but only a fully hidden one has anything to disclose: `body` consults
+  // `probing` in exactly one branch, `probing && hidden`. At category / vague /
+  // sharp the clue is already on screen, so exposing those tiles as buttons
+  // advertised an action that could never change anything.
+  const revealable = achievement.secret && hidden;
 
   return (
     <div
-      // The whole tile is focusable only when it has something to reveal.
-      {...(interactive
+      // The whole tile is the disclosure control, focusable only when it has
+      // something left to reveal.
+      {...(revealable
         ? {
             role: "button" as const,
             tabIndex: 0,
+            "aria-expanded": probing,
             onMouseEnter: () => setProbing(true),
             onMouseLeave: () => setProbing(false),
             onFocus: () => setProbing(true),
             onBlur: () => setProbing(false),
             onClick: () => setProbing((v) => !v),
+            // WCAG 2.1.1: `role="button"` promises Enter and Space, and neither
+            // did anything here. Space additionally has to be swallowed or it
+            // scrolls the page out from under the tile the visitor is reading.
+            onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              setProbing((v) => !v);
+            },
           }
         : {})}
       className={`flex flex-col items-center rounded-2xl text-center transition-colors ${
-        interactive ? "cursor-help focus-visible:outline-none focus-visible:ring-2" : ""
+        hinting ? "cursor-help" : ""
+      } ${
+        revealable ? "focus-visible:outline-none focus-visible:ring-2" : ""
       } focus-visible:ring-accent-bright`}
       style={{
         padding: 18,
@@ -328,6 +353,10 @@ function AchievementCard({
         {title}
       </div>
 
+      {/* On a `revealable` tile this text is inside the button, whose children are
+          presentational — so it reaches assistive tech as part of the computed
+          name. Toggling therefore changes both the name and `aria-expanded`, which
+          is what gets the revealed message announced rather than silently swapped. */}
       <p
         className="text-muted-portfolio"
         style={{ fontSize: 12.5, marginTop: 5, lineHeight: 1.45 }}

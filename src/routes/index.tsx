@@ -12,6 +12,7 @@ import {
 import { Github, Linkedin, Mail, ArrowUp } from "lucide-react";
 
 import { KEYS } from "@/data/achievements";
+import { GENERATED_IMAGES } from "@/data/images.generated";
 import { PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
 import { trackMember, unlock } from "@/lib/achievements";
 import { About } from "@/components/portfolio/about";
@@ -21,6 +22,7 @@ import { Contact, Footer } from "@/components/portfolio/contact";
 import { Nav } from "@/components/portfolio/nav";
 import { Starfield } from "@/components/portfolio/starfield";
 import { assetUrl } from "@/lib/assets";
+import { absoluteUrl } from "@/lib/site-url";
 
 const SOCIAL_ICONS: Record<string, typeof Github> = {
   GitHub: Github,
@@ -47,15 +49,30 @@ export const Route = createFileRoute("/")({
           "Portfolio of Sai (Saivenkat Jilla) — Software Engineer studying at the University of Waterloo",
       },
     ],
+    // The root shell deliberately declares no canonical (it would apply to every route —
+    // see the comment in __root.tsx), so "/" declares its own here. absoluteUrl() with no
+    // argument is the site root, trailing slash included.
+    links: [{ rel: "canonical", href: absoluteUrl() }],
   }),
   component: Index,
 });
 
-/** Typewriter cycling through ROLES for the hero headline. */
-function useRotatingRole(): string {
+/**
+ * Typewriter cycling through ROLES for the hero headline.
+ *
+ * `frozen` (prefers-reduced-motion) skips the timer chain entirely and settles on the
+ * first role, so nothing animates and nothing ticks for the life of the page. The freeze
+ * is applied from the effect, not from render, so the pre-hydration markup is the same
+ * either way and reduced motion cannot introduce a hydration mismatch.
+ */
+function useRotatingRole(frozen: boolean): string {
   const [text, setText] = useState("");
 
   useEffect(() => {
+    if (frozen) {
+      setText(ROLES[0]);
+      return;
+    }
     let timeout: ReturnType<typeof setTimeout>;
     let roleIdx = 0;
     let charIdx = 0;
@@ -87,10 +104,50 @@ function useRotatingRole(): string {
 
     timeout = setTimeout(tick, 600);
     return () => clearTimeout(timeout);
-  }, []);
+  }, [frozen]);
 
   return text;
 }
+
+/**
+ * The rotating headline, isolated in its own leaf component.
+ *
+ * The typewriter re-renders 10-18x/s forever, so the hook must NOT live in Hero — that
+ * would rebuild the portrait, the name, the spinning ball and every stagger child (each
+ * with fresh inline style objects) on every keystroke. Here only this text node re-renders.
+ *
+ * ACCESSIBILITY: the animated text is `aria-hidden`. It is mid-word most of the time
+ * ("Amateur Photograph"), and assistive tech reading the region — or re-reading it after
+ * the DOM mutates — would voice that fragment as if it were the content. The complete list
+ * of roles is exposed once, statically, instead: strictly more information than the visual
+ * treatment shows at any instant, and it never changes under the reader.
+ */
+function RotatingRole() {
+  const prefersReduced = useReducedMotion() === true;
+  const role = useRotatingRole(prefersReduced);
+
+  return (
+    <>
+      <span aria-hidden="true">
+        {role || "\u00A0"}
+        <span className="type-caret">|</span>
+      </span>
+      <span className="sr-only">{ROLES.join(" ")}</span>
+    </>
+  );
+}
+
+/**
+ * Hero portrait derivatives. This is the LCP element, so the <img> stays EAGER — no
+ * `loading="lazy"` — and carries `fetchPriority="high"`; the build's `<link rel="preload">`
+ * is generated from the eager tags in the SSR output, so pointing `src` here repoints the
+ * preload too. The derivatives are already centre-cropped to 4/5 (matching the frame), which
+ * makes the `object-cover` below a no-op rather than a crop.
+ */
+const PORTRAIT_SOURCES = GENERATED_IMAGES.portrait.sources;
+/** Smallest source doubles as the `src` fallback for browsers that ignore srcSet. */
+const PORTRAIT_FALLBACK = PORTRAIT_SOURCES[0];
+const PORTRAIT_SRCSET = PORTRAIT_SOURCES.map((s) => `${assetUrl(s.src)} ${s.width}w`).join(", ");
 
 function Portrait() {
   return (
@@ -132,8 +189,14 @@ function Portrait() {
         }}
       >
         <img
-          src={assetUrl(PROFILE.portrait)}
+          src={assetUrl(PORTRAIT_FALLBACK.src)}
+          srcSet={PORTRAIT_SRCSET}
+          sizes="212px"
           alt={PROFILE.portraitAlt}
+          width={PORTRAIT_FALLBACK.width}
+          height={PORTRAIT_FALLBACK.height}
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover"
         />
         {/* sheen */}
@@ -392,7 +455,6 @@ function SaiName() {
 }
 
 function Hero() {
-  const role = useRotatingRole();
   return (
     <motion.div
       className="relative w-full flex flex-col items-center justify-center text-center"
@@ -454,10 +516,7 @@ function Hero() {
           paddingRight: "0.14em",
         }}
       >
-        {role || "\u00A0"}
-        <span className="type-caret" aria-hidden>
-          |
-        </span>
+        <RotatingRole />
       </motion.div>
 
       {/* Tagline */}
@@ -646,16 +705,24 @@ function Index() {
 
       <Nav />
 
-      <section id="home" className="relative" style={{ zIndex: 2 }}>
-        <Hero />
-      </section>
+      {/* Target of the skip-to-content link in __root.tsx. `tabIndex={-1}` so browsers
+          that will not focus a non-focusable fragment target still move focus here. */}
+      <main id="main-content" tabIndex={-1}>
+        <section id="home" className="relative" style={{ zIndex: 2 }}>
+          <Hero />
+        </section>
 
-      {/* Content sections */}
+        {/* Content sections */}
+        <div className="relative" style={{ zIndex: 2 }}>
+          <About />
+          <Experience />
+          <Projects />
+          <Contact />
+        </div>
+      </main>
+
+      {/* Outside <main> so the site footer stays a top-level contentinfo landmark. */}
       <div className="relative" style={{ zIndex: 2 }}>
-        <About />
-        <Experience />
-        <Projects />
-        <Contact />
         <Footer />
       </div>
 

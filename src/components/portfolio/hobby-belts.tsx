@@ -26,8 +26,19 @@ const TUNING = {
   SWEEP: 1.15,
   /** Max vertical roundness of the spiral. Now it fills the screen, so it may go near-circular. */
   ELLIPSE_Y: 0.9,
-  /** Global rotation of the whole formation, rad/s. */
-  SPIN: -0.22,
+  /**
+   * Global rotation of the whole formation, rad/s.
+   *
+   * Re-tune vs. real photos (was -0.22, set against flat SVG gradients). Angular rate is
+   * constant but the tangential speed it produces is not: at a 1440px viewport the outer arm
+   * sits at rMax ≈ 600px, so -0.22 rad/s dragged the outermost tiles sideways at ~130px/s —
+   * five times the belt speed they are about to settle into. A uniform gradient at that rate
+   * reads as texture; a photograph with a hard horizon and a bright sky reads as a spinning
+   * carousel, because the eye now has edges to track. -0.18 keeps the drift clearly visible
+   * (~108px/s outer) while letting the frames be read during HOLD. Same reasoning, and the
+   * same ~17-18% trim, as the recent starfield slow-down.
+   */
+  SPIN: -0.18,
 
   FLY_IN: 1.05,
   FLY_STAGGER: 0.035,
@@ -35,8 +46,19 @@ const TUNING = {
   SETTLE: 0.9,
   SETTLE_STAGGER: 0.022,
 
-  /** Per-row belt speeds in px/s; index wraps. Slight variation reads as depth. */
-  ROW_SPEEDS: [26, 22, 30],
+  /**
+   * Per-row belt speeds in px/s; index wraps. Slight variation reads as depth.
+   *
+   * Re-tune vs. real photos (was [26, 22, 30]): the three values are unchanged, only their
+   * order is. Row index is also the depth cue (DEPTH_SCALE_STEP / DEPTH_BLUR_STEP): row 0 is
+   * front — full size, sharp; row 2 is furthest back — 0.94 scale, ~1.1px blur. The old order
+   * gave the *back* row the fastest travel, i.e. inverted parallax. That was unreadable while
+   * every tile was a flat gradient (no detail to lose to a 1.1px blur, so no depth was
+   * perceived to contradict); real photographs make the blur/scale cue legible, and the
+   * far row outrunning the near one then reads as a mistake. Front-to-back descending keeps
+   * the identical average pace and spread, and now agrees with the depth cue.
+   */
+  ROW_SPEEDS: [30, 26, 22],
   GAP: 16,
   /** Belts spin up/down over ~200ms rather than snapping. */
   SPEED_EASE: 0.08,
@@ -254,7 +276,7 @@ function StaticGallery({
         padding: "clamp(112px,16vh,168px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
       }}
     >
-      <SectionHeading eyebrow="Off the clock" title="Hobbies" as="h1" />
+      <SectionHeading eyebrow="Through the lens" title="Photography" as="h1" />
       <div
         className="grid w-full"
         style={{
@@ -285,7 +307,12 @@ function StaticGallery({
             <img
               src={assetUrl(photo.src)}
               alt={photo.alt}
-              loading="lazy"
+              // This grid is the mobile, reduced-motion AND prerendered-SSR path, so its first
+              // tile is the LCP element on /hobbies for every phone visitor. Lazy-loading it
+              // costs a round trip that only starts after layout — eager + high priority for
+              // tile 0 only; everything below the fold stays lazy.
+              loading={i === 0 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : "auto"}
               decoding="async"
               className="w-full h-full"
               style={{ objectFit: "cover", display: "block" }}
@@ -324,6 +351,9 @@ function MotionStage({
   const [paused, setPaused] = useState(false);
   const [focused, setFocused] = useState(false);
   const [ready, setReady] = useState(false);
+  // Mirrors the IntersectionObserver below into React (it fires on scroll-in/out, never per
+  // frame). Only used to decide whether the tiles are worth keeping on the compositor.
+  const [onscreen, setOnscreen] = useState(true);
 
   // Hover pauses only the row under the cursor — written by pointer move, read by the RAF
   // loop, so moving the mouse never triggers a React re-render of the tile grid.
@@ -337,6 +367,41 @@ function MotionStage({
   const readyRef = useRef(false);
   const visibleRef = useRef(true);
   const suppressClickRef = useRef(false);
+
+  // Cached viewport-space top edge of the tile layer. Both hover-to-pause (every mousemove) and
+  // drag-to-scrub (every pointerdown) need it to turn clientY into a row index, and
+  // getBoundingClientRect() forces a layout — measuring it per pointer event, while 30 tiles are
+  // having transforms written on the same main thread, is a synchronous reflow per event.
+  // The value only moves when the layer moves: a page scroll, a resize, or a reflow above us.
+  // Scroll and resize set the dirty flag (see the effect below); `layout` changing covers the
+  // parent's ResizeObserver; mouseenter re-dirties as a catch-all for anything else (a late
+  // image or font reflowing the page while the cursor is elsewhere) at one measure per entry.
+  const layerTopRef = useRef(0);
+  const layerTopDirtyRef = useRef(true);
+  const layerTop = useCallback(() => {
+    const el = tileLayerRef.current;
+    if (!el) return 0;
+    if (layerTopDirtyRef.current) {
+      layerTopRef.current = el.getBoundingClientRect().top;
+      layerTopDirtyRef.current = false;
+    }
+    return layerTopRef.current;
+  }, []);
+  const invalidateLayerTop = useCallback(() => {
+    layerTopDirtyRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    // Passive + capture: scroll doesn't bubble, so capture is what catches a scrolling ancestor
+    // as well as the document. The handler only sets a boolean — the re-measure is deferred to
+    // the next pointer event that actually needs it, so a scroll burst costs zero layouts.
+    window.addEventListener("scroll", invalidateLayerTop, { passive: true, capture: true });
+    window.addEventListener("resize", invalidateLayerTop);
+    return () => {
+      window.removeEventListener("scroll", invalidateLayerTop, true);
+      window.removeEventListener("resize", invalidateLayerTop);
+    };
+  }, [invalidateLayerTop]);
 
   // Every belt tile: photos cycle to fill the rows. The first occurrence of each photo is the
   // "original" — the only one in the tab order / a11y tree.
@@ -377,6 +442,10 @@ function MotionStage({
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
 
+  // A new `layout` object means the parent's ResizeObserver re-measured; the layer's box may
+  // have moved even if the window itself never fired `resize` (a sidebar/scrollbar change).
+  useEffect(invalidateLayerTop, [layout, invalidateLayerTop]);
+
   const introDuration =
     (total - 1) * TUNING.FLY_STAGGER +
     TUNING.FLY_IN +
@@ -407,6 +476,9 @@ function MotionStage({
     // auto-scroll, plus the transient state of the gesture currently in progress.
     const dragVel = new Float64Array(rows);
     let dragRow = -1;
+    // Which pointer owns the gesture. endDrag listens on window (see below), so it has to
+    // ignore releases from any other pointer — a second finger, or a different device.
+    let dragPointerId = -1;
     let dragStartX = 0;
     let dragStartOffset = 0;
     let dragLastX = 0;
@@ -420,6 +492,19 @@ function MotionStage({
 
     readyRef.current = false;
     setReady(false);
+
+    // The "belts are live" gate: drag-to-scrub refuses to start until it flips, and the
+    // aria-live region announces off it. It lives in a re-armable timer rather than a fixed
+    // one because skip() can legitimately bring it forward (see below).
+    let readyTimer = 0;
+    const markReady = () => {
+      readyRef.current = true;
+      setReady(true);
+    };
+    const armReady = (delayMs: number) => {
+      window.clearTimeout(readyTimer);
+      readyTimer = window.setTimeout(markReady, Math.max(0, delayMs));
+    };
 
     const settleStart = (total - 1) * TUNING.FLY_STAGGER + TUNING.FLY_IN + TUNING.HOLD;
 
@@ -436,6 +521,11 @@ function MotionStage({
     const skip = () => {
       t0 = performance.now() - introDuration * 1000;
       speedScales.fill(1);
+      // Rewinding the clock puts the belts at steady state from this frame on, so the ready
+      // gate has to move with them. Leaving the original timer to run meant drag-to-scrub was
+      // refused (and the announcement stayed silent) for the rest of the intro's nominal
+      // ~3.9s on a wall that was visibly already running.
+      armReady(0);
     };
     const onSkip = () => skip();
     window.addEventListener("pointerdown", onSkip, { once: true });
@@ -448,10 +538,10 @@ function MotionStage({
       if (!readyRef.current || dragRow >= 0) return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
       const L = layoutRef.current;
-      const rect = layerEl!.getBoundingClientRect();
-      const r = rowAtY(L, e.clientY - rect.top);
+      const r = rowAtY(L, e.clientY - layerTop());
       if (r === null) return;
       dragRow = r;
+      dragPointerId = e.pointerId;
       dragStartX = e.clientX;
       dragStartOffset = rowState[r].offset;
       dragLastX = e.clientX;
@@ -461,7 +551,7 @@ function MotionStage({
       // Don't capture yet: a tap/click must still reach the tile button to open the lightbox.
     };
     const onPointerMove = (e: PointerEvent) => {
-      if (dragRow < 0) return;
+      if (dragRow < 0 || e.pointerId !== dragPointerId) return;
       const dx = e.clientX - dragStartX;
       if (!dragMoved) {
         if (Math.abs(dx) < DRAG_THRESHOLD) return;
@@ -484,9 +574,10 @@ function MotionStage({
       e.preventDefault();
     };
     const endDrag = (e: PointerEvent) => {
-      if (dragRow < 0) return;
+      if (dragRow < 0 || e.pointerId !== dragPointerId) return;
       const r = dragRow;
       dragRow = -1;
+      dragPointerId = -1;
       if (dragMoved) {
         dragVel[r] = Math.max(-DRAG_MAX_VEL, Math.min(DRAG_MAX_VEL, dragVel[r]));
         suppressClickRef.current = true;
@@ -502,9 +593,27 @@ function MotionStage({
     if (layerEl) {
       layerEl.addEventListener("pointerdown", onPointerDown);
       layerEl.addEventListener("pointermove", onPointerMove, { passive: false });
-      layerEl.addEventListener("pointerup", endDrag);
-      layerEl.addEventListener("pointercancel", endDrag);
     }
+    // The gesture must be ENDED on window, not on the layer. Capture is deliberately deferred
+    // until the move threshold (so a tap still reaches the tile button), which means a press
+    // that never crosses it is never captured — release it outside the layer (past the window
+    // edge, or over the fixed nav) and a layer-bound pointerup/pointercancel never fires.
+    // dragRow would then stay set forever: the rAF loop eases that row to a permanent stop and
+    // every later onPointerDown bails early, killing scrub site-wide until remount.
+    // Listening on window catches the release wherever it lands; a captured pointer still
+    // retargets to the layer and bubbles up here, and endDrag is idempotent either way.
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+    // Last-resort net for the same failure: an uncaptured press released past the window edge
+    // may deliver no pointer event to the document at all. Losing window focus with a gesture
+    // still open means that gesture is over — drop it rather than let the row stay frozen.
+    const onWindowBlur = () => {
+      if (dragRow < 0) return;
+      dragVel[dragRow] = 0;
+      dragRow = -1;
+      dragPointerId = -1;
+    };
+    window.addEventListener("blur", onWindowBlur);
 
     const tick = (now: number) => {
       if (cancelled) return;
@@ -608,6 +717,9 @@ function MotionStage({
       (entries) => {
         const vis = entries[0]?.isIntersecting ?? true;
         visibleRef.current = vis;
+        // Cheap (fires on scroll-in/out only) and it lets the tiles drop their compositor
+        // layers while the wall is parked offscreen — see `moving` below.
+        setOnscreen(vis);
         if (vis && stopped && !cancelled) {
           stopped = false;
           // Hold the clock steady across the gap so the phase resumes cleanly.
@@ -621,33 +733,48 @@ function MotionStage({
     if (sectionRef.current) io.observe(sectionRef.current);
 
     raf = requestAnimationFrame(tick);
-    const readyTimer = setTimeout(
-      () => {
-        readyRef.current = true;
-        setReady(true);
-      },
-      Math.max(0, introDuration * 1000),
-    );
+    armReady(introDuration * 1000);
 
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
-      clearTimeout(readyTimer);
+      window.clearTimeout(readyTimer);
       io.disconnect();
       window.removeEventListener("pointerdown", onSkip);
       window.removeEventListener("wheel", onSkip);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+      window.removeEventListener("blur", onWindowBlur);
       if (layerEl) {
         layerEl.removeEventListener("pointerdown", onPointerDown);
         layerEl.removeEventListener("pointermove", onPointerMove);
-        layerEl.removeEventListener("pointerup", endDrag);
-        layerEl.removeEventListener("pointercancel", endDrag);
       }
     };
     // Re-seeded only when the tile grid genuinely changes shape.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [total, perRow, rows, pitch]);
 
-  const moving = !globalPaused;
+  /**
+   * Whether the belts are genuinely animating this instant — the gate for `will-change` on the
+   * tiles (see BeltTile). Every tile that carries the hint is a promoted compositor layer:
+   * 3 rows x 10 at a 1440x900 viewport is 30 layers of 220x165 CSS px, ~0.58MB each at DPR 2,
+   * ~17MB held for as long as the hint is applied.
+   *
+   * It can't simply be dropped: framer v12 writes plain 2D `translateX()/translateY()`
+   * (motion-dom's buildTransform emits no translateZ), so nothing else promotes these tiles,
+   * and an unpromoted tile whose transform changes every frame invalidates the full-viewport
+   * layer it paints into — trading 17MB of GPU memory for a main-thread raster per frame.
+   * Hoisting the hint to the tile layer instead is strictly worse: one 1440x900 layer is
+   * ~20.7MB on its own, and it would not stop the 30 per-tile transform writes below it.
+   *
+   * So: keep the hint exactly while it earns its memory. `globalPaused` already covered the
+   * pause button / focus / lightbox; adding `onscreen` is what stops ~17MB from being pinned
+   * indefinitely on a page where the wall has been scrolled past — the RAF loop was already
+   * suspended in that state, so the layers were being retained for an animation that wasn't
+   * running. Cost: re-promoting on scroll-back can drop a frame, which lands under the wall's
+   * own restart.
+   */
+  const moving = !globalPaused && onscreen;
 
   return (
     <section ref={sectionRef} className="relative w-full" style={{ height: "100svh", zIndex: 2 }}>
@@ -656,7 +783,7 @@ function MotionStage({
         className="pointer-events-none absolute inset-x-0 flex justify-center"
         style={{ top: "clamp(96px,15vh,150px)", zIndex: 3, padding: "0 clamp(24px,5vw,80px)" }}
       >
-        <SectionHeading eyebrow="Off the clock" title="Hobbies" as="h1" />
+        <SectionHeading eyebrow="Through the lens" title="Photography" as="h1" />
       </div>
 
       {/* Tile layer: the spiral fills this (the whole screen), then collapses into the belts.
@@ -669,13 +796,20 @@ function MotionStage({
           isolation: "isolate",
           contain: "layout paint",
           // Reserve horizontal gestures for drag-to-scrub; vertical still scrolls the page.
-          touchAction: "pan-y",
+          // `pinch-zoom` must be listed explicitly: this layer is `absolute inset-0` over a
+          // 100svh section, and the stage renders from 768px up, so on a tablet a bare `pan-y`
+          // took page zoom away for a full screen height (WCAG 1.4.4). Naming it back costs the
+          // drag nothing — a scrub is one pointer, and `dragRow >= 0` already refuses a second,
+          // so the two-finger gesture the browser needs for a pinch is one this code never
+          // claims. When the browser does take it, it fires pointercancel for the held finger,
+          // which window-level endDrag treats as a normal release.
+          touchAction: "pan-y pinch-zoom",
           WebkitMaskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
           maskImage: "linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent)",
         }}
+        onMouseEnter={invalidateLayerTop}
         onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect();
-          hoveredRowRef.current = rowAtY(layoutRef.current, e.clientY - rect.top);
+          hoveredRowRef.current = rowAtY(layoutRef.current, e.clientY - layerTop());
         }}
         onMouseLeave={() => {
           hoveredRowRef.current = null;
@@ -778,6 +912,7 @@ function BeltTile({
   height: number;
   isOriginal: boolean;
   firstRow: boolean;
+  /** Belts are animating right now: onscreen and not paused. Gates the compositor hint only. */
   moving: boolean;
   depthScale: number;
   depthBlur: number;
@@ -836,8 +971,12 @@ function BeltTile({
         scale: values.scale,
         rotate: values.rotate,
         opacity: values.opacity,
+        // Promotes this tile to its own compositor layer, so keep it only while the wall is
+        // actually animating (see `moving` in MotionStage — ~17MB of layers across 30 tiles).
         willChange: moving ? "transform" : undefined,
         backfaceVisibility: "hidden",
+        // `manipulation` already permits pinch-zoom, so it intersects with the layer's
+        // `pan-y pinch-zoom` to leave pinch working over a tile as well as between tiles.
         touchAction: "manipulation",
       }}
       {...(isOriginal ? {} : { "aria-hidden": true })}

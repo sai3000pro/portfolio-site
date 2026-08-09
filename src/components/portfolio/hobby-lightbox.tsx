@@ -196,38 +196,37 @@ export function HobbyLightbox({
           className="flex items-center justify-between gap-4"
           style={{ padding: "14px clamp(16px,3vw,24px) 18px" }}
         >
-          {captionVisible ? (
-            <div className="min-w-0">
+          {/* The caption element stays mounted even when hidden: the dialog's
+              aria-labelledby points at it, so unmounting would leave the dialog
+              with no accessible name. */}
+          <div className="min-w-0">
+            <p
+              id="hobby-lightbox-caption"
+              className={`font-body text-muted-portfolio on-dark${captionVisible ? "" : " sr-only"}`}
+              style={{ fontSize: 14.5, lineHeight: 1.6 }}
+            >
+              {photo.caption ?? photo.alt}
+            </p>
+            {captionVisible && meta.length > 0 ? (
               <p
-                id="hobby-lightbox-caption"
                 className="font-body text-muted-portfolio on-dark"
-                style={{ fontSize: 14.5, lineHeight: 1.6 }}
+                style={{
+                  marginTop: 4,
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                  opacity: 0.7,
+                  letterSpacing: 0.2,
+                }}
               >
-                {photo.caption ?? photo.alt}
+                {meta.map((item, i) => (
+                  <span key={i}>
+                    {i > 0 ? <span style={{ margin: "0 7px", opacity: 0.6 }}>·</span> : null}
+                    {item}
+                  </span>
+                ))}
               </p>
-              {meta.length > 0 ? (
-                <p
-                  className="font-body text-muted-portfolio on-dark"
-                  style={{
-                    marginTop: 4,
-                    fontSize: 12,
-                    lineHeight: 1.5,
-                    opacity: 0.7,
-                    letterSpacing: 0.2,
-                  }}
-                >
-                  {meta.map((item, i) => (
-                    <span key={i}>
-                      {i > 0 ? <span style={{ margin: "0 7px", opacity: 0.6 }}>·</span> : null}
-                      {item}
-                    </span>
-                  ))}
-                </p>
-              ) : null}
-            </div>
-          ) : (
-            <span aria-hidden="true" />
-          )}
+            ) : null}
+          </div>
           <div className="flex items-center gap-2 shrink-0">
             <NavButton label="Previous photo" onClick={() => step(-1)}>
               <ChevronLeft size={19} strokeWidth={2} />

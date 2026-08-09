@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import { AnimatePresence, motion, motionValue } from "framer-motion";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useCallback } from "react";
+import { AnimatePresence, motion, motionValue, useReducedMotion } from "framer-motion";
 import type { MotionValue } from "framer-motion";
 import { X, Camera, ArrowRight } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@/data/portfolio";
 import { KEYS } from "@/data/achievements";
+import { GENERATED_IMAGES, type GeneratedImageId } from "@/data/images.generated";
 import { trackMember, unlock } from "@/lib/achievements";
+import { assetUrl } from "@/lib/assets";
 import { slugify } from "@/lib/slug";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 
@@ -14,6 +16,28 @@ import { useFocusTrap } from "@/hooks/use-focus-trap";
 const NODE_W = 195; // card panel width
 const IMG_H = Math.round(NODE_W * (10 / 16)); // 16:10 thumbnail height ≈ 122px
 const NODE_H = IMG_H + 106; // thumbnail + text area (title + desc + see more)
+
+/**
+ * Widest the modal's screenshot is ever painted: the panel caps at 860px, the media column
+ * takes half of that, less its 12px padding on each side. Used only as the `sizes` hint.
+ */
+const MODAL_IMG_W = 400;
+
+/**
+ * Minimum **container** width (px) for the draggable constellation. Below it we render
+ * a plain responsive grid of the same cards instead.
+ *
+ * Deliberately measured against the container (the stage / canvas `clientWidth`), never
+ * `window.innerWidth`, and every comparison in this file uses that same quantity — mixing
+ * the two is what previously left the 768–845px viewport band showing a constellation
+ * whose physics loop had already opted out, so the cards stayed piled up. The container is
+ * the viewport minus `Section`'s `clamp(24px,5vw,80px)` padding on each side, so the
+ * effective viewport cutoff is roughly 845–930px. That is the right place to draw the line:
+ * three 195px cards plus gaps only stop overlapping once the canvas itself is this wide.
+ *
+ * Matches `MOTION_MIN_WIDTH` in `hobby-belts.tsx`, which is compared the same way.
+ */
+const MOTION_MIN_WIDTH = 768;
 
 // ─── Physics tunables ─────────────────────────────────────────────────────────
 
@@ -75,6 +99,31 @@ function seedGrid(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * `<img>` attributes for a project screenshot, at the given CSS display width.
+ *
+ * `imageId` is set explicitly on each project in portfolio.ts and keys into the generated
+ * derivatives; when it is absent (a project with an `image` but no encoded sizes yet) this
+ * degrades to the committed original, so nothing disappears.
+ *
+ * Both call sites below used to pass `project.image` straight to `src`. Those paths are
+ * bare and document-relative, so they 404 under the GitHub Pages base path — everything
+ * that reaches the DOM goes through `assetUrl()`.
+ */
+function projectImageProps(image: string, imageId: GeneratedImageId | undefined, sizes: string) {
+  const generated = imageId ? GENERATED_IMAGES[imageId] : undefined;
+  // Smallest source doubles as the `src` fallback; `width`/`height` come from it so the
+  // browser reserves the right aspect box before the bytes land (CLS).
+  const smallest = generated?.sources[0];
+  return {
+    src: assetUrl(smallest?.src ?? image),
+    srcSet: generated?.sources.map((s) => `${assetUrl(s.src)} ${s.width}w`).join(", "),
+    sizes: generated ? sizes : undefined,
+    width: smallest?.width,
+    height: smallest?.height,
+  };
+}
+
 // Returns the point where a ray from the card's centre toward (tx, ty) exits the card border.
 function cardBorderPoint(cardX: number, cardY: number, tx: number, ty: number) {
   const cx = cardX + NODE_W / 2;
@@ -91,6 +140,34 @@ function cardBorderPoint(cardX: number, cardY: number, tx: number, ty: number) {
 
 // ─── StrandLayer ──────────────────────────────────────────────────────────────
 
+/**
+ * Corona approximation. Each entry is one stroked pass over the same geometry:
+ * `dw` px added to the base width, `o` multiplied into the base opacity.
+ *
+ * This replaces an SVG `feGaussianBlur` (σ=5, alpha ×2.2) that used to hang off every
+ * strand. A filter's cached raster is invalidated by *any* geometry change, so with the
+ * lines moving every frame all 20 filter regions — each 260% of a strand's bounding box
+ * over a ~1180×780 canvas — were re-rasterized 60×/s, on the CPU in most browsers. Three
+ * concentric translucent strokes cost a plain stroke each and never touch a filter.
+ *
+ * Widths/opacities are tuned so the summed alpha profile tracks the old Gaussian's:
+ * roughly ±10px of reach, brightest at the centre, fading to nothing at the edge. The
+ * visible difference is that the falloff is now piecewise rather than smooth — at these
+ * opacities (the outermost pass tops out around 0.2 alpha) the banding is not perceptible
+ * against the canvas gradient, but a fair description is "very close, not identical".
+ */
+const HALO_PASSES = [
+  { dw: 17, o: 0.26 },
+  { dw: 8, o: 0.44 },
+  { dw: 2.5, o: 0.78 },
+];
+
+/** Same trick, much tighter, standing in for the old σ=0.7 shimmer on the core thread. */
+const CORE_PASSES = [
+  { dw: 2.4, o: 0.3 },
+  { dw: 0, o: 1 },
+];
+
 function StrandLayer({
   edges,
   motionValues,
@@ -100,55 +177,74 @@ function StrandLayer({
   motionValues: Array<{ x: MotionValue<number>; y: MotionValue<number> }>;
   activeNode: number | null;
 }) {
-  const glowRefs = useRef<(SVGLineElement | null)[]>([]);
-  const coreRefs = useRef<(SVGLineElement | null)[]>([]);
+  // One <line> per edge holds the geometry; every visual pass is a <use> of it, so a frame
+  // writes 4 attributes per edge no matter how many strokes are layered on top.
+  const lineRefs = useRef<(SVGLineElement | null)[]>([]);
+  // Sanitised so the value is safe to interpolate into an href fragment.
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
 
   useEffect(() => {
+    const dirty = new Set<number>();
+    let scheduled = false;
+    let disposed = false;
+
+    const draw = (i: number) => {
+      const el = lineRefs.current[i];
+      if (!el) return;
+      const edge = edges[i];
+      const ax = motionValues[edge.a].x.get();
+      const ay = motionValues[edge.a].y.get();
+      const bx = motionValues[edge.b].x.get();
+      const by = motionValues[edge.b].y.get();
+      const ptA = cardBorderPoint(ax, ay, bx + NODE_W / 2, by + NODE_H / 2);
+      const ptB = cardBorderPoint(bx, by, ax + NODE_W / 2, ay + NODE_H / 2);
+      el.setAttribute("x1", String(ptA.x));
+      el.setAttribute("y1", String(ptA.y));
+      el.setAttribute("x2", String(ptB.x));
+      el.setAttribute("y2", String(ptB.y));
+    };
+
+    /**
+     * Each edge listens to four motion values and all four change on every physics frame,
+     * so writing straight from the subscription redrew each edge four times a frame. Now a
+     * change only marks the edge dirty and one drain does the writing.
+     *
+     * The drain is a microtask, not a rAF. The physics loop sets every node's x and y (and
+     * then resolves collisions) in one synchronous block, and framer's drag handler sets x
+     * and y together the same way, so a microtask fires exactly once per burst — the same
+     * coalescing a rAF would give — but it still lands inside the frame that moved the
+     * cards, rather than trailing it by one. It also reads *settled* positions, since
+     * collision resolution has finished by the time it runs.
+     */
+    const flush = () => {
+      scheduled = false;
+      if (disposed) return;
+      dirty.forEach(draw);
+      dirty.clear();
+    };
+
     const unsubs: Array<() => void> = [];
 
     edges.forEach((edge, i) => {
-      const update = () => {
-        const ax = motionValues[edge.a].x.get();
-        const ay = motionValues[edge.a].y.get();
-        const bx = motionValues[edge.b].x.get();
-        const by = motionValues[edge.b].y.get();
-        const bcx = bx + NODE_W / 2;
-        const bcy = by + NODE_H / 2;
-        const acx = ax + NODE_W / 2;
-        const acy = ay + NODE_H / 2;
-        const ptA = cardBorderPoint(ax, ay, bcx, bcy);
-        const ptB = cardBorderPoint(bx, by, acx, acy);
-        const x1 = String(ptA.x);
-        const y1 = String(ptA.y);
-        const x2 = String(ptB.x);
-        const y2 = String(ptB.y);
-        const gl = glowRefs.current[i];
-        if (gl) {
-          gl.setAttribute("x1", x1);
-          gl.setAttribute("y1", y1);
-          gl.setAttribute("x2", x2);
-          gl.setAttribute("y2", y2);
-        }
-        const cl = coreRefs.current[i];
-        if (cl) {
-          cl.setAttribute("x1", x1);
-          cl.setAttribute("y1", y1);
-          cl.setAttribute("x2", x2);
-          cl.setAttribute("y2", y2);
-        }
+      const mark = () => {
+        dirty.add(i);
+        if (scheduled) return;
+        scheduled = true;
+        queueMicrotask(flush);
       };
-
       unsubs.push(
-        motionValues[edge.a].x.on("change", update),
-        motionValues[edge.a].y.on("change", update),
-        motionValues[edge.b].x.on("change", update),
-        motionValues[edge.b].y.on("change", update),
+        motionValues[edge.a].x.on("change", mark),
+        motionValues[edge.a].y.on("change", mark),
+        motionValues[edge.b].x.on("change", mark),
+        motionValues[edge.b].y.on("change", mark),
       );
-
-      update();
+      draw(i);
     });
 
-    return () => unsubs.forEach((u) => u());
+    return () => {
+      disposed = true;
+      unsubs.forEach((u) => u());
+    };
   }, [edges, motionValues]);
 
   return (
@@ -165,30 +261,21 @@ function StrandLayer({
       }}
     >
       <defs>
-        {/* Wide soft corona — the outer "trail" bloom */}
-        <filter id="cst-bloom" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
-          <feColorMatrix
-            in="blur"
-            type="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1.2 0 0  0 0 0 2.2 0"
-            result="boosted"
+        {edges.map((edge, i) => (
+          <line
+            key={`geo-${edge.a}-${edge.b}`}
+            id={`${uid}-strand-${i}`}
+            ref={(el) => {
+              lineRefs.current[i] = el;
+            }}
+            strokeLinecap="round"
           />
-          <feMerge>
-            <feMergeNode in="boosted" />
-          </feMerge>
-        </filter>
-        {/* Tight shimmer on the bright core line */}
-        <filter id="cst-core" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.7" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
+        ))}
       </defs>
 
-      {/* Glow pass — outer corona, painted behind the cores */}
+      {/* Glow pass — outer corona, painted behind the cores. `stroke`, `stroke-width` and
+          `stroke-opacity` are inherited presentation properties and the referenced <line>
+          sets none of them, so each <use> paints the shared geometry in its own weight. */}
       {edges.map((edge, i) => {
         const isActive = activeNode !== null && (edge.a === activeNode || edge.b === activeNode);
         const alpha = isActive
@@ -196,18 +283,17 @@ function StrandLayer({
           : 0.09 + edge.weight * 0.035;
         const width = isActive ? edge.weight * 1.4 + 4.5 : edge.weight * 0.75 + 2;
 
-        return (
-          <line
-            key={`glow-${edge.a}-${edge.b}`}
-            ref={(el) => {
-              glowRefs.current[i] = el;
+        return HALO_PASSES.map((pass) => (
+          <use
+            key={`glow-${edge.a}-${edge.b}-${pass.dw}`}
+            href={`#${uid}-strand-${i}`}
+            style={{
+              stroke: "var(--portfolio-accent)",
+              strokeWidth: width + pass.dw,
+              strokeOpacity: alpha * pass.o,
             }}
-            strokeWidth={width}
-            strokeLinecap="round"
-            filter="url(#cst-bloom)"
-            style={{ stroke: "var(--portfolio-accent)", strokeOpacity: alpha }}
           />
-        );
+        ));
       })}
 
       {/* Core pass — near-white starlight thread on top */}
@@ -218,105 +304,84 @@ function StrandLayer({
           : 0.22 + edge.weight * 0.06;
         const width = isActive ? edge.weight * 0.45 + 0.9 : edge.weight * 0.28 + 0.45;
 
-        return (
-          <line
-            key={`core-${edge.a}-${edge.b}`}
-            ref={(el) => {
-              coreRefs.current[i] = el;
+        return CORE_PASSES.map((pass) => (
+          <use
+            key={`core-${edge.a}-${edge.b}-${pass.dw}`}
+            href={`#${uid}-strand-${i}`}
+            style={{
+              stroke: "var(--portfolio-ink)",
+              strokeWidth: width + pass.dw,
+              strokeOpacity: alpha * pass.o,
             }}
-            strokeWidth={width}
-            strokeLinecap="round"
-            filter="url(#cst-core)"
-            style={{ stroke: "var(--portfolio-ink)", strokeOpacity: alpha }}
           />
-        );
+        ));
       })}
     </svg>
   );
 }
 
-// ─── ProjectNode (card panel) ─────────────────────────────────────────────────
+// ─── Shared card chrome ───────────────────────────────────────────────────────
+// The draggable canvas node and the static grid card render the SAME face, so the two
+// presentations cannot drift apart: only the outer shell (absolutely positioned + drag
+// vs. a grid cell that is itself a <button>) and the thumbnail sizing differ.
 
-function ProjectNode({
+const CARD_SHELL: React.CSSProperties = {
+  borderRadius: 14,
+  overflow: "hidden",
+  background: "var(--portfolio-panel)",
+  border: "1px solid var(--portfolio-border)",
+  boxShadow: "0 2px 12px var(--portfolio-shadow)",
+};
+
+const CARD_VIGNETTE: React.CSSProperties = {
+  position: "absolute",
+  inset: 0,
+  background: "linear-gradient(180deg, transparent 45%, rgba(2,10,26,0.72))",
+};
+
+const SEE_MORE_STYLE: React.CSSProperties = {
+  fontSize: 11.5,
+  fontWeight: 600,
+  background: "none",
+  border: "none",
+  padding: 0,
+  cursor: "pointer",
+};
+
+function ProjectCardFace({
   project,
-  index,
-  mx,
-  my,
-  canvasRef,
-  isActive,
-  reducedMotion,
-  isMobile,
-  onDragStart,
-  onDragEnd,
-  onClick,
-  onHover,
+  thumbStyle,
+  onSeeMore,
 }: {
   project: Project;
-  index: number;
-  mx: MotionValue<number>;
-  my: MotionValue<number>;
-  canvasRef: React.RefObject<HTMLDivElement | null>;
-  isActive: boolean;
-  reducedMotion: boolean;
-  isMobile: boolean;
-  onDragStart: () => void;
-  onDragEnd: (vel: { x: number; y: number }) => void;
-  onClick: () => void;
-  onHover: (on: boolean) => void;
+  /** Thumbnail sizing: a fixed `IMG_H` on the canvas, a fluid 16:10 box in the static grid. */
+  thumbStyle: React.CSSProperties;
+  /**
+   * Canvas node: renders a real "See more" button. Static card: omitted, because the whole
+   * card is already the button and a nested button would be invalid.
+   */
+  onSeeMore?: () => void;
 }) {
   const isWinner = project.winner === true;
 
   return (
-    <motion.div
-      style={{
-        x: mx,
-        y: my,
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: NODE_W,
-        borderRadius: 14,
-        overflow: "hidden",
-        background: "var(--portfolio-panel)",
-        zIndex: 1,
-        border: `1px solid ${
-          isActive ? "var(--portfolio-border-strong)" : "var(--portfolio-border)"
-        }`,
-        boxShadow: isActive
-          ? "0 8px 32px rgba(93,182,255,0.18), 0 2px 8px var(--portfolio-shadow)"
-          : "0 2px 12px var(--portfolio-shadow)",
-        cursor: isMobile ? "default" : "grab",
-        userSelect: "none",
-        touchAction: "manipulation",
-        transition: reducedMotion ? "none" : "border-color 0.18s ease, box-shadow 0.18s ease",
-      }}
-      drag={!isMobile}
-      dragMomentum={false}
-      dragElastic={0}
-      dragConstraints={canvasRef}
-      whileDrag={{ scale: 1.04, zIndex: 10, cursor: "grabbing" }}
-      whileHover={!isMobile ? { scale: 1.02 } : undefined}
-      onDragStart={onDragStart}
-      onDragEnd={(_, info) => onDragEnd(info.velocity)}
-      onHoverStart={() => onHover(true)}
-      onHoverEnd={() => onHover(false)}
-      aria-label={`${project.title}${isWinner ? " (hackathon winner)" : ""}`}
-    >
+    <>
       {/* Thumbnail */}
       <div
         style={{
           position: "relative",
           width: "100%",
-          height: IMG_H,
           overflow: "hidden",
           flexShrink: 0,
+          ...thumbStyle,
         }}
       >
         {project.image ? (
           <img
-            src={project.image}
+            {...projectImageProps(project.image, project.imageId, `${NODE_W}px`)}
             alt={project.title}
             loading="lazy"
+            decoding="async"
             style={{
               width: "100%",
               height: "100%",
@@ -344,13 +409,7 @@ function ProjectNode({
           </div>
         )}
         {/* Gradient vignette */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background: "linear-gradient(180deg, transparent 45%, rgba(2,10,26,0.72))",
-          }}
-        />
+        <div aria-hidden="true" style={CARD_VIGNETTE} />
         {isWinner && (
           <span
             className="absolute top-2 left-2 font-display font-bold uppercase rounded-full"
@@ -400,29 +459,147 @@ function ProjectNode({
           {project.tagline ?? project.description}
         </p>
         <div style={{ marginTop: 10, textAlign: "right" }}>
-          <button
-            type="button"
-            tabIndex={index + 1}
-            className="font-display text-accent-bright"
-            style={{
-              fontSize: 11.5,
-              fontWeight: 600,
-              background: "none",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onClick();
-            }}
-            aria-label={`See more about ${project.title}`}
-          >
-            See more →
-          </button>
+          {onSeeMore ? (
+            <button
+              type="button"
+              className="font-display text-accent-bright"
+              style={SEE_MORE_STYLE}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSeeMore();
+              }}
+              aria-label={`See more about ${project.title}`}
+            >
+              See more →
+            </button>
+          ) : (
+            <span className="font-display text-accent-bright" style={SEE_MORE_STYLE}>
+              See more →
+            </span>
+          )}
         </div>
       </div>
+    </>
+  );
+}
+
+// ─── ProjectNode (draggable card panel) ───────────────────────────────────────
+
+function ProjectNode({
+  project,
+  mx,
+  my,
+  canvasRef,
+  isActive,
+  reducedMotion,
+  onDragStart,
+  onDragEnd,
+  onClick,
+  onHover,
+}: {
+  project: Project;
+  mx: MotionValue<number>;
+  my: MotionValue<number>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
+  isActive: boolean;
+  reducedMotion: boolean;
+  onDragStart: () => void;
+  onDragEnd: (vel: { x: number; y: number }) => void;
+  onClick: () => void;
+  onHover: (on: boolean) => void;
+}) {
+  return (
+    <motion.div
+      style={{
+        ...CARD_SHELL,
+        x: mx,
+        y: my,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: NODE_W,
+        zIndex: 1,
+        border: `1px solid ${
+          isActive ? "var(--portfolio-border-strong)" : "var(--portfolio-border)"
+        }`,
+        boxShadow: isActive
+          ? "0 8px 32px rgba(93,182,255,0.18), 0 2px 8px var(--portfolio-shadow)"
+          : "0 2px 12px var(--portfolio-shadow)",
+        cursor: "grab",
+        userSelect: "none",
+        touchAction: "manipulation",
+        transition: reducedMotion ? "none" : "border-color 0.18s ease, box-shadow 0.18s ease",
+      }}
+      drag
+      dragMomentum={false}
+      dragElastic={0}
+      dragConstraints={canvasRef}
+      whileDrag={{ scale: 1.04, zIndex: 10, cursor: "grabbing" }}
+      whileHover={{ scale: 1.02 }}
+      onDragStart={onDragStart}
+      onDragEnd={(_, info) => onDragEnd(info.velocity)}
+      onHoverStart={() => onHover(true)}
+      onHoverEnd={() => onHover(false)}
+    >
+      <ProjectCardFace project={project} thumbStyle={{ height: IMG_H }} onSeeMore={onClick} />
     </motion.div>
+  );
+}
+
+// ─── StaticProjectGrid ────────────────────────────────────────────────────────
+
+/**
+ * Rendered below `MOTION_MIN_WIDTH` and — because the branch is only decided after mount —
+ * it is also what the server prerenders and what the first client render produces. That is
+ * what keeps SSR and hydration in agreement, and it means crawlers get real card markup
+ * instead of an empty canvas waiting on measurement.
+ *
+ * Each card is a single real <button> in natural document order (no positive tabIndex), so
+ * the grid is fully keyboard-operable. A gentle entry stagger plays unless the visitor has
+ * asked for reduced motion.
+ */
+function StaticProjectGrid({
+  projects,
+  reduced,
+  onOpen,
+}: {
+  projects: Project[];
+  reduced: boolean;
+  onOpen: (project: Project) => void;
+}) {
+  return (
+    <div
+      className="grid"
+      style={{
+        gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 210px), 1fr))",
+        gap: 16,
+      }}
+    >
+      {projects.map((project, i) => (
+        <motion.button
+          key={project.title}
+          type="button"
+          onClick={() => onOpen(project)}
+          className="block w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+          style={{
+            ...CARD_SHELL,
+            padding: 0,
+            textAlign: "left",
+            cursor: "pointer",
+          }}
+          aria-label={`See more about ${project.title}${
+            project.winner === true ? " (hackathon winner)" : ""
+          }`}
+          initial={reduced ? false : { opacity: 0, y: 14 }}
+          animate={reduced ? undefined : { opacity: 1, y: 0 }}
+          transition={
+            reduced ? undefined : { duration: 0.5, delay: Math.min(i * 0.06, 0.4), ease: "easeOut" }
+          }
+        >
+          <ProjectCardFace project={project} thumbStyle={{ aspectRatio: "16 / 10" }} />
+        </motion.button>
+      ))}
+    </div>
   );
 }
 
@@ -496,15 +673,24 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
               <X size={18} />
             </button>
 
-            <div style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}>
+            {/* Focusable so a keyboard-only visitor can scroll the overflow with the arrow
+                keys; a scrollable region that only a pointer can reach is a WCAG 2.1.1
+                failure. Focusable means it needs a name, hence the role + label pairing. */}
+            <div
+              tabIndex={0}
+              role="group"
+              aria-labelledby="project-modal-title"
+              style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}
+            >
               <div className="grid grid-cols-1 md:grid-cols-2">
                 {/* Left — media */}
                 <div className="flex flex-col gap-3 p-3">
                   {project.image ? (
                     <img
-                      src={project.image}
+                      {...projectImageProps(project.image, project.imageId, `${MODAL_IMG_W}px`)}
                       alt={project.title}
                       loading="lazy"
+                      decoding="async"
                       className="w-full rounded-xl object-cover object-top"
                       style={{ aspectRatio: "4 / 3" }}
                     />
@@ -563,7 +749,11 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                     <span
                       className="font-display font-bold"
                       style={{
-                        color: "#f5c518",
+                        // Sits directly on the panel ground, so it has to clear AA in both
+                        // themes; the literal #f5c518 measured 1.63:1 on the light theme.
+                        // (The winner pill below keeps its bright gradient — it carries its
+                        // own dark-on-gold fill and is not on the page ground.)
+                        color: "var(--portfolio-gold)",
                         fontSize: 12,
                         letterSpacing: 0.5,
                         marginBottom: 6,
@@ -624,7 +814,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                       Read case study <ArrowRight size={15} aria-hidden="true" />
                     </Link>
                     <a
-                      href={project.link}
+                      href={assetUrl(project.link)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-display font-semibold no-underline text-accent-bright transition-opacity hover:opacity-80"
@@ -669,6 +859,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
 // ─── ConstellationCanvas ──────────────────────────────────────────────────────
 
 export function ConstellationCanvas({ projects }: { projects: Project[] }) {
+  const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [openProject, setOpenProject] = useState<Project | null>(null);
   const [activeNode, setActiveNode] = useState<number | null>(null);
@@ -712,12 +903,34 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
     setOpenProject((cur) => (cur === match ? cur : match));
   }, [pParam, projects]);
 
-  const reducedMotion =
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Framer's own hook: SSR-safe (null before mount) and it re-renders when the OS
+  // preference changes, which a one-shot `matchMedia(...).matches` read never did.
+  const reducedMotion = useReducedMotion() === true;
 
-  const [isMobile, setIsMobile] = useState(
-    () => typeof window !== "undefined" && window.innerWidth < 768,
-  );
+  // Which branch to render. `false` on the server AND on the first client render, so the
+  // prerendered HTML (the static grid) always matches what hydration produces — the width
+  // is only measured afterwards, in the layout effect below.
+  const [animated, setAnimated] = useState(false);
+
+  // Decided after mount from the CONTAINER width (see MOTION_MIN_WIDTH).
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    let frame = 0;
+    const measure = () => setAnimated(stage.clientWidth >= MOTION_MIN_WIDTH);
+
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    });
+    ro.observe(stage);
+    measure();
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, []);
 
   // Motion values created once via factory — outside React renders.
   const mvsRef = useRef<Array<{ x: MotionValue<number>; y: MotionValue<number> }> | null>(null);
@@ -732,7 +945,18 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
   const vels = useRef(projects.map(() => ({ vx: 0, vy: 0 })));
   const dragging = useRef(new Set<number>());
 
+  /**
+   * Live canvas size, fed by the ResizeObserver below.
+   *
+   * The physics loop used to read `canvas.clientWidth` / `clientHeight` at the top of every
+   * frame. Framer writes transforms to the very same subtree, so each frame was a
+   * write-then-read on dirtied layout — a forced synchronous reflow 60×/s. The observer
+   * already knows these numbers; the loop just reads them from here.
+   */
+  const canvasSize = useRef({ w: 0, h: 0 });
+
   // ── Seed on first measurement, rescale proportionally on resize ──────────────
+  // Re-runs whenever the canvas mounts, i.e. each time the stage crosses MOTION_MIN_WIDTH.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -745,7 +969,9 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
       const H = entry.contentRect.height;
       if (W === 0 || H === 0) return;
 
-      setIsMobile(W < 768);
+      // The canvas has no padding, so the content box is exactly what `clientWidth` /
+      // `clientHeight` used to report — the physics loop reads this instead of the DOM.
+      canvasSize.current = { w: W, h: H };
 
       if (prevW === 0) {
         seedGrid(projects.length, W, H, mvs);
@@ -763,26 +989,27 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
     });
 
     ro.observe(canvas);
-    return () => ro.disconnect();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      ro.disconnect();
+      // Stale dimensions must not survive into the next canvas mount; the loop treats
+      // a zero width as "not measured yet" and idles.
+      canvasSize.current = { w: 0, h: 0 };
+    };
+  }, [animated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Physics RAF loop ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (reducedMotion) return;
+    if (reducedMotion || !animated) return;
 
     let rafId: number;
 
     const tick = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) {
-        rafId = requestAnimationFrame(tick);
-        return;
-      }
+      const { w: W, h: H } = canvasSize.current;
 
-      const W = canvas.clientWidth;
-      const H = canvas.clientHeight;
-
-      if (W < 768) {
+      // Same container-width comparison as the branch decision above — a narrow canvas can
+      // outlive a stage resize by a frame or two, and the cards must not drift while it does.
+      // A width of 0 (not yet measured) also lands here, so the loop idles until it is.
+      if (W < MOTION_MIN_WIDTH) {
         rafId = requestAnimationFrame(tick);
         return;
       }
@@ -887,7 +1114,7 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
 
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reducedMotion, animated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDragStart = useCallback((i: number) => {
     dragging.current.add(i);
@@ -906,39 +1133,46 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
 
   return (
     <>
-      <div
-        ref={canvasRef}
-        className="mt-12"
-        style={{
-          position: "relative",
-          width: "100%",
-          height: "clamp(600px, 75vh, 780px)",
-          overflow: "hidden",
-          borderRadius: 18,
-          background:
-            "radial-gradient(ellipse at 50% 55%, rgba(10,79,153,0.12) 0%, transparent 68%)",
-          border: "1px solid var(--portfolio-border)",
-        }}
-      >
-        <StrandLayer edges={edges} motionValues={mvs} activeNode={activeNode} />
+      {/* The stage is always rendered and always measurable; only its contents swap. */}
+      <div ref={stageRef} className="relative mt-12 w-full">
+        {animated ? (
+          <div
+            ref={canvasRef}
+            style={{
+              position: "relative",
+              width: "100%",
+              height: "clamp(600px, 75vh, 780px)",
+              overflow: "hidden",
+              borderRadius: 18,
+              background:
+                "radial-gradient(ellipse at 50% 55%, rgba(10,79,153,0.12) 0%, transparent 68%)",
+              border: "1px solid var(--portfolio-border)",
+            }}
+          >
+            <StrandLayer edges={edges} motionValues={mvs} activeNode={activeNode} />
 
-        {projects.map((project, i) => (
-          <ProjectNode
-            key={project.title}
-            project={project}
-            index={i}
-            mx={mvs[i].x}
-            my={mvs[i].y}
-            canvasRef={canvasRef}
-            isActive={activeNode === i}
-            reducedMotion={reducedMotion}
-            isMobile={isMobile}
-            onDragStart={() => handleDragStart(i)}
-            onDragEnd={(vel) => handleDragEnd(i, vel)}
-            onClick={() => handleOpen(project)}
-            onHover={(on) => setActiveNode(on ? i : null)}
-          />
-        ))}
+            {projects.map((project, i) => (
+              <ProjectNode
+                key={project.title}
+                project={project}
+                mx={mvs[i].x}
+                my={mvs[i].y}
+                canvasRef={canvasRef}
+                isActive={activeNode === i}
+                reducedMotion={reducedMotion}
+                onDragStart={() => handleDragStart(i)}
+                onDragEnd={(vel) => handleDragEnd(i, vel)}
+                onClick={() => handleOpen(project)}
+                // Dragging the pointer straight from one card onto another fires B's
+                // hover-start before A's hover-end, so an unconditional `null` on exit
+                // would blank out the highlight B just claimed. Only clear if still ours.
+                onHover={(on) => setActiveNode((cur) => (on ? i : cur === i ? null : cur))}
+              />
+            ))}
+          </div>
+        ) : (
+          <StaticProjectGrid projects={projects} reduced={reducedMotion} onOpen={handleOpen} />
+        )}
       </div>
 
       <ProjectModal project={openProject} onClose={handleClose} />

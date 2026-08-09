@@ -132,7 +132,7 @@ export const KEYS = {
   socials: "socials",
   /** Sports-ball tittle variants seen on the hero name. */
   tittles: "tittles",
-  /** Photos opened in the hobbies lightbox. */
+  /** Photos opened in the photo wall lightbox. */
   photosViewed: "photos-viewed",
   /** Theme toggles — burst-tracked, in memory only. */
   themeFlips: "theme-flips",
@@ -257,7 +257,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     id: "spacewalk",
     name: "Spacewalk",
     description: "Left the résumé behind and went looking at the photos.",
-    hint: "Visit the Hobbies page.",
+    hint: "Visit the Photography page.",
     tier: "common",
     category: "explorer",
     secret: false,
@@ -354,8 +354,8 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   {
     id: "shutterbug",
     name: "Shutterbug",
-    description: "Opened a photo full-size on the hobbies wall.",
-    hint: "Open a photo in the hobbies lightbox.",
+    description: "Opened a photo full-size on the photo wall.",
+    hint: "Open a photo in the photo wall lightbox.",
     tier: "uncommon",
     category: "tinkerer",
     secret: false,
@@ -455,7 +455,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     description: "↑ ↑ ↓ ↓ ← → ← → B A. Some things never stop working.",
     clues: [
       "Muscle memory from a console you probably never owned.",
-      "Thirty characters long, starts with two taps upward, ends with two letters.",
+      "Ten keys, no clicks. It opens with two taps upward and lands on two letters.",
     ],
     tier: "epic",
     category: "deep-space",

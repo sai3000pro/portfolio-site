@@ -40,6 +40,11 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  /* Tailwind v4 resolves `ring-<name>`/`text-<name>` against --color-<name>. Without this,
+     the 27 `focus-visible:ring-accent-bright` usages across the app compiled to nothing and
+     silently fell back to currentcolor, so focus rings took the element's text colour
+     instead of the accent. Both themes redefine --portfolio-accent-bright, so this tracks. */
+  --color-accent-bright: var(--portfolio-accent-bright);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -161,10 +166,18 @@
   --portfolio-panel: #0a1526;
   --portfolio-panel-deep: #050c18;
   --portfolio-sheet: rgba(0, 0, 5, 0.85);
-  --portfolio-border: rgba(93, 182, 255, 0.2);
-  --portfolio-border-strong: rgba(93, 182, 255, 0.35);
+  /* 3.01:1 composited against --portfolio-space. WCAG 1.4.11 needs 3:1 for the boundary
+     of a control, and this border is the only visual edge the contact inputs have.
+     Alpha solved numerically — 0.42 only reaches 2.34. */
+  --portfolio-border: rgba(93, 182, 255, 0.51);
+  --portfolio-border-strong: rgba(93, 182, 255, 0.66);
   --portfolio-scrim: rgba(2, 6, 18, 0.82);
   --portfolio-shadow: rgba(0, 0, 0, 0.45);
+
+  /* Hackathon-winner gold. Was hardcoded #f5c518 in two components, which measured
+     1.63:1 on the light theme's white ground — this token is re-expressed below. */
+  --portfolio-gold: #f5c518;
+  --portfolio-gold-ink: #ffe27a;
 }
 
 /*
@@ -190,10 +203,17 @@ html.light {
   --portfolio-panel: #ffffff;
   --portfolio-panel-deep: #f2f6fd;
   --portfolio-sheet: rgba(255, 255, 255, 0.95);
-  --portfolio-border: rgba(26, 115, 216, 0.22);
-  --portfolio-border-strong: rgba(26, 115, 216, 0.38);
+  /* 3.02:1 against white — same 1.4.11 reasoning as the dark block. */
+  --portfolio-border: rgba(26, 115, 216, 0.74);
+  --portfolio-border-strong: rgba(26, 115, 216, 0.85);
   --portfolio-scrim: rgba(226, 234, 246, 0.86);
   --portfolio-shadow: rgba(15, 40, 80, 0.16);
+
+  /* #f5c518 measures 1.63:1 on white and fails AA badly. This darker amber reads as
+     the same "gold" note at 6.85:1. The pill keeps the bright gradient because it sits
+     on its own dark-on-gold fill, not on the page ground. */
+  --portfolio-gold: #7a5300;
+  --portfolio-gold-ink: #ffe27a;
 }
 
 /*
@@ -404,6 +424,14 @@ body {
   50.01%,
   100% {
     opacity: 0;
+  }
+}
+/* An indefinite blink directly under the h1 is exactly what WCAG 2.2.2 is about, and
+   none of the other reduced-motion blocks covered it. Hold the caret solid instead. */
+@media (prefers-reduced-motion: reduce) {
+  .type-caret {
+    animation: none;
+    opacity: 1;
   }
 }
 

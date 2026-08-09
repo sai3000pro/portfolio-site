@@ -14,6 +14,8 @@
  * a server render and only call the effectful pieces from client effects.
  */
 
+import { useSyncExternalStore } from "react";
+
 /** User-facing preference. */
 export type Theme = "light" | "dark";
 
@@ -61,12 +63,42 @@ export const THEME_TRANSITION_MS = 320;
 let transitionTimer: ReturnType<typeof setTimeout> | undefined;
 
 /**
+ * Fired on `window` after {@link applyTheme} actually changes the active theme.
+ * `detail: { theme }`. Same transport as `portfolio:achievements-changed` and
+ * `portfolio:open-palette`, so a non-React listener (a canvas, a lib helper) can
+ * react to a theme flip without importing anything from React.
+ */
+export const THEME_CHANGE_EVENT = "portfolio:theme-changed";
+
+/**
+ * Client-side cache of the theme currently on `<html>`, lazily seeded from
+ * storage on first read.
+ *
+ * It exists because {@link useSyncExternalStore} requires a snapshot that is
+ * cheap and stable across calls within a render; hitting `localStorage` on every
+ * render would satisfy neither. `THEME_INIT_SCRIPT` and {@link getStoredTheme}
+ * read the same key, so the lazy seed always agrees with what is painted.
+ */
+let currentTheme: Theme | null = null;
+
+/** The active theme: the cache if seeded, otherwise whatever is stored. */
+function readCurrentTheme(): Theme {
+  currentTheme ??= getStoredTheme();
+  return currentTheme;
+}
+
+/**
  * Apply a theme by toggling the `light` / `dark` class on `<html>` and syncing
  * `color-scheme` for native UI (scrollbars, form controls). No-op on SSR.
  *
  * `animate` briefly adds `.theme-switching`, which enables a global colour
  * transition (see styles.css) so the swap cross-fades instead of snapping. Skip it
  * for the initial paint — you only want it for a deliberate user toggle.
+ *
+ * Subscribers ({@link useTheme}, {@link THEME_CHANGE_EVENT}) are notified only when
+ * the theme actually changes. A re-apply of the theme already in effect — which is
+ * what an initial-load call is — writes the same classes and stays silent, so it
+ * can never nudge a hydrating tree off its server snapshot.
  */
 export function applyTheme(theme: Theme, animate = false): Theme {
   if (typeof document === "undefined") return theme;
@@ -83,7 +115,52 @@ export function applyTheme(theme: Theme, animate = false): Theme {
   root.classList.remove("light", "dark");
   root.classList.add(theme);
   root.style.colorScheme = theme;
+
+  if (readCurrentTheme() !== theme) {
+    currentTheme = theme;
+    window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, { detail: { theme } }));
+  }
+
   return theme;
+}
+
+/** Subscribe to theme changes. Returns an unsubscribe. No-op on SSR. */
+function subscribeToTheme(onChange: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(THEME_CHANGE_EVENT, onChange);
+  return () => window.removeEventListener(THEME_CHANGE_EVENT, onChange);
+}
+
+/** Hydration + SSR snapshot. Constant, because the server cannot know the preference. */
+function getServerThemeSnapshot(): Theme {
+  return DEFAULT_THEME;
+}
+
+/**
+ * The active theme, re-rendering the caller whenever it changes. The single
+ * source of truth for any component that needs to *read* the theme.
+ *
+ * HYDRATION CONTRACT: `getServerThemeSnapshot` is used both on the server and for
+ * the client's hydration render, so both sides start at {@link DEFAULT_THEME} and
+ * the markup matches; React then checks the live snapshot in a post-hydration
+ * effect and re-renders if the visitor's stored preference differs. That is the
+ * same contract theme-toggle.tsx used to hand-roll with `useState` + `useEffect`.
+ *
+ * WHY useSyncExternalStore RATHER THAN useState + useEffect (the shape
+ * use-achievements.ts uses): a consumer that mounts *after* hydration — a
+ * client-side route change, a lazily rendered section — gets the correct theme in
+ * its very first render instead of painting one frame of the default and
+ * correcting. That matters here and not for achievements, because the theme is
+ * already on `<html>` before first paint (`THEME_INIT_SCRIPT`), so a component
+ * rendering `dark` for a frame on a light page is a visible flash rather than a
+ * momentarily-empty trophy case.
+ *
+ * WHY NO CONTEXT PROVIDER: the store is module state, not tree state. Every
+ * consumer subscribes directly, so there is nothing for a provider to carry and
+ * no `<ThemeProvider>` to thread through the prerendered routes.
+ */
+export function useTheme(): Theme {
+  return useSyncExternalStore(subscribeToTheme, readCurrentTheme, getServerThemeSnapshot);
 }
 
 /** The other theme — what a toggle press will switch to. */

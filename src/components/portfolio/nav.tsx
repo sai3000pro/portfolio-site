@@ -1,16 +1,26 @@
-import { useEffect, useState } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "framer-motion";
 import { Menu, Search, Trophy, X } from "lucide-react";
 
 import { AchievementNavButton } from "@/components/portfolio/achievement-nav-button";
 import { ThemeToggle } from "@/components/portfolio/theme-toggle";
-import { openCommandPalette } from "@/components/portfolio/command-palette";
 import { KEYS } from "@/data/achievements";
+import { GENERATED_IMAGES } from "@/data/images.generated";
 import { NAV_LINKS, PROFILE } from "@/data/portfolio";
 import { useScrollSpy } from "@/hooks/use-scroll-spy";
 import { trackBurst, unlock } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
+// The palette shell, NOT the palette: this import must stay off the heavy chunk,
+// or the nav (eager on every route) would drag cmdk back in behind it.
+import { openCommandPalette, prefetchCommandPalette } from "@/lib/command-palette";
+
+/**
+ * The logo derivative: a single 76px square, painted at 38px (2× for retina). The
+ * committed `PROFILE.logo` original is ~292 kB for a 38px badge, so the nav — which is
+ * eager on every route — points here instead. One width, so no srcSet/sizes.
+ */
+const LOGO = GENERATED_IMAGES.logo.sources[0];
 
 const LINK_CLASS =
   "font-display font-medium no-underline rounded-full px-[15px] py-[8px] text-muted-portfolio hover:text-ink transition-colors";
@@ -54,6 +64,9 @@ export function Nav() {
   const onLanding = pathname === "/";
   const [open, setOpen] = useState(false);
   const prefersReduced = useReducedMotion();
+  const navigate = useNavigate();
+  // The hamburger. Escape hands focus back to it (see below), so it needs a handle.
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   // Highlight the section currently in view — only on the landing route.
   const activeSection = useScrollSpy(SECTION_IDS, onLanding);
@@ -77,11 +90,17 @@ export function Nav() {
     setOpen(false);
   }, [pathname]);
 
-  // Close on Escape while the menu is open.
+  // Close on Escape while the menu is open. Escape is a dismissal, not a
+  // destination — it takes the focused element out of the DOM with it, so put
+  // focus back on the button that opened the sheet rather than letting it fall
+  // to <body> and lose the keyboard user's place. (Closing on navigation needs
+  // no such rescue: the destination claims focus itself.)
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      menuButtonRef.current?.focus();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -94,7 +113,18 @@ export function Nav() {
     const el = document.getElementById(section);
     if (!el) return false;
     el.scrollIntoView({ behavior: prefersReduced ? "auto" : "smooth", block: "start" });
-    window.history.pushState(null, "", `#${section}`);
+    // Route the hash through the router instead of history.pushState, or the
+    // router's own location drifts from the address bar until the next popstate.
+    // Both scroll opt-outs matter: `resetScroll` skips scroll restoration and
+    // `hashScrollIntoView` skips the router's instant jump to #section — either
+    // one would stomp on the smooth scroll started above. The view transition is
+    // off too; there is no route change to cross-fade, only a scroll in flight.
+    void navigate({
+      hash: section,
+      resetScroll: false,
+      hashScrollIntoView: false,
+      viewTransition: false,
+    });
     return true;
   };
 
@@ -197,8 +227,13 @@ export function Nav() {
         onClick={() => trackBurst(KEYS.logoClicks)}
       >
         <img
-          src={assetUrl(PROFILE.logo)}
-          alt="Sai logo"
+          src={assetUrl(LOGO.src)}
+          // Decorative: the link already spells out the name beside it, so alt
+          // text here would only make the link announce as "Sai logo Sai . link".
+          alt=""
+          width={38}
+          height={38}
+          decoding="async"
           style={{
             width: 38,
             height: 38,
@@ -216,10 +251,14 @@ export function Nav() {
       <div className="hidden md:flex items-center gap-1">
         {NAV_LINKS.map((l) => renderLink(l, LINK_CLASS, LINK_STYLE))}
 
-        {/* Command palette trigger */}
+        {/* Command palette trigger. Hover/focus starts fetching the palette chunk
+            so the click has nothing to wait for; the fetch is idempotent and the
+            click works regardless of whether it finished. */}
         <button
           type="button"
           onClick={openCommandPalette}
+          onPointerEnter={prefetchCommandPalette}
+          onFocus={prefetchCommandPalette}
           aria-label="Open command palette"
           className="ml-1 inline-flex items-center gap-2 rounded-full px-[12px] py-[7px] font-display text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
           style={PILL_STYLE}
@@ -255,6 +294,7 @@ export function Nav() {
         <ThemeToggle />
         <button
           type="button"
+          ref={menuButtonRef}
           className="flex items-center justify-center rounded-full text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
           style={{ width: 42, height: 42, ...PILL_STYLE }}
           aria-label={open ? "Close menu" : "Open menu"}
@@ -296,6 +336,8 @@ export function Nav() {
               setOpen(false);
               openCommandPalette();
             }}
+            onPointerEnter={prefetchCommandPalette}
+            onFocus={prefetchCommandPalette}
             aria-label="Open command palette"
             className="inline-flex items-center gap-2 rounded-full px-[15px] py-[8px] text-left font-display font-medium text-muted-portfolio hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
             style={LINK_STYLE}

@@ -4,6 +4,7 @@ import { X, Camera } from "lucide-react";
 import { KEYS } from "@/data/achievements";
 import { EXPERIENCES, type Experience } from "@/data/portfolio";
 import { trackMember } from "@/lib/achievements";
+import { assetUrl } from "@/lib/assets";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { Section, SectionHeading } from "./section";
 
@@ -105,8 +106,8 @@ function EarthNode({
                 width: BG_W * 3,
                 height: BG_H,
                 background: "#f4f9ff",
-                WebkitMaskImage: "url(assets/world.svg)",
-                maskImage: "url(assets/world.svg)",
+                WebkitMaskImage: `url(${assetUrl("assets/world.svg")})`,
+                maskImage: `url(${assetUrl("assets/world.svg")})`,
                 WebkitMaskRepeat: "repeat-x",
                 maskRepeat: "repeat-x",
                 WebkitMaskSize: `${BG_W}px ${BG_H}px`,
@@ -262,7 +263,12 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
           <X size={18} />
         </button>
 
-        <div style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}>
+        <div
+          tabIndex={0}
+          role="group"
+          aria-labelledby="experience-modal-title"
+          style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}
+        >
           <div className="grid grid-cols-1 md:grid-cols-2">
             {/* photos — left */}
             <div className="flex flex-col gap-3 p-3">
@@ -270,7 +276,7 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
                 photos.map((src, i) => (
                   <img
                     key={i}
-                    src={src}
+                    src={assetUrl(src)}
                     alt={`${exp.title} — ${i + 1}`}
                     loading="lazy"
                     className="w-full rounded-xl object-cover"
@@ -410,22 +416,15 @@ export function Experience() {
             >
               <EarthNode active={active === i} coords={exp.coords} />
 
-              <motion.button
-                type="button"
-                onClick={() => {
-                  trackMember(KEYS.experiences, exp.company);
-                  if (exp.coords) trackMember(KEYS.globeCities, exp.location);
-                  setSelected(exp);
-                }}
+              <motion.div
                 whileHover={{ y: -3 }}
-                className="group w-full text-left rounded-2xl cursor-pointer transition-colors"
+                className="group relative w-full text-left rounded-2xl transition-colors"
                 style={{
                   padding: "22px 24px",
                   background: "var(--portfolio-surface)",
                   border: "1px solid var(--portfolio-border)",
                   backdropFilter: "blur(6px)",
                 }}
-                aria-label={`Learn more about ${exp.title} at ${exp.company}`}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
                   <h3 className="font-display font-semibold text-ink" style={{ fontSize: 19 }}>
@@ -462,13 +461,30 @@ export function Experience() {
                   {exp.description}
                 </p>
 
-                <span
-                  className="inline-flex items-center gap-1 font-display text-accent-bright mt-3 transition-transform group-hover:translate-x-0.5"
-                  style={{ fontSize: 13 }}
+                {/* Stretched link: the button carries the visible "Learn more" label,
+                    and its absolutely-positioned overlay makes the whole card clickable
+                    without swallowing the heading into the button's a11y subtree. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackMember(KEYS.experiences, exp.company);
+                    if (exp.coords) trackMember(KEYS.globeCities, exp.location);
+                    setSelected(exp);
+                  }}
+                  aria-label={`Learn more about ${exp.title} at ${exp.company}`}
+                  className="inline-flex items-center gap-1 font-display text-accent-bright mt-3 cursor-pointer"
+                  style={{ fontSize: 13, background: "none", border: 0, padding: 0 }}
                 >
-                  Learn more →
-                </span>
-              </motion.button>
+                  <span className="transition-transform group-hover:translate-x-0.5">
+                    Learn more →
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="absolute rounded-2xl"
+                    style={{ inset: -1, cursor: "pointer" }}
+                  />
+                </button>
+              </motion.div>
             </motion.div>
           ))}
         </div>

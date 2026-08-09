@@ -38,7 +38,10 @@ const DISPLAY_MS_REDUCED = 7000;
 /** Unlocks arriving together collapse into one summary card at or above this. */
 const SUMMARY_THRESHOLD = 3;
 
-/** Hard cap so a pathological burst can't queue forever. Overflow is still earned. */
+/**
+ * Hard cap so a pathological burst can't queue forever. Overflow is still earned,
+ * and is never marked seen — it resurfaces via `unseenUnlocks()` on the next mount.
+ */
 const MAX_QUEUE = 6;
 
 /** A queued card: one achievement, or a collapsed burst of several. */
@@ -59,8 +62,18 @@ export function AchievementToaster() {
       known.length >= SUMMARY_THRESHOLD ? [{ ids: known }] : known.map((id) => ({ ids: [id] }));
 
     setQueue((current) => [...current, ...cards].slice(0, MAX_QUEUE));
-    markSeen(known);
   }, []);
+
+  // Announce-bookkeeping deliberately lives here rather than inside `push`. The
+  // MAX_QUEUE cap is applied *inside* the state updater, so `push` cannot know
+  // which cards survived it — marking the whole incoming batch would record the
+  // overflow as announced, `unseenUnlocks()` would never return it again, and the
+  // "surfaces now rather than being silently lost" promise below would be a lie.
+  // Reading it off `queue` marks exactly what made it in. `markSeen` ignores ids
+  // it already holds, so re-running on every dismiss costs nothing.
+  useEffect(() => {
+    if (queue.length > 0) markSeen(queue.flatMap((card) => card.ids));
+  }, [queue]);
 
   useEffect(() => {
     // Anything earned but never announced — e.g. the tab closed mid-queue last

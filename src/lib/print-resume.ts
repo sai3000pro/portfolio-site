@@ -16,6 +16,12 @@
 const FRAME_ID = "resume-print-frame";
 /** If the iframe hasn't reached its viewer and printed by now, open a tab instead. */
 const PRINT_GRACE_MS = 2500;
+/**
+ * Backstop for tearing down a frame that did print. `afterprint` handles the normal
+ * case, but a PDF viewer that never fires it would otherwise leak the frame forever.
+ * Long enough that a user reading the preview before hitting Cancel is never cut off.
+ */
+const FRAME_CLEANUP_MS = 120_000;
 
 function openFallback(url: string): void {
   window.open(url, "_blank", "noopener,noreferrer");
@@ -26,13 +32,6 @@ export function printResume(url: string): void {
 
   // Drop any frame left over from a previous attempt so repeat clicks stay clean.
   document.getElementById(FRAME_ID)?.remove();
-
-  let settled = false;
-  const finish = (fallback: boolean) => {
-    if (settled) return;
-    settled = true;
-    if (fallback) openFallback(url);
-  };
 
   const frame = document.createElement("iframe");
   frame.id = FRAME_ID;
@@ -50,13 +49,47 @@ export function printResume(url: string): void {
   frame.style.border = "0";
   frame.style.pointerEvents = "none";
 
+  let settled = false;
+  let graceTimer = 0;
+
+  // Detaching a frame whose viewer is mid-print cancels the dialog, so removal is only
+  // safe once we know nothing is printing from it: either we gave up and fell back
+  // (no dialog was ever opened), or `afterprint` told us the dialog is closed.
+  const removeFrame = () => frame.remove();
+
+  const finish = (fallback: boolean) => {
+    if (settled) return;
+    settled = true;
+    // Whichever path settles first owns the outcome — stop the other from also running.
+    window.clearTimeout(graceTimer);
+
+    if (fallback) {
+      // Nothing is printing: the viewer errored, was unreachable, or never loaded.
+      removeFrame();
+      openFallback(url);
+      return;
+    }
+    window.setTimeout(removeFrame, FRAME_CLEANUP_MS);
+  };
+
   frame.onload = () => {
+    // The grace period already elapsed and a fallback tab is open; printing now would
+    // hand the user two paths at once. Just clean up.
+    if (settled) {
+      removeFrame();
+      return;
+    }
     try {
       const win = frame.contentWindow;
       if (!win) {
         finish(true);
         return;
       }
+      // Fires once the print dialog closes (printed or cancelled) — the earliest moment
+      // the frame is provably idle. Deferred so the frame outlives its own event dispatch.
+      win.addEventListener("afterprint", () => window.setTimeout(removeFrame, 0), {
+        once: true,
+      });
       win.focus();
       win.print();
       // The print dialog is modal and synchronous in practice; reaching here means the
@@ -73,5 +106,5 @@ export function printResume(url: string): void {
   frame.src = url;
 
   // Safety net: if onload never fires (blocked/unsupported viewer), open a tab.
-  window.setTimeout(() => finish(true), PRINT_GRACE_MS);
+  graceTimer = window.setTimeout(() => finish(true), PRINT_GRACE_MS);
 }

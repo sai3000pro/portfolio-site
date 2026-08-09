@@ -7,26 +7,37 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { MotionConfig } from "framer-motion";
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { AchievementToaster } from "../components/portfolio/achievement-toast";
 import { AchievementTracker } from "../components/portfolio/achievement-tracker";
-import { CommandPalette } from "../components/portfolio/command-palette";
+import { FAVICON } from "../data/images.generated";
 import { PROFILE, SOCIALS } from "../data/portfolio";
 import { unlock } from "../lib/achievements";
 import { initAnalytics } from "../lib/analytics";
 import { assetUrl } from "../lib/assets";
+import {
+  installPaletteShortcuts,
+  loadCommandPalette,
+  prefetchCommandPaletteWhenIdle,
+  usePaletteOpen,
+} from "../lib/command-palette";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SITE_URL, absoluteAsset, ogImageUrl } from "../lib/site-url";
 import { THEME_INIT_SCRIPT } from "../lib/theme";
 
 /**
  * Absolute URL of the ACTUAL generated OG card for "/". scripts/seo.mjs writes
- * per-route SVG cards into dist/public; the "/" route's file is "og/index.svg"
+ * per-route PNG cards into dist/public; the "/" route's file is "og/index.png"
  * (see scripts/routes.mjs `getRouteMeta`).
  */
-const OG_IMAGE_URL = ogImageUrl("index.svg");
+const OG_IMAGE_URL = ogImageUrl("index.png");
+
+/** Card geometry, mirroring OG_WIDTH/OG_HEIGHT in scripts/seo.mjs. */
+const OG_IMAGE_WIDTH = "1200";
+const OG_IMAGE_HEIGHT = "630";
 
 const SITE_TITLE = "Saivenkat Jilla: Software Engineer, Creator, and Problem Solver";
 const SITE_DESCRIPTION =
@@ -40,7 +51,9 @@ function buildJsonLd(): string {
     name: PROFILE.fullName,
     alternateName: PROFILE.name,
     description: PROFILE.bio,
-    jobTitle: "Software Engineer",
+    // Derived, never a literal: a hardcoded title here silently drifts away from the
+    // visible hero copy (it already had). See PROFILE.jobTitle in data/portfolio.ts.
+    jobTitle: PROFILE.jobTitle,
     email: `mailto:${PROFILE.email}`,
     url: SITE_URL,
     image: absoluteAsset(PROFILE.portrait),
@@ -88,7 +101,7 @@ function NotFoundComponent() {
             Projects
           </Link>
           <Link to="/hobbies" className={PILL_CLASS} style={PILL_STYLE}>
-            Hobbies
+            Photography
           </Link>
           <a
             href={assetUrl(PROFILE.resumeUrl)}
@@ -162,6 +175,17 @@ const PILL_STYLE = {
   border: "1px solid rgba(93,182,255,0.35)",
 } as const;
 
+// Skip-to-content link. Invisible (but present, and focusable) until it receives focus,
+// at which point it becomes a solid pill pinned to the top-left above the nav. `focus:`
+// rather than `focus-visible:` — a skip link is only ever reached by keyboard.
+// `font-display`/`text-ink` are hand-written classes in styles.css, NOT Tailwind theme
+// utilities, so they cannot take a `focus:` variant — they are applied unconditionally
+// (harmless: sr-only clips the link to a 1px box until it is focused).
+const SKIP_LINK_CLASS =
+  "font-display text-ink sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 " +
+  "focus:z-[100] focus:rounded-full focus:px-5 focus:py-3 focus:text-sm focus:font-semibold " +
+  "focus:no-underline focus:outline-none focus:ring-2 focus:ring-accent-bright";
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -183,14 +207,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Saivenkat Jilla" },
+      { property: "og:locale", content: "en_US" },
       { property: "og:url", content: SITE_URL },
       { property: "og:image", content: OG_IMAGE_URL },
+      { property: "og:image:width", content: OG_IMAGE_WIDTH },
+      { property: "og:image:height", content: OG_IMAGE_HEIGHT },
+      { property: "og:image:alt", content: `Social card for ${SITE_TITLE}` },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:image", content: OG_IMAGE_URL },
     ],
+    // NO canonical here. A blanket canonical in the root shell would point every route at
+    // the homepage: TanStack dedupes `meta` by name/property but does NOT dedupe `links`
+    // by `rel`, so a root canonical cannot be overridden — it either wins outright (the
+    // route drops out of the index as a duplicate of "/") or it coexists with the route's
+    // own canonical, and Google ignores BOTH when they conflict. Every indexable route
+    // therefore declares exactly one canonical of its own: see routes/index.tsx,
+    // hobbies.tsx, achievements.tsx, acheivements.tsx and projects.$slug.tsx.
     links: [
-      { rel: "canonical", href: SITE_URL },
-      { rel: "icon", type: "image/png", href: `${import.meta.env.BASE_URL}assets/logo.png` },
+      // 32x32 cut of the logo, not the 292 kB original: a favicon is fetched on every
+      // route. Bare manifest path, so it goes through assetUrl() like everything else.
+      { rel: "icon", type: "image/png", sizes: "32x32", href: assetUrl(FAVICON.src) },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -220,10 +256,80 @@ function RootShell({ children }: { children: ReactNode }) {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON_LD }} />
       </head>
       <body>
+        {/* Skip link. Deliberately the very first node in <body> so it is the first
+            focusable element in the document: a keyboard user can jump the fixed nav
+            (and, on /hobbies, up to 24 photo tiles) in one Tab + Enter. It is a plain
+            <a> with a fragment href, not a <Link>, so the browser handles it natively
+            and it still works on the statically prerendered HTML with JS disabled.
+            Each content route is responsible for exposing the matching id="main-content"
+            on its <main>; where it is absent the link simply no-ops rather than breaking.
+            sr-only hides it until focus; focus:fixed + z-[100] then floats it over the
+            z-50 nav instead of letting not-sr-only drop it back into flow (which would
+            shift the page). */}
+        <a
+          href="#main-content"
+          className={SKIP_LINK_CLASS}
+          style={{
+            background: "var(--portfolio-panel)",
+            border: "1px solid var(--portfolio-border)",
+          }}
+        >
+          Skip to content
+        </a>
         {children}
         <Scripts />
       </body>
     </html>
+  );
+}
+
+/**
+ * The palette UI — cmdk, a Radix dialog and a dozen icons, none of which any
+ * route needs until someone actually opens it. This is the app's only code-split
+ * boundary, and it is worth roughly 68 kB off every route's initial payload.
+ */
+const CommandPalette = lazy(() =>
+  loadCommandPalette().then((module) => ({ default: module.CommandPalette })),
+);
+
+/**
+ * Eager, ~nothing-sized shell for the ⌘K palette.
+ *
+ * It exists so the palette can be lazy WITHOUT the shortcut becoming lazy too.
+ * The global keydown / pointerdown listeners are installed here on mount —
+ * exactly where {@link CommandPalette}'s own effect used to install them — so the
+ * very first ⌘K is caught, toggling and Escape work while the chunk is still in
+ * flight, and the Keyboard Warrior input flags never miss an event. See
+ * lib/command-palette.ts.
+ *
+ * Renders `null` until the palette has been opened at least once, so the
+ * prerendered HTML and the hydration render are byte-identical to before (a
+ * closed dialog rendered nothing anyway) and no Suspense boundary reaches SSR.
+ * After that first open it stays mounted: unmounting on close would cut off the
+ * dialog's exit animation and re-suspend on every subsequent ⌘K.
+ */
+function CommandPaletteHost() {
+  const open = usePaletteOpen();
+  const [everOpened, setEverOpened] = useState(false);
+
+  // Adjusting state during render (the sanctioned React pattern) rather than in
+  // an effect: it re-renders immediately without an extra commit, so the chunk
+  // request starts in the same tick as the keypress that asked for it.
+  if (open && !everOpened) setEverOpened(true);
+
+  useEffect(() => installPaletteShortcuts(), []);
+
+  // Warm the chunk when the browser has nothing better to do, so a first ⌘K has
+  // nothing to wait for. Idle-scheduled and Save-Data-aware, so it can never
+  // compete with hydration or a route transition.
+  useEffect(() => prefetchCommandPaletteWhenIdle(), []);
+
+  if (!everOpened) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <CommandPalette />
+    </Suspense>
   );
 }
 
@@ -237,14 +343,24 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      {/* ⌘K command palette — mounted once so it works on every route. */}
-      <CommandPalette />
-      {/* Achievements: ambient tracking + the bottom-left unlock popup. Both are
-          mounted here so they survive route changes and work off the landing page. */}
-      <AchievementTracker />
-      <AchievementToaster />
+      {/* reducedMotion="user" makes every framer-motion animation below this point honour
+          prefers-reduced-motion: transform/layout animations snap to their target value
+          while opacity still cross-fades. It has to sit ABOVE <Outlet />, because the
+          components that animate on mount — Reveal (components/portfolio/section.tsx),
+          the portrait ring, the status dot, the globe orbit — live inside the routes, and
+          MotionConfig only reaches motion components in its React subtree. Wrapping the
+          whole outlet is what makes this a one-line fix instead of a per-component audit. */}
+      <MotionConfig reducedMotion="user">
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+        {/* ⌘K command palette — mounted once so it works on every route. The
+            shortcut is eager; the palette UI is fetched the first time it opens. */}
+        <CommandPaletteHost />
+        {/* Achievements: ambient tracking + the bottom-left unlock popup. Both are
+            mounted here so they survive route changes and work off the landing page. */}
+        <AchievementTracker />
+        <AchievementToaster />
+      </MotionConfig>
     </QueryClientProvider>
   );
 }

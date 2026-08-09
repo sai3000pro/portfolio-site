@@ -1,105 +1,115 @@
-import { useId, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import { Link } from "@tanstack/react-router";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
-import { Download, Loader2, Printer } from "lucide-react";
-import { toast } from "sonner";
+import { Download, Printer } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { KEYS } from "@/data/achievements";
 import { PROFILE, SOCIALS } from "@/data/portfolio";
 import { trackMember, unlock } from "@/lib/achievements";
-import { buildMailtoUrl, contactSchema, submitContact, type ContactValues } from "@/lib/contact";
 import { assetUrl } from "@/lib/assets";
 import { printResume } from "@/lib/print-resume";
+import { useTheme } from "@/lib/theme";
 import { getVCardDownloadProps } from "@/lib/vcard";
 import { Reveal, Section, SectionHeading } from "./section";
+import { surfaceChrome, type ContactFieldName } from "./contact-form-chrome";
+import { ContactFormPlaceholder } from "./contact-form-shell";
+// Type-only: erased at compile time, so it creates no static edge to the chunk.
+import type { ContactFormProps } from "./contact-form";
 
-// Reject submissions that arrive implausibly fast — real humans take a moment
-// to fill three fields, bots do not.
-const MIN_SUBMIT_MS = 2000;
+/**
+ * How far ahead of the viewport the form's chunk starts downloading. The contact
+ * section is the last thing on the landing page, so a full viewport of lead time
+ * means the request is in flight long before the panel is on screen and the swap
+ * has effectively always happened by the time anyone can interact with it.
+ */
+const PRELOAD_MARGIN = "800px 0px";
 
-const inputStyle: React.CSSProperties = {
-  padding: "11px 13px",
-  background: "var(--portfolio-surface)",
-  border: "1px solid var(--portfolio-border)",
-  color: "var(--portfolio-ink)",
-};
+type ContactFormComponent = ComponentType<ContactFormProps>;
 
 export function Contact() {
-  // Timestamp of when the form mounted, used for the time-to-submit check.
+  // Sonner needs to be told which palette to render; it cannot read our `.light`
+  // class. Subscribing keeps toasts correct when the theme is flipped mid-visit.
+  const theme = useTheme();
+  // Timestamp of when the section mounted, handed to the form so its minimum-time
+  // spam check measures page-open time exactly as it did before the split.
   const mountedAt = useRef(Date.now());
-  // Honeypot: a field only bots tend to fill. Kept out of react-hook-form so
-  // it never affects validation state.
-  const honeypotRef = useRef<HTMLInputElement>(null);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<ContactValues>({
-    resolver: zodResolver(contactSchema),
-    mode: "onTouched",
-    defaultValues: { name: "", email: "", message: "" },
-  });
+  // The stable box the form lives in: it is what the IntersectionObserver watches
+  // and it survives the placeholder → form swap.
+  const slotRef = useRef<HTMLDivElement>(null);
+  // Which placeholder field has focus right now, so the swap can hand it back.
+  const focusedFieldRef = useRef<ContactFieldName | null>(null);
 
-  const onSubmit = async (values: ContactValues) => {
-    // Silently drop bot submissions — no toast, so scrapers get no signal.
-    if (honeypotRef.current?.value) return;
-    if (Date.now() - mountedAt.current < MIN_SUBMIT_MS) return;
+  // `armed` starts false on BOTH sides of hydration and is only ever flipped from
+  // an effect or a user event — never during render. That is what makes the
+  // prerendered HTML and the client's first render provably identical (same
+  // approach hobby-belts.tsx uses to pick its branch after mount).
+  const [armed, setArmed] = useState(false);
+  const [Form, setForm] = useState<ContactFormComponent | null>(null);
+  const [initialFocus, setInitialFocus] = useState<ContactFieldName | null>(null);
+  const [failed, setFailed] = useState(false);
 
-    const outcome = await submitContact(values, PROFILE.email);
+  const arm = useCallback(() => setArmed(true), []);
 
-    switch (outcome.kind) {
-      case "mailto":
-        // No endpoint configured — preserve the original behaviour exactly.
-        window.location.href = outcome.url;
-        return;
-      case "success":
-        unlock("cold-call");
-        toast.success("Message sent — thanks for reaching out!", {
-          description: "I'll get back to you as soon as I can.",
-        });
-        reset();
-        mountedAt.current = Date.now();
-        return;
-      case "server-error":
-      case "network-error":
-        toast.error("Couldn't send your message.", {
-          description: `Something went wrong. You can email me directly at ${PROFILE.email}.`,
-          action: {
-            label: "Email instead",
-            onClick: () => {
-              window.location.href = buildMailtoUrl(PROFILE.email, values);
-            },
-          },
-        });
-        return;
+  // Trigger 1: proximity. Fires well before the panel is visible.
+  useEffect(() => {
+    if (armed) return;
+    const el = slotRef.current;
+    // No observer (very old browser, or no element yet) — just load it.
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setArmed(true);
+      return;
     }
-  };
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) setArmed(true);
+      },
+      { rootMargin: PRELOAD_MARGIN },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [armed]);
 
-  const fieldStyle: React.CSSProperties = {
-    background: "var(--portfolio-surface)",
-    border: "1px solid var(--portfolio-border)",
-  };
+  useEffect(() => {
+    if (!armed) return;
+    let alive = true;
+    void import("./contact-form")
+      .then((mod) => {
+        if (!alive) return;
+        // Both setStates land in one batch, so the form mounts already knowing
+        // where focus has to go.
+        setInitialFocus(focusedFieldRef.current);
+        setForm(() => mod.ContactForm);
+      })
+      .catch(() => {
+        // Offline mid-visit, a purged deploy, a blocked request: the placeholder
+        // stays, but swaps its dead submit button for a working mailto link.
+        if (alive) setFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [armed]);
 
-  const status = isSubmitting ? "Sending your message…" : "";
+  // Trigger 2: intent. Hovering, pressing or tabbing into the panel all start the
+  // load, which covers a visitor who somehow reaches it before the observer does.
+  const onFieldFocusChange = useCallback((name: ContactFieldName | null) => {
+    focusedFieldRef.current = name;
+    if (name) setArmed(true);
+  }, []);
 
   return (
     <Section id="contact">
       {/* Toasts live where the form does so success/error feedback renders. */}
-      <Toaster position="bottom-right" theme="dark" richColors />
+      <Toaster position="bottom-right" theme={theme} richColors />
       <SectionHeading eyebrow="Say hello" title="Get in touch" />
 
       <div
-        className="mt-14 grid items-start"
-        style={{
-          gridTemplateColumns: "minmax(0,1fr) minmax(0,1.1fr)",
-          gap: "clamp(36px,5vw,64px)",
-        }}
+        className="mt-14 grid items-start grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"
+        style={{ gap: "clamp(36px,5vw,64px)" }}
       >
-        {/* Left: invitation + socials */}
+        {/* Left: invitation + socials. Entirely server-rendered — including the
+            mailto: entry in SOCIALS, which stays reachable whatever the form does. */}
         <Reveal>
           <p
             className="text-muted-portfolio"
@@ -119,7 +129,7 @@ export function Contact() {
                 whileHover={{ x: 4 }}
                 onClick={() => trackMember(KEYS.socials, s.label)}
                 className="inline-flex items-center justify-between rounded-xl no-underline text-ink font-display"
-                style={{ fontSize: 15.5, padding: "14px 18px", ...fieldStyle }}
+                style={{ fontSize: 15.5, padding: "14px 18px", ...surfaceChrome }}
               >
                 <span>{s.label}</span>
                 <span className="text-accent-bright">→</span>
@@ -164,149 +174,23 @@ export function Contact() {
           </div>
         </Reveal>
 
-        {/* Right: validated form (posts to VITE_CONTACT_ENDPOINT, else mailto) */}
+        {/* Right: validated form (posts to VITE_CONTACT_ENDPOINT, else mailto).
+            Code-split — the placeholder holds the exact same box until it lands. */}
         <Reveal delay={0.1}>
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
-            className="rounded-2xl"
-            style={{ padding: "clamp(22px,3vw,32px)", ...fieldStyle, backdropFilter: "blur(6px)" }}
-          >
-            <Field label="Name" error={errors.name?.message}>
-              {({ id, describedBy, invalid }) => (
-                <input
-                  id={id}
-                  {...register("name")}
-                  aria-invalid={invalid}
-                  aria-describedby={describedBy}
-                  placeholder="Your name"
-                  autoComplete="name"
-                  className="w-full rounded-lg text-ink placeholder:text-[var(--portfolio-muted)] outline-none"
-                  style={inputStyle}
-                />
-              )}
-            </Field>
-            <Field label="Email" error={errors.email?.message}>
-              {({ id, describedBy, invalid }) => (
-                <input
-                  id={id}
-                  type="email"
-                  {...register("email")}
-                  aria-invalid={invalid}
-                  aria-describedby={describedBy}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  className="w-full rounded-lg text-ink placeholder:text-[var(--portfolio-muted)] outline-none"
-                  style={inputStyle}
-                />
-              )}
-            </Field>
-            <Field label="Message" error={errors.message?.message}>
-              {({ id, describedBy, invalid }) => (
-                <textarea
-                  id={id}
-                  {...register("message")}
-                  aria-invalid={invalid}
-                  aria-describedby={describedBy}
-                  placeholder="What's on your mind?"
-                  rows={4}
-                  className="w-full rounded-lg text-ink placeholder:text-[var(--portfolio-muted)] outline-none resize-y"
-                  style={inputStyle}
-                />
-              )}
-            </Field>
-
-            {/* Honeypot: visually hidden but present in the DOM. Never focusable
-                and hidden from assistive tech, so only bots will fill it. */}
-            <div
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                width: 1,
-                height: 1,
-                overflow: "hidden",
-                clip: "rect(0 0 0 0)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <label htmlFor="contact-company">Company (leave this empty)</label>
-              <input
-                id="contact-company"
-                ref={honeypotRef}
-                type="text"
-                tabIndex={-1}
-                autoComplete="off"
-                defaultValue=""
+          <div ref={slotRef} onPointerEnter={arm} onPointerDown={arm}>
+            {Form ? (
+              <Form mountedAtMs={mountedAt.current} initialFocus={initialFocus} />
+            ) : (
+              <ContactFormPlaceholder
+                email={PROFILE.email}
+                failed={failed}
+                onFieldFocusChange={onFieldFocusChange}
               />
-            </div>
-
-            <motion.button
-              type="submit"
-              disabled={isSubmitting}
-              whileHover={
-                isSubmitting ? undefined : { y: -2, boxShadow: "0 12px 32px rgba(47,155,255,0.5)" }
-              }
-              whileTap={isSubmitting ? undefined : { scale: 0.98 }}
-              className="font-display font-semibold rounded-full w-full mt-2 inline-flex items-center justify-center gap-2"
-              style={{
-                fontSize: 15,
-                padding: "14px",
-                color: "#021024",
-                background: "linear-gradient(180deg,#5db6ff,#2f9bff)",
-                boxShadow: "0 8px 24px rgba(47,155,255,0.4)",
-                cursor: isSubmitting ? "not-allowed" : "pointer",
-                opacity: isSubmitting ? 0.8 : 1,
-              }}
-            >
-              {isSubmitting && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
-              {isSubmitting ? "Sending…" : "Send Message"}
-            </motion.button>
-
-            {/* Politely announce submit state to screen readers. */}
-            <output aria-live="polite" className="sr-only">
-              {status}
-            </output>
-          </form>
+            )}
+          </div>
         </Reveal>
       </div>
     </Section>
-  );
-}
-
-interface FieldRenderProps {
-  id: string;
-  describedBy: string | undefined;
-  invalid: boolean;
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: (props: FieldRenderProps) => ReactNode;
-}) {
-  const id = useId();
-  const errorId = `${id}-error`;
-  const invalid = Boolean(error);
-
-  return (
-    <label htmlFor={id} className="block mb-4">
-      <span
-        className="font-display font-medium text-muted-portfolio block mb-2"
-        style={{ fontSize: 13.5 }}
-      >
-        {label}
-      </span>
-      {children({ id, describedBy: invalid ? errorId : undefined, invalid })}
-      {error && (
-        <span id={errorId} className="block mt-1.5" style={{ fontSize: 12.5, color: "#d83a42" }}>
-          {error}
-        </span>
-      )}
-    </label>
   );
 }
 
@@ -330,13 +214,13 @@ export function Footer() {
           </p>
         </div>
         <div className="flex gap-5">
-          {/* The nav is hidden below 768px, so this is the only route to /hobbies on mobile. */}
+          {/* Also reachable from the nav's mobile sheet — this is the footer's copy. */}
           <Link
             to="/hobbies"
             className="font-display text-muted-portfolio no-underline transition-colors hover:text-accent-bright"
             style={{ fontSize: 14 }}
           >
-            Hobbies
+            Photography
           </Link>
           {SOCIALS.map((s) => (
             <a

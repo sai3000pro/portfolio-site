@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, ExternalLink, Github, GitFork, Star } from "lucide-react";
 
 import { PROJECTS, type Project } from "@/data/portfolio";
+import { GENERATED_IMAGES } from "@/data/images.generated";
 import { assetUrl } from "@/lib/assets";
 import { absoluteUrl, ogImageUrl } from "@/lib/site-url";
 import { slugify } from "@/lib/slug";
@@ -37,9 +38,11 @@ export const Route = createFileRoute("/projects/$slug")({
     const { project } = match;
     const title = `${project.title} — Saivenkat Jilla`;
     const description = project.tagline ?? project.description;
-    // Absolute URL of the card scripts/seo.mjs generates (og/projects-<slug>.svg).
-    // Must be absolute: scrapers ignore base-relative og:image paths.
-    const ogImage = ogImageUrl(`projects-${params.slug}.svg`);
+    // Absolute URL of the card scripts/seo.mjs generates (og/projects-<slug>.png).
+    // Must be absolute: scrapers ignore base-relative og:image paths. Must be PNG:
+    // they reject SVG. This canonical is now the ONLY one on the page — the root
+    // shell no longer emits a blanket one (see __root.tsx).
+    const ogImage = ogImageUrl(`projects-${params.slug}.png`);
     const canonical = absoluteUrl(`projects/${params.slug}`);
     return {
       meta: [
@@ -48,6 +51,7 @@ export const Route = createFileRoute("/projects/$slug")({
         { property: "og:title", content: title },
         { property: "og:description", content: description },
         { property: "og:image", content: ogImage },
+        { property: "og:image:alt", content: `Social card for ${title}` },
         { property: "og:type", content: "article" },
         { property: "og:url", content: canonical },
         { name: "twitter:card", content: "summary_large_image" },
@@ -70,7 +74,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     <div className={PAGE_CLASS}>
       <Starfield count={380} />
       <Nav />
-      <main className="relative" style={{ zIndex: 2 }}>
+      <main id="main-content" tabIndex={-1} className="relative" style={{ zIndex: 2 }}>
         {children}
       </main>
       <div className="relative" style={{ zIndex: 2 }}>
@@ -177,6 +181,62 @@ function GitHubStats({ repo }: { repo: string }) {
   );
 }
 
+/**
+ * Widths the hero is actually painted at.
+ *
+ * The article caps at 900px with `clamp(24px,5vw,80px)` of padding a side, so the content
+ * column is at most 900 - 2×80 = 740px on a wide screen and peaks around 810px right at the
+ * 900px breakpoint. Below that the article is the viewport and the padding is 5vw a side, so
+ * the column is 90vw until the clamp floors the padding at 24px on very small phones (where
+ * 90vw over-requests by a few px — harmless, and it errs toward the sharper source).
+ *
+ * 810 and 740 both land between the 400w and 800w derivatives, so every viewport ≥900px asks
+ * for the 800w file either way; quoting 800px keeps the hint honest without a third breakpoint.
+ */
+const HERO_SIZES = "(min-width: 900px) 800px, 90vw";
+
+/**
+ * The case-study hero. Renders nothing at all when the project has no image — CORnet-Mouse
+ * is the one such project, and it keeps the text-only layout it has today rather than
+ * gaining an empty frame.
+ *
+ * `imageId` keys into the generated derivatives; a project with an `image` but no encoded
+ * sizes yet degrades to the committed original. Every URL goes through `assetUrl()` — the
+ * manifest's paths are bare and document-relative, so they 404 under the Pages base path.
+ * (The constellation card does the same thing at its own display width; the two are a few
+ * lines each and live either side of an ownership boundary, so they stay separate.)
+ */
+function HeroImage({ project }: { project: Project }) {
+  if (!project.image) return null;
+
+  const generated = project.imageId ? GENERATED_IMAGES[project.imageId] : undefined;
+  // Smallest source doubles as the `src` fallback; its intrinsic width/height reserve the
+  // aspect box before the bytes land, so the write-up below doesn't get shoved down (CLS).
+  const smallest = generated?.sources[0];
+
+  return (
+    <img
+      src={assetUrl(smallest?.src ?? project.image)}
+      srcSet={generated?.sources.map((s) => `${assetUrl(s.src)} ${s.width}w`).join(", ")}
+      sizes={generated ? HERO_SIZES : undefined}
+      width={smallest?.width}
+      height={smallest?.height}
+      alt={`${project.title} — project screenshot`}
+      // Top of the page: this is the LCP candidate, so it must not be lazy.
+      loading="eager"
+      fetchPriority="high"
+      decoding="async"
+      className="mt-10 w-full rounded-xl"
+      style={{
+        height: "auto",
+        display: "block",
+        border: "1px solid var(--portfolio-border)",
+        background: "var(--portfolio-surface)",
+      }}
+    />
+  );
+}
+
 function CaseStudy() {
   const { slug } = Route.useParams();
   const match = resolveBySlug(slug);
@@ -205,7 +265,7 @@ function CaseStudy() {
           {project.winner && (
             <span
               className="font-display font-bold"
-              style={{ color: "#f5c518", fontSize: 12.5, letterSpacing: 0.5 }}
+              style={{ color: "var(--portfolio-gold)", fontSize: 12.5, letterSpacing: 0.5 }}
             >
               ★ Hackathon Winner
             </span>
@@ -248,7 +308,7 @@ function CaseStudy() {
 
           <div className="flex flex-wrap gap-3 mt-7">
             <a
-              href={project.link}
+              href={assetUrl(project.link)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 font-display font-semibold no-underline rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
@@ -281,6 +341,9 @@ function CaseStudy() {
             )}
           </div>
         </header>
+
+        {/* Hero image — absent for projects that have no screenshot */}
+        <HeroImage project={project} />
 
         {/* Details write-up */}
         <section className="mt-10" aria-label="About this project">

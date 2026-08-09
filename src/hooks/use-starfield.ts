@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
+import { useReducedMotion } from "framer-motion";
 
 interface Star {
   x: number;
@@ -43,11 +44,22 @@ const TWINKLE_RATE = 0.0017;
  * Stars travel toward the camera (`z` shrinking); `speed` eases toward `target`,
  * and above ~0.02 the dots become streaks for a warp effect. Nothing here touches
  * React state, so the loop never triggers a re-render.
+ *
+ * Motion is conditional. Under `prefers-reduced-motion` the field is painted once
+ * and the loop never starts (WCAG 2.2.2 — this canvas is the only moving thing on
+ * some routes, so there would otherwise be nothing to stop). When animating, the
+ * loop suspends while the canvas is offscreen or the tab is hidden, and holds its
+ * twinkle clock across the gap so the field does not jump on return.
  */
 export function useStarfield(
   canvasRef: React.RefObject<HTMLCanvasElement | null>,
   { count = 720 }: StarfieldOptions = {},
 ): StarfieldHandle {
+  // framer's hook rather than a one-shot `matchMedia().matches`: it is SSR-safe and it
+  // re-renders when the OS preference flips, so the effect below re-runs and switches
+  // between the animated and static paths without a reload.
+  const prefersReduced = useReducedMotion() === true;
+
   const stateRef = useRef({
     stars: [] as Star[],
     n: count,
@@ -58,7 +70,6 @@ export function useStarfield(
     speed: 0.0025,
     target: 0.0025,
     dpr: 1,
-    running: false,
     /** 0 = dark palette, 1 = light palette; eased so theme changes cross-fade. */
     lightMix: 0,
   });
@@ -102,22 +113,28 @@ export function useStarfield(
       });
     }
 
-    s.running = true;
     const fov = 0.9;
-    const loop = (t: number) => {
-      if (!s.running) return;
-      s.speed += (s.target - s.speed) * 0.04;
+
+    /**
+     * Paint one frame at animation time `t` (ms).
+     *
+     * `advance` is false for the reduced-motion still: the field is drawn exactly as it
+     * would look on the first frame, but nothing is stepped forward and the palette snaps
+     * rather than eases (there is no next frame to ease on).
+     */
+    const draw = (t: number, advance: boolean) => {
+      if (advance) s.speed += (s.target - s.speed) * 0.04;
       ctx.clearRect(0, 0, s.w, s.h);
       const warpish = s.speed > 0.02;
       // Ease between the dark and light particle palettes instead of snapping on the
       // frame the class flips — a hard colour swap on ~700 particles is the most
       // visible part of a choppy theme change.
       const target = document.documentElement.classList.contains("light") ? 1 : 0;
-      s.lightMix += (target - s.lightMix) * 0.08;
+      s.lightMix += advance ? (target - s.lightMix) * 0.08 : target - s.lightMix;
       const mix = s.lightMix;
       for (const star of s.stars) {
         const pz = star.z;
-        star.z -= s.speed;
+        if (advance) star.z -= s.speed;
         if (star.z <= 0.02) {
           star.z = 1;
           star.x = Math.random() * 2 - 1;
@@ -159,16 +176,134 @@ export function useStarfield(
           ctx.fill();
         }
       }
-      requestAnimationFrame(loop);
     };
-    requestAnimationFrame(loop);
 
-    window.addEventListener("resize", size);
-    return () => {
-      s.running = false;
-      window.removeEventListener("resize", size);
+    // rAF handle and a per-effect cancellation flag. Both are locals, NOT fields on the
+    // shared `stateRef` — a flag on shared state cannot distinguish "this effect run was
+    // torn down" from "a newer run started", so an orphaned loop would keep drawing.
+    let raf = 0;
+    let cancelled = false;
+    /** Last animation time handed to `draw`, so a resize can repaint the same frame. */
+    let clock = 0;
+
+    const onResize = () => {
+      size();
+      // Resizing the backing store clears it; if no frame is scheduled (reduced motion, or
+      // suspended offscreen/hidden) nothing would repaint it, leaving a blank canvas.
+      if (raf === 0 && !cancelled) draw(clock, false);
     };
-  }, [canvasRef, count]);
+    window.addEventListener("resize", onResize);
+
+    if (prefersReduced) {
+      draw(0, false);
+      // The loop normally polls the <html> class every frame to pick up theme changes.
+      // With no loop, watch the class directly so a light/dark toggle still repaints.
+      const themeObserver = new MutationObserver(() => draw(0, false));
+      themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+      return () => {
+        cancelled = true;
+        themeObserver.disconnect();
+        window.removeEventListener("resize", onResize);
+      };
+    }
+
+    // ── suspend while offscreen or backgrounded ────────────────────────────
+    // Time spent suspended, subtracted from the rAF timestamp so the twinkle phase
+    // resumes where it stopped instead of jumping forward by the length of the pause.
+    let visible = true;
+    let pausedAt = 0;
+    let clockOffset = 0;
+
+    const frame = (now: number) => {
+      if (cancelled) return;
+      if (!visible || document.hidden) {
+        pausedAt = now;
+        raf = 0;
+        return;
+      }
+      clock = now - clockOffset;
+      draw(clock, true);
+      raf = requestAnimationFrame(frame);
+    };
+
+    // Set once the deferred start below has fired. Until then resume() must not schedule
+    // anything — the IntersectionObserver callback runs on observe and would otherwise
+    // start the loop immediately, defeating the deferral.
+    let started = false;
+
+    const resume = () => {
+      if (cancelled || !started || raf !== 0 || !visible || document.hidden) return;
+      if (pausedAt) {
+        clockOffset += performance.now() - pausedAt;
+        pausedAt = 0;
+      }
+      raf = requestAnimationFrame(frame);
+    };
+
+    const suspend = () => {
+      if (raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+      if (!pausedAt) pausedAt = performance.now();
+    };
+
+    const onVisibility = () => (document.hidden ? suspend() : resume());
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // A no-op while the canvas is `position: fixed` (it always intersects), but it is what
+    // stops the loop if the field is ever placed in flow, and it costs one observer.
+    const io = new IntersectionObserver(
+      (entries) => {
+        visible = entries[0]?.isIntersecting ?? true;
+        if (visible) resume();
+        else suspend();
+      },
+      { threshold: 0 },
+    );
+    io.observe(cv);
+
+    // Paint one frame synchronously so the field is present at first paint — the page
+    // must never show a bare background — but hold the *animation* until the main
+    // thread has finished hydrating. 720 stars at one arc-fill each is ~43k path fills
+    // a second, and starting that while React is still hydrating competes directly
+    // with time-to-interactive on the landing page. The visitor cannot perceive the
+    // first few hundred milliseconds of drift; they can perceive a janky load.
+    draw(0, false);
+
+    let startHandle = 0;
+    let usedIdleCallback = false;
+    const startLoop = () => {
+      startHandle = 0;
+      started = true;
+      resume();
+    };
+
+    const idle = window.requestIdleCallback;
+    if (typeof idle === "function") {
+      usedIdleCallback = true;
+      // The timeout is the point: on a busy thread idle may never come on its own.
+      startHandle = idle(startLoop, { timeout: 500 });
+    } else {
+      startHandle = window.setTimeout(startLoop, 200);
+    }
+
+    return () => {
+      cancelled = true;
+      if (startHandle !== 0) {
+        if (usedIdleCallback) window.cancelIdleCallback?.(startHandle);
+        else window.clearTimeout(startHandle);
+      }
+      cancelAnimationFrame(raf);
+      raf = 0;
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [canvasRef, count, prefersReduced]);
 
   return { setTarget };
 }

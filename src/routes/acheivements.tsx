@@ -24,6 +24,11 @@ import { Starfield } from "@/components/portfolio/starfield";
  * before the router can take over, turning a smooth client-side navigation into a
  * full page load. The effect below handles every visitor who has JS; the visible
  * link handles the rest. The page is `noindex`, so nothing is riding on it.
+ *
+ * The cross-canonical below points at /achievements, NOT at this URL — that is the
+ * point of the alias. It is also the only canonical on the page now that the root
+ * shell no longer emits a blanket one (see __root.tsx). `noindex, follow` and the
+ * `sitemap: false` flag in scripts/routes.mjs both stay.
  */
 
 const CANONICAL = absoluteUrl("achievements");

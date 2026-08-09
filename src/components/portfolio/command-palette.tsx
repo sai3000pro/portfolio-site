@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useReducedMotion } from "framer-motion";
 import {
@@ -35,22 +35,7 @@ import { CONSOLE_CODE_WORD, KEYS } from "@/data/achievements";
 import { NAV_LINKS, PROFILE, PROJECTS, SOCIALS } from "@/data/portfolio";
 import { trackMember, unlock } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
-
-/**
- * Custom window event other components dispatch to open the palette. Kept as a
- * plain DOM event so no extra state library / provider is needed.
- */
-const OPEN_EVENT = "portfolio:open-palette";
-
-/**
- * Programmatically open the command palette from anywhere (e.g. a nav button).
- * SSR-safe: no-ops when there is no window.
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function openCommandPalette(): void {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(OPEN_EVENT));
-}
+import { claimKeyboardWarrior, setPaletteOpen, usePaletteOpen } from "@/lib/command-palette";
 
 // Shared cmdk item styling to match the site's cosmic accent language.
 const ITEM_CLASS =
@@ -70,7 +55,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   Experience: Briefcase,
   Projects: FolderGit2,
   Contact: Mail,
-  Hobbies: Palette,
+  Photography: Palette,
 };
 
 // Icon per social label.
@@ -87,13 +72,21 @@ function openInNewTab(url: string): void {
 }
 
 /**
- * ⌘K / Ctrl+K command palette. Owns its open state, listens for the toggle
- * shortcut and the {@link OPEN_EVENT} custom event, and runs navigation,
- * project, and quick-action commands. Rendered under SSR/prerender, so every
- * window/document access lives inside effects or event handlers.
+ * ⌘K / Ctrl+K command palette: navigation, project, and quick-action commands.
+ *
+ * CODE-SPLIT. This module pulls in cmdk, the Radix dialog and a dozen icons, so
+ * it is loaded on demand — `routes/__root.tsx` renders it behind `React.lazy`
+ * once the palette is first opened, and nothing here is on the critical path of
+ * any route. The pieces that must survive that (the ⌘K listener, the open state,
+ * `openCommandPalette()`, and the Keyboard Warrior input flags) live eagerly in
+ * lib/command-palette.ts; see the file header there for why each one has to.
+ *
+ * Consequently the open state is READ from that store rather than owned here:
+ * the keypress that opens the palette happens before this component exists, and
+ * it must not be lost while the chunk is in flight.
  */
 export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+  const open = usePaletteOpen();
   // Controlled so the console easter-egg item can require an exact match rather
   // than surfacing under cmdk's fuzzy scoring.
   const [search, setSearch] = useState("");
@@ -103,62 +96,22 @@ export function CommandPalette() {
   const prefersReduced = useReducedMotion();
   const scrollBehavior: ScrollBehavior = prefersReduced ? "auto" : "smooth";
 
-  // Whether this session's palette was opened by keyboard, and whether the most
-  // recent interaction was a key rather than a pointer. Both true when an action
-  // runs means the visitor never touched the mouse — that's Keyboard Warrior.
-  const openedViaKeyboard = useRef(false);
-  const lastInputWasKeyboard = useRef(false);
-
-  // ⌘K / Ctrl+K toggles, Escape closes. Registered once on the client.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        openedViaKeyboard.current = true;
-        lastInputWasKeyboard.current = true;
-        setOpen((v) => !v);
-      } else if (e.key === "Escape") {
-        setOpen(false);
-      } else {
-        lastInputWasKeyboard.current = true;
-      }
-    };
-    const onPointerDown = () => {
-      lastInputWasKeyboard.current = false;
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("pointerdown", onPointerDown, { passive: true });
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("pointerdown", onPointerDown);
-    };
-  }, []);
-
-  // Let other components open the palette via a custom window event.
-  useEffect(() => {
-    const onOpen = () => {
-      openedViaKeyboard.current = false;
-      setOpen(true);
-    };
-    window.addEventListener(OPEN_EVENT, onOpen);
-    return () => window.removeEventListener(OPEN_EVENT, onOpen);
-  }, []);
-
-  // Opening the palette at all is an achievement; clear the search each time so
-  // a stale query (including the easter-egg word) doesn't persist.
+  // Clear the search on every open so a stale query (including the easter-egg
+  // word) doesn't persist. The "opened the palette" achievement is unlocked by
+  // the eager store instead, so it still fires when the palette is opened and
+  // closed again before this chunk has finished loading.
   useEffect(() => {
     if (!open) return;
     setSearch("");
-    unlock("power-user");
   }, [open]);
 
-  // Close the palette, then run the selected action.
+  // Close the palette, then run the selected action. The Keyboard Warrior check
+  // reads flags maintained by the eager listener, which has been watching every
+  // keydown and pointerdown since the root mounted — not just since this chunk
+  // arrived, which would let a click made during the fetch go unnoticed.
   const runAction = (fn: () => void) => {
-    if (openedViaKeyboard.current && lastInputWasKeyboard.current) {
-      unlock("keyboard-warrior");
-    }
-    setOpen(false);
+    claimKeyboardWarrior();
+    setPaletteOpen(false);
     fn();
   };
 
@@ -186,7 +139,7 @@ export function CommandPalette() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setPaletteOpen}>
       <DialogContent
         className="max-w-[640px] gap-0 overflow-hidden p-0"
         style={{
@@ -258,7 +211,7 @@ export function CommandPalette() {
                   value={`project ${project.title}`}
                   keywords={project.tech}
                   className={ITEM_CLASS}
-                  onSelect={() => runAction(() => openInNewTab(project.link))}
+                  onSelect={() => runAction(() => openInNewTab(assetUrl(project.link)))}
                 >
                   <FolderGit2 aria-hidden="true" />
                   <span>{project.title}</span>
