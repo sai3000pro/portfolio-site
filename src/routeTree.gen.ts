@@ -14,6 +14,7 @@ import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as AcheivementsRouteImport } from './routes/acheivements'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 
 const HobbiesRoute = HobbiesRouteImport.update({
   id: '/hobbies',
@@ -40,12 +41,18 @@ const ProjectsSlugRoute = ProjectsSlugRouteImport.update({
   path: '/projects/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acheivements': typeof AcheivementsRoute
   '/achievements': typeof AchievementsRoute
   '/hobbies': typeof HobbiesRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/projects/$slug': typeof ProjectsSlugRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/acheivements': typeof AcheivementsRoute
   '/achievements': typeof AchievementsRoute
   '/hobbies': typeof HobbiesRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/projects/$slug': typeof ProjectsSlugRoute
 }
 export interface FileRoutesById {
@@ -61,6 +69,7 @@ export interface FileRoutesById {
   '/acheivements': typeof AcheivementsRoute
   '/achievements': typeof AchievementsRoute
   '/hobbies': typeof HobbiesRoute
+  '/blog/$slug': typeof BlogSlugRoute
   '/projects/$slug': typeof ProjectsSlugRoute
 }
 export interface FileRouteTypes {
@@ -70,15 +79,23 @@ export interface FileRouteTypes {
     | '/acheivements'
     | '/achievements'
     | '/hobbies'
+    | '/blog/$slug'
     | '/projects/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/acheivements' | '/achievements' | '/hobbies' | '/projects/$slug'
+  to:
+    | '/'
+    | '/acheivements'
+    | '/achievements'
+    | '/hobbies'
+    | '/blog/$slug'
+    | '/projects/$slug'
   id:
     | '__root__'
     | '/'
     | '/acheivements'
     | '/achievements'
     | '/hobbies'
+    | '/blog/$slug'
     | '/projects/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -87,6 +104,7 @@ export interface RootRouteChildren {
   AcheivementsRoute: typeof AcheivementsRoute
   AchievementsRoute: typeof AchievementsRoute
   HobbiesRoute: typeof HobbiesRoute
+  BlogSlugRoute: typeof BlogSlugRoute
   ProjectsSlugRoute: typeof ProjectsSlugRoute
 }
 
@@ -127,6 +145,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -135,6 +160,7 @@ const rootRouteChildren: RootRouteChildren = {
   AcheivementsRoute: AcheivementsRoute,
   AchievementsRoute: AchievementsRoute,
   HobbiesRoute: HobbiesRoute,
+  BlogSlugRoute: BlogSlugRoute,
   ProjectsSlugRoute: ProjectsSlugRoute,
 }
 export const routeTree = rootRouteImport

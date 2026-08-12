@@ -17,6 +17,7 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORTFOLIO_PATH = join(__dirname, "../src/data/portfolio.ts");
+const BLOG_PATH = join(__dirname, "../src/data/blog.ts");
 
 /**
  * Canonical slug rule — MUST match the sibling agent's /projects/$slug rule:
@@ -97,6 +98,49 @@ export function getFullName() {
 }
 
 /**
+ * Blog posts, parsed out of src/data/blog.ts the same way project titles are parsed
+ * out of portfolio.ts — these scripts are .mjs and cannot import a .ts module.
+ *
+ * Slugs are EXPLICIT in the data (not derived from the title) so a post keeps its URL
+ * if the headline is later reworded; we read the `slug:` field directly rather than
+ * slugifying anything, which is why this needs its own parser.
+ *
+ * @returns {{ slug: string, title: string, date: string }[]}
+ */
+export function getBlogPosts() {
+  let source;
+  try {
+    source = readFileSync(BLOG_PATH, "utf8");
+  } catch {
+    return []; // No blog data file — the blog is simply absent.
+  }
+
+  const marker = "export const BLOG_POSTS";
+  const start = source.indexOf(marker);
+  if (start === -1) return [];
+  const rest = source.slice(start + marker.length);
+  const nextExport = rest.search(/\nexport\s/);
+  const block = nextExport === -1 ? rest : rest.slice(0, nextExport);
+
+  // Each entry contributes a slug; title/date are read from the same object by
+  // scanning forward from the slug match, so field order inside an entry is free.
+  const posts = [];
+  for (const match of block.matchAll(/slug:\s*"((?:[^"\\]|\\.)*)"/g)) {
+    const slug = match[1];
+    const tail = block.slice(match.index);
+    const title = tail.match(/title:\s*"((?:[^"\\]|\\.)*)"/);
+    const date = tail.match(/date:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2})"/);
+    posts.push({
+      slug,
+      title: title ? title[1] : slug,
+      date: date ? date[1] : "",
+    });
+  }
+  // Newest first, matching getSortedPosts() in src/data/blog.ts.
+  return posts.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
  * @typedef {Object} RouteMeta
  * @property {string} path        Route path, e.g. "/" or "/projects/verbalyst".
  * @property {string} title       Human title used on the OG image.
@@ -152,6 +196,16 @@ export function getRouteMeta() {
       changefreq: "yearly",
       priority: 0.8,
       ogFile: `og/projects-${slug}.png`,
+    });
+  }
+
+  for (const post of getBlogPosts()) {
+    meta.push({
+      path: `/blog/${post.slug}`,
+      title: post.title,
+      changefreq: "yearly",
+      priority: 0.6,
+      ogFile: `og/blog-${post.slug}.png`,
     });
   }
 
