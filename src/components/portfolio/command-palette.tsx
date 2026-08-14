@@ -55,7 +55,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   Experience: Briefcase,
   Projects: FolderGit2,
   Contact: Mail,
-  Photography: Palette,
+  "Beyond the Code": Palette,
 };
 
 // Icon per social label.

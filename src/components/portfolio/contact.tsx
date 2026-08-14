@@ -216,7 +216,7 @@ export function Footer() {
         <div className="flex gap-5">
           {/* Also reachable from the nav's mobile sheet — this is the footer's copy. */}
           <Link
-            to="/hobbies"
+            to="/gallery"
             className="font-display text-muted-portfolio no-underline transition-colors hover:text-accent-bright"
             style={{ fontSize: 14 }}
           >

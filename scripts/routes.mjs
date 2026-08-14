@@ -162,12 +162,61 @@ export function getRouteMeta() {
   const fullName = getFullName();
   const meta = [
     { path: "/", title: fullName, changefreq: "monthly", priority: 1.0, ogFile: "og/index.png" },
+
+    // --- /hobbies and the four pages split out of it -------------------------
+    //
+    // /hobbies used to BE the photo wall plus a blog listing plus volunteering, all on
+    // one route. It is now a hub that links to the four pages below. `title` here is
+    // printed verbatim on the generated OG card (scripts/seo.mjs), and the owner's name
+    // is drawn separately underneath it — so these are the bare page names, matching each
+    // route module's own <title> minus its " — Saivenkat Jilla" suffix.
+    //
+    // This entry said "Photography" while the page's <title> already said "Beyond the
+    // Code", so /hobbies shipped a social card labelled with a different name than the
+    // page. Corrected here; "Photography" moves to /gallery, which is what actually
+    // inherited the photo wall.
     {
       path: "/hobbies",
+      title: "Beyond the Code",
+      // Thin hub: its own copy rarely changes, and it is a signpost to the pages below
+      // rather than a destination, so it ranks under the content it links to.
+      changefreq: "monthly",
+      priority: 0.5,
+      ogFile: "og/hobbies.png",
+    },
+    {
+      // The motion-heavy photo wall. Inherits /hobbies' old changefreq/priority along
+      // with its content — this is the page that used to justify them.
+      path: "/gallery",
       title: "Photography",
       changefreq: "monthly",
       priority: 0.7,
-      ogFile: "og/hobbies.png",
+      ogFile: "og/gallery.png",
+    },
+    {
+      // MANUAL ENTRY — the /blog/<slug> loop further down derives one route per post and
+      // never an index, so without this line /blog would not prerender at all: a hard
+      // refresh would fall through to 404.html, and it would get no sitemap entry and no
+      // OG card. Adding a post still needs no change here; adding the index did.
+      path: "/blog",
+      title: "Blog",
+      changefreq: "monthly",
+      priority: 0.6,
+      ogFile: "og/blog.png",
+    },
+    {
+      path: "/gaming",
+      title: "Gaming",
+      changefreq: "monthly",
+      priority: 0.5,
+      ogFile: "og/gaming.png",
+    },
+    {
+      path: "/volunteering",
+      title: "Volunteering",
+      changefreq: "monthly",
+      priority: 0.6,
+      ogFile: "og/volunteering.png",
     },
     {
       path: "/achievements",
@@ -199,6 +248,9 @@ export function getRouteMeta() {
     });
   }
 
+  // One route per post. Posts only — the /blog index is NOT derivable from this list
+  // (an empty blog still needs an index page), so it is declared by hand above.
+  // The og/blog-<slug>.png names cannot collide with the index's og/blog.png.
   for (const post of getBlogPosts()) {
     meta.push({
       path: `/blog/${post.slug}`,

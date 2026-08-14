@@ -1,23 +1,42 @@
 import { ExternalLink, MapPin } from "lucide-react";
 
 import { formatPeriod, getSortedVolunteering, type Volunteering } from "@/data/volunteering";
-import { Reveal, Section, SectionHeading } from "./section";
+import { Reveal, SectionHeading } from "./section";
 
 /**
  * Volunteering timeline.
  *
  * Renders a quiet empty state while src/data/volunteering.ts has no entries, so the
  * section can ship before the content exists without looking broken.
+ *
+ * PAGE-LEVEL CONTENT: this is the whole body of its own route, not a section in the
+ * middle of one. It therefore inlines the wrapper rather than using <Section>, whose
+ * clamp(70px,10vh,130px) top padding is mid-page rhythm and does not clear the 78px
+ * fixed nav. The padding below is the dedicated-route figure already used by
+ * blog.$slug.tsx and hobby-belts.tsx's static gallery. `id="volunteering"` is
+ * preserved so existing hash links keep resolving.
  */
 export function VolunteeringSection() {
   const entries = getSortedVolunteering();
 
   return (
-    <Section id="volunteering">
-      <SectionHeading eyebrow="Giving back" title="Volunteering" />
+    <section
+      id="volunteering"
+      className="relative mx-auto w-full scroll-mt-24"
+      style={{
+        maxWidth: 1180,
+        padding: "clamp(112px,16vh,168px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
+      }}
+    >
+      {/* `as="h1" immediate`: on its own route this is the page's primary title AND it
+          loads above the fold, where Reveal's default whileInView trigger would wait
+          for a scroll that never comes and leave it at opacity 0. */}
+      <SectionHeading eyebrow="Giving back" title="Volunteering" as="h1" immediate />
 
       {entries.length === 0 ? (
-        <Reveal>
+        // Same reason as the heading: with VOLUNTEERING empty this paragraph is the
+        // entire body of the route, so it is above the fold too.
+        <Reveal immediate>
           <p
             className="text-muted-portfolio text-center"
             style={{ marginTop: "clamp(28px,4vh,44px)", fontSize: 16 }}
@@ -37,7 +56,7 @@ export function VolunteeringSection() {
           ))}
         </div>
       )}
-    </Section>
+    </section>
   );
 }
 

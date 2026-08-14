@@ -9,7 +9,14 @@ import {
   readingMinutes,
   type BlogPost,
 } from "@/data/blog";
-import { Reveal, Section, SectionHeading } from "./section";
+import { Reveal, SectionHeading } from "./section";
+
+/**
+ * Cards assumed to be above the fold on a dedicated route. The grid is
+ * `minmax(300px, 1fr)`, so a 1180px column fits three — take that as the first row and
+ * reveal it on mount rather than on scroll.
+ */
+const FIRST_ROW_MAX = 3;
 
 /**
  * Blog listing.
@@ -17,13 +24,30 @@ import { Reveal, Section, SectionHeading } from "./section";
  * A drafted post (empty `body`) renders as a non-interactive card marked "Coming soon"
  * instead of linking to an empty page — so a title can sit here while the writing
  * happens, without shipping a dead link or a blank route.
+ *
+ * PAGE-LEVEL CONTENT: this is the whole body of its own route, not a section in the
+ * middle of one. It therefore inlines the wrapper rather than using <Section>, whose
+ * clamp(70px,10vh,130px) top padding is mid-page rhythm and does not clear the 78px
+ * fixed nav. The padding below is the dedicated-route figure already used by
+ * blog.$slug.tsx and hobby-belts.tsx's static gallery. `id="blog"` is preserved —
+ * blog.$slug.tsx still deep-links to it.
  */
 export function BlogList() {
   const posts = getSortedPosts();
 
   return (
-    <Section id="blog">
-      <SectionHeading eyebrow="Writing" title="Blog" />
+    <section
+      id="blog"
+      className="relative mx-auto w-full scroll-mt-24"
+      style={{
+        maxWidth: 1180,
+        padding: "clamp(112px,16vh,168px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
+      }}
+    >
+      {/* `as="h1" immediate`: on its own route this is the page's primary title AND it
+          loads above the fold, where Reveal's default whileInView trigger would wait
+          for a scroll that never comes and leave it at opacity 0. */}
+      <SectionHeading eyebrow="Writing" title="Blog" as="h1" immediate />
 
       {posts.length === 0 ? (
         <Reveal>
@@ -44,13 +68,17 @@ export function BlogList() {
           }}
         >
           {posts.map((post, i) => (
-            <Reveal key={post.slug} delay={Math.min(i * 0.06, 0.3)}>
+            // Same reasoning as the heading: on a dedicated route the first row of cards
+            // is above the fold, so the default whileInView trigger would strand it at
+            // opacity 0. The first row is `immediate`; anything past it keeps the
+            // scroll-triggered reveal, which is what makes a long list feel alive.
+            <Reveal key={post.slug} delay={Math.min(i * 0.06, 0.3)} immediate={i < FIRST_ROW_MAX}>
               <PostCard post={post} />
             </Reveal>
           ))}
         </div>
       )}
-    </Section>
+    </section>
   );
 }
 

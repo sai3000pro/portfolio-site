@@ -100,7 +100,7 @@ function NotFoundComponent() {
           <Link to="/" hash="projects" className={PILL_CLASS} style={PILL_STYLE}>
             Projects
           </Link>
-          <Link to="/hobbies" className={PILL_CLASS} style={PILL_STYLE}>
+          <Link to="/gallery" className={PILL_CLASS} style={PILL_STYLE}>
             Photography
           </Link>
           <a

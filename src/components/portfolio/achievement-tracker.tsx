@@ -83,7 +83,14 @@ export function AchievementTracker() {
 
   // --- Route coverage ------------------------------------------------------
   useEffect(() => {
-    if (pathname.includes("/hobbies")) unlock("spacewalk");
+    // Both paths, deliberately. "spacewalk" is about going to look at the photos, which
+    // now live at /gallery — but /hobbies is the hub that still carries the badge, is in
+    // the sitemap, and is what every old bookmark and inbound link points at. Matching
+    // only one would silently strand whichever half of the audience used the other, and
+    // because "completionist" requires every badge, that strands a legendary with it.
+    // The id itself must never change: it is persisted in localStorage and hardcoded in
+    // workers/achievement-stats/src/index.ts.
+    if (pathname.includes("/hobbies") || pathname.includes("/gallery")) unlock("spacewalk");
     if (pathname.includes("/achievements")) unlock("trophy-hunter");
 
     const caseStudy = /\/projects\/([^/]+)\/?$/.exec(pathname);

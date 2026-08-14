@@ -181,7 +181,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   // --- First Contact -------------------------------------------------------
   {
     id: "first-light",
-    name: "First Light",
+    name: "First Contact",
     description: "Arrived. The rest of the wall is up to you.",
     hint: "Load the site. You already did this.",
     tier: "common",
@@ -257,7 +257,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     id: "spacewalk",
     name: "Spacewalk",
     description: "Left the résumé behind and went looking at the photos.",
-    hint: "Visit the Photography page.",
+    hint: "Visit the photo gallery.",
     tier: "common",
     category: "explorer",
     secret: false,
@@ -316,7 +316,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   {
     id: "globetrotter",
     name: "Globetrotter",
-    description: "Watched the globe swing to three different cities.",
+    description: "Around the world in less than 80 days! Jules Verne would be proud.",
     hint: "See the globe pin three different locations.",
     tier: "uncommon",
     category: "explorer",

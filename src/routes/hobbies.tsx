@@ -1,19 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { HOBBY_PHOTOS } from "@/data/hobbies";
 import { absoluteUrl, ogImageUrl } from "@/lib/site-url";
-import { HobbyWall } from "@/components/portfolio/hobby-belts";
-import { BlogList } from "@/components/portfolio/blog-list";
-import { VolunteeringSection } from "@/components/portfolio/volunteering";
-import { Nav } from "@/components/portfolio/nav";
-import { Starfield } from "@/components/portfolio/starfield";
-import { Footer } from "@/components/portfolio/contact";
+import { HobbyHub, PageShell } from "@/components/portfolio/hobby-hub";
 
-// The route stays /hobbies — it is linked, prerendered, in the sitemap and carries an
-// achievement. Only what the page calls itself changed.
-const TITLE = "Photography — Saivenkat Jilla";
+// The route stays /hobbies — it is linked, prerendered, in the sitemap, and it carries
+// the "spacewalk" achievement, which achievement-tracker.tsx unlocks off this pathname.
+//
+// What changed twice is what the page calls itself, and once what it contains. It began
+// as "Hobbies", was narrowed to "Photography" while it was only a photo wall, then grew
+// into "Beyond the Code" when writing and volunteering were stacked underneath the wall —
+// three unrelated things sharing one title, one <h1> and one canonical.
+//
+// They are now four separate routes: /gallery (the wall), /blog, /gaming and
+// /volunteering. Each has its own title, canonical and social card, and /hobbies keeps
+// the name it earned and is the hub that links to them.
+const TITLE = "Beyond the Code — Saivenkat Jilla";
 const DESCRIPTION =
-  "Landscape and environment photography, writing, and volunteering — life outside the terminal.";
+  "Photography, writing, gaming and volunteering — the four things here that aren't work.";
 
 /**
  * This page's own canonical and social card. Both are required, not optional polish:
@@ -43,32 +46,8 @@ export const Route = createFileRoute("/hobbies")({
 
 function Hobbies() {
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-space font-body text-ink">
-      {/* Fewer stars than the landing page — the belt loop shares the main thread. */}
-      <Starfield count={380} />
-
-      <Nav />
-
-      {/* Landmark + target of the root skip link. It has to start AFTER <Nav /> for the
-          skip to be worth anything, and it excludes the decorative starfield and the
-          footer. <main> is position: static and sets no z-index, so it creates no new
-          stacking context — the wall's internal z-indexes still resolve against the same
-          root context they did before, and nothing moves. */}
-      <main id="main-content" tabIndex={-1}>
-        {/* The wall owns the full-screen spiral intro, the belts, and its own heading overlay. */}
-        <HobbyWall photos={HOBBY_PHOTOS} />
-
-        {/* Below the fold: the rest of life outside the terminal. These sit above the
-            starfield (which is z-index 0) via their own stacking context. */}
-        <div className="relative" style={{ zIndex: 2 }}>
-          <BlogList />
-          <VolunteeringSection />
-        </div>
-      </main>
-
-      <div className="relative" style={{ zIndex: 2 }}>
-        <Footer />
-      </div>
-    </div>
+    <PageShell>
+      <HobbyHub />
+    </PageShell>
   );
 }

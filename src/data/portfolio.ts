@@ -243,5 +243,5 @@ export const NAV_LINKS: NavLink[] = [
   { label: "Experience", section: "experience" },
   { label: "Projects", section: "projects" },
   { label: "Contact", section: "contact" },
-  { label: "Photography", to: "/hobbies" },
+  { label: "Beyond the Code", to: "/hobbies" },
 ];

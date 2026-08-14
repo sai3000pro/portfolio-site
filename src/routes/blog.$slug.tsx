@@ -118,7 +118,7 @@ function NotFound() {
         <p className="text-muted-portfolio mt-4" style={{ fontSize: 16, lineHeight: 1.7 }}>
           That post doesn&apos;t exist — it may have been renamed or moved.
         </p>
-        <Link to="/hobbies" hash="blog" className={`${BACK_LINK_CLASS} mt-8`}>
+        <Link to="/blog" className={`${BACK_LINK_CLASS} mt-8`}>
           <ArrowLeft size={15} aria-hidden="true" />
           All posts
         </Link>
@@ -143,7 +143,7 @@ function Post() {
           padding: "clamp(112px,16vh,168px) clamp(24px,5vw,80px) clamp(48px,8vh,88px)",
         }}
       >
-        <Link to="/hobbies" hash="blog" className={BACK_LINK_CLASS} style={{ fontSize: 14 }}>
+        <Link to="/blog" className={BACK_LINK_CLASS} style={{ fontSize: 14 }}>
           <ArrowLeft size={15} aria-hidden="true" />
           All posts
         </Link>
