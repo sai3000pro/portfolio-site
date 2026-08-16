@@ -85,7 +85,7 @@ const ROUTE_SOURCES = {
   "/hobbies": ["src/routes/hobbies.tsx", "src/components/portfolio/hobby-hub.tsx"],
   "/gallery": [
     "src/routes/gallery.tsx",
-    "src/components/portfolio/hobby-belts.tsx",
+    "src/components/portfolio/photo-gallery.tsx",
     "src/components/portfolio/hobby-lightbox.tsx",
     "src/data/hobbies.ts",
     "src/data/hobbies.generated.ts",

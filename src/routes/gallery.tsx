@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { HOBBY_PHOTOS } from "@/data/hobbies";
 import { absoluteUrl, ogImageUrl } from "@/lib/site-url";
-import { HobbyWall } from "@/components/portfolio/hobby-belts";
+import { PhotoGallery } from "@/components/portfolio/photo-gallery";
 import { PageShell } from "@/components/portfolio/hobby-hub";
 
 // The photo wall used to be the top half of /hobbies. It is its own route now so it can
@@ -41,12 +41,13 @@ export const Route = createFileRoute("/gallery")({
 function Gallery() {
   return (
     // layeredMain={false}: <main> stays position: static with no z-index, so it creates
-    // no new stacking context and the wall's internal z-indexes still resolve against
-    // the same root context they always did. See the note on PageShell.
+    // no new stacking context. The gallery lifts its own section above the starfield, and
+    // — the reason this still matters — the lightbox is `position: fixed` and must be able
+    // to cover the footer, which PageShell renders at z-index 2. See the note on PageShell.
     <PageShell layeredMain={false}>
-      {/* The wall owns the full-screen spiral intro, the belts, the lightbox — and its
+      {/* The gallery owns the justified grid, the spiral intro, the lightbox — and its
           own <h1>. This page must not add a second one. */}
-      <HobbyWall photos={HOBBY_PHOTOS} />
+      <PhotoGallery photos={HOBBY_PHOTOS} />
     </PageShell>
   );
 }

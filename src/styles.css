@@ -480,6 +480,200 @@ body {
   }
 }
 
+/* ===== Photo gallery (/gallery) =====
+ *
+ * Justified rows with ZERO JavaScript. `--aspect` is the only per-photo value, written
+ * inline by photo-gallery.tsx, and it drives all three properties that matter:
+ *
+ *   flex-basis: rowH * aspect   flex line-breaking sums the bases (plus gaps) and breaks
+ *                               when they exceed the container — that is exactly the greedy
+ *                               fill step of a justified-row algorithm.
+ *   flex-grow:  aspect          free space is then distributed in proportion to aspect, so
+ *                               w_i = aspect_i * (C - gaps) / sum(aspect) — the row-height
+ *                               solve, done by the layout engine.
+ *   aspect-ratio: aspect        every item's height derives from its flexed width, so a
+ *                               row's heights come out uniform automatically.
+ *
+ * Consequences: no measurement, no ResizeObserver, correct at every width, correct with JS
+ * disabled, and byte-identical on server and client — which is what lets the grid BE the
+ * SSR branch rather than a second component that can drift from it.
+ *
+ * `max-width` caps how far flex-grow may stretch a short final row. `flex-shrink` is left
+ * at its default so a photo wider than the container shrinks instead of overflowing, which
+ * is the correct one-per-row phone behaviour.
+ */
+.photo-grid {
+  /**
+   * The single knob. Target row height; flexbox solves the actual heights around it.
+   *
+   * ROW-ONE CONTRACT — do not retune these three numbers casually.
+   *
+   * The opening of the wall is arranged deliberately: row one is the Empire State Building
+   * at dusk, SummerHacks Winners and Blossoms Reaching for the Sky; row two opens with The
+   * Copper. But nothing in the code names a "row" — rows are an emergent result of aspect
+   * ratios, container width and this height, so that arrangement is held by arithmetic
+   * alone. Change a number here and the first row silently regroups with nothing failing.
+   *
+   * Every photo is phone-native 4:3 (1.333) or 3:4 (0.75). Row one is P,L,P = 2.833 aspect
+   * units; the tile that must NOT join it is The Copper, a 0.75 portrait. With gap g = 14
+   * and content box W:
+   *
+   *   three fit:   2.833h + 2g <= W
+   *   fourth wraps: 2.833h + 2g + g + 0.75h  >  W    ->   3.583h + 42 > W
+   *
+   * Below the 1180px section cap, W = 0.9*vw (padding is 5vw a side) and h = a*vw, so the
+   * wrap condition reduces to 3.583a > 0.9, i.e. **a > 0.2512 makes it hold at every width**.
+   * The old 24vw FAILED this: between roughly 1050 and 1180px a fourth tile joined row one.
+   * 26vw clears it. Checked end to end (h, W, three-fit, fourth-wraps):
+   *
+   *    390px   150   351   2 fit, 3rd wraps (mobile packs 2-up; expected)
+   *   1024px   266   922   782 <= 922        995 > 922
+   *   1180px   307  1062   897 <= 1062      1141 > 1062
+   *   1600px+  330  1020   963 <= 1020      1224 > 1020
+   *
+   * The 330px cap rather than 340 is what buys the widest case a 57px margin instead of 29.
+   * Row two (P,L,P again) packs identically, and any following tile wraps for any aspect.
+   * Below the fold, prefer L+P+P (963/1020) and L+L (894/1020); four consecutive portraits
+   * is the one combination that wraps by only 12px.
+   */
+  --photo-row-h: clamp(150px, 26vw, 330px);
+  --photo-gap: 14px;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--photo-gap);
+  /* Positioned so tiles report offsetLeft/offsetTop against THIS box — the coordinate
+     space the intro's transform offsets are expressed in. */
+  position: relative;
+}
+
+.photo-tile {
+  position: relative;
+  display: block;
+  padding: 0;
+  cursor: pointer;
+  transform-origin: center;
+
+  flex-basis: calc(var(--photo-row-h) * var(--aspect));
+  flex-grow: var(--aspect);
+  aspect-ratio: var(--aspect);
+  max-width: calc(var(--photo-row-h) * var(--aspect) * 1.5);
+}
+
+.photo-tile__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Resting state: photos sit under a desaturating knock-down and lift to full colour on
+     hover/focus. Real photos vary wildly in brightness, and this is what keeps a bright
+     frame from dominating the wall until you actually point at it. */
+  filter: saturate(0.5) brightness(0.88);
+  transition: filter 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Low-opacity wash toward the site accent. `mix-blend-mode: color` shifts hue and chroma
+   while leaving luminance alone, so it reads as a tint rather than a grey film — and it
+   works in both themes without a second rule. */
+.photo-tile__wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--portfolio-accent);
+  mix-blend-mode: color;
+  opacity: 0.34;
+  transition: opacity 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* `:focus-visible`, NOT `:focus`. With `:focus` a mouse click leaves the tile permanently
+   lit once the lightbox closes and restores focus to the button that opened it. The colour
+   lift SUPPLEMENTS the focus ring (see the Tailwind ring classes on the tile) — it never
+   replaces it, because colour alone is not a focus indicator. */
+.photo-tile:hover .photo-tile__img,
+.photo-tile:focus-visible .photo-tile__img {
+  filter: none;
+}
+.photo-tile:hover .photo-tile__wash,
+.photo-tile:focus-visible .photo-tile__wash {
+  opacity: 0;
+}
+
+/* ===== Above-the-fold reveal =====
+   The CSS half of <Reveal immediate> (src/components/portfolio/section.tsx) — page headers
+   and any other content already on screen at first paint.
+
+   This exists because framer's `initial` ships as an inline `opacity: 0` in the prerendered
+   HTML that only hydration removes. A page's <h1> must not wait on the JS bundle to become
+   visible; CSS is render-blocking, so this paints with the document. Matches the framer
+   branch's motion exactly (36px, 700ms, same curve) so the two are indistinguishable. */
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 36px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal-immediate {
+  animation: reveal-rise 700ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-immediate {
+    animation: none;
+  }
+}
+
+/* ===== Entrance =====
+   Tiles rise and fade in, staggered in reading order.
+
+   This replaced a rAF-driven golden-angle spiral (see the long note in photo-gallery.tsx for
+   why it looked wrong on real photographs). Everything here is deliberate restraint:
+
+   - Only `opacity` and `transform` animate, so the whole thing runs on the compositor and
+     never touches layout or paint. The justified rows are settled at first paint and the
+     animation cannot move them — it only moves how each tile is *drawn*.
+   - 16px on ONE axis, and no rotation. Tiles never cross each other's paths, which is what
+     turned the spiral into churn once actual images with hard edges were in the frame.
+   - `backwards` fill so a tile is invisible during its delay instead of flashing in and then
+     animating; `--i` comes from photo-gallery.tsx, already clamped to the stagger cap.
+   - 0.98 scale, not something punchier: at these tile sizes anything lower reads as a bounce.
+
+   WCAG 2.2.2 budget: 12 * 45ms + 520ms = 1.06s, one-shot, so no pause control is required.
+   Both numbers are mirrored in photo-gallery.tsx's STAGGER_CAP note — move one, re-do the sum. */
+@keyframes photo-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.photo-tile {
+  animation: photo-rise 520ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* Reduced motion removes the TRANSITION, not the reveal. A vestibular-sensitive visitor
+   still gets full colour on hover — instantly, with no animated ramp — and the grid it
+   lands on is the same grid, just without the entrance. */
+@media (prefers-reduced-motion: reduce) {
+  .photo-tile {
+    animation: none;
+  }
+
+  .photo-tile__img,
+  .photo-tile__wash {
+    transition: none;
+  }
+}
+
 /* ===== Cross-route view transitions ===== */
 /* Router sets defaultViewTransition; keep the cross-fade quick and unobtrusive. */
 ::view-transition-old(root),
