@@ -31,3 +31,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Photo pipeline staging area. Originals live here locally; `bun run photos` derives the
+# committed WebP files in public/assets/hobbies/. Keep your own backup of these.
+/photos

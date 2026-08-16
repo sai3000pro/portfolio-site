@@ -9,38 +9,201 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VolunteeringRouteImport } from './routes/volunteering'
+import { Route as HobbiesRouteImport } from './routes/hobbies'
+import { Route as GamingRouteImport } from './routes/gaming'
+import { Route as GalleryRouteImport } from './routes/gallery'
+import { Route as AchievementsRouteImport } from './routes/achievements'
+import { Route as AcheivementsRouteImport } from './routes/acheivements'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BlogIndexRouteImport } from './routes/blog.index'
+import { Route as ProjectsSlugRouteImport } from './routes/projects.$slug'
+import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 
+const VolunteeringRoute = VolunteeringRouteImport.update({
+  id: '/volunteering',
+  path: '/volunteering',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HobbiesRoute = HobbiesRouteImport.update({
+  id: '/hobbies',
+  path: '/hobbies',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamingRoute = GamingRouteImport.update({
+  id: '/gaming',
+  path: '/gaming',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GalleryRoute = GalleryRouteImport.update({
+  id: '/gallery',
+  path: '/gallery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcheivementsRoute = AcheivementsRouteImport.update({
+  id: '/acheivements',
+  path: '/acheivements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlogIndexRoute = BlogIndexRouteImport.update({
+  id: '/blog/',
+  path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsSlugRoute = ProjectsSlugRouteImport.update({
+  id: '/projects/$slug',
+  path: '/projects/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlogSlugRoute = BlogSlugRouteImport.update({
+  id: '/blog/$slug',
+  path: '/blog/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acheivements': typeof AcheivementsRoute
+  '/achievements': typeof AchievementsRoute
+  '/gallery': typeof GalleryRoute
+  '/gaming': typeof GamingRoute
+  '/hobbies': typeof HobbiesRoute
+  '/volunteering': typeof VolunteeringRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRoute
+  '/blog/': typeof BlogIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acheivements': typeof AcheivementsRoute
+  '/achievements': typeof AchievementsRoute
+  '/gallery': typeof GalleryRoute
+  '/gaming': typeof GamingRoute
+  '/hobbies': typeof HobbiesRoute
+  '/volunteering': typeof VolunteeringRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRoute
+  '/blog': typeof BlogIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acheivements': typeof AcheivementsRoute
+  '/achievements': typeof AchievementsRoute
+  '/gallery': typeof GalleryRoute
+  '/gaming': typeof GamingRoute
+  '/hobbies': typeof HobbiesRoute
+  '/volunteering': typeof VolunteeringRoute
+  '/blog/$slug': typeof BlogSlugRoute
+  '/projects/$slug': typeof ProjectsSlugRoute
+  '/blog/': typeof BlogIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/acheivements'
+    | '/achievements'
+    | '/gallery'
+    | '/gaming'
+    | '/hobbies'
+    | '/volunteering'
+    | '/blog/$slug'
+    | '/projects/$slug'
+    | '/blog/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/acheivements'
+    | '/achievements'
+    | '/gallery'
+    | '/gaming'
+    | '/hobbies'
+    | '/volunteering'
+    | '/blog/$slug'
+    | '/projects/$slug'
+    | '/blog'
+  id:
+    | '__root__'
+    | '/'
+    | '/acheivements'
+    | '/achievements'
+    | '/gallery'
+    | '/gaming'
+    | '/hobbies'
+    | '/volunteering'
+    | '/blog/$slug'
+    | '/projects/$slug'
+    | '/blog/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcheivementsRoute: typeof AcheivementsRoute
+  AchievementsRoute: typeof AchievementsRoute
+  GalleryRoute: typeof GalleryRoute
+  GamingRoute: typeof GamingRoute
+  HobbiesRoute: typeof HobbiesRoute
+  VolunteeringRoute: typeof VolunteeringRoute
+  BlogSlugRoute: typeof BlogSlugRoute
+  ProjectsSlugRoute: typeof ProjectsSlugRoute
+  BlogIndexRoute: typeof BlogIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/volunteering': {
+      id: '/volunteering'
+      path: '/volunteering'
+      fullPath: '/volunteering'
+      preLoaderRoute: typeof VolunteeringRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hobbies': {
+      id: '/hobbies'
+      path: '/hobbies'
+      fullPath: '/hobbies'
+      preLoaderRoute: typeof HobbiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gaming': {
+      id: '/gaming'
+      path: '/gaming'
+      fullPath: '/gaming'
+      preLoaderRoute: typeof GamingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gallery': {
+      id: '/gallery'
+      path: '/gallery'
+      fullPath: '/gallery'
+      preLoaderRoute: typeof GalleryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acheivements': {
+      id: '/acheivements'
+      path: '/acheivements'
+      fullPath: '/acheivements'
+      preLoaderRoute: typeof AcheivementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +211,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blog/': {
+      id: '/blog/'
+      path: '/blog'
+      fullPath: '/blog/'
+      preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$slug': {
+      id: '/projects/$slug'
+      path: '/projects/$slug'
+      fullPath: '/projects/$slug'
+      preLoaderRoute: typeof ProjectsSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/$slug': {
+      id: '/blog/$slug'
+      path: '/blog/$slug'
+      fullPath: '/blog/$slug'
+      preLoaderRoute: typeof BlogSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcheivementsRoute: AcheivementsRoute,
+  AchievementsRoute: AchievementsRoute,
+  GalleryRoute: GalleryRoute,
+  GamingRoute: GamingRoute,
+  HobbiesRoute: HobbiesRoute,
+  VolunteeringRoute: VolunteeringRoute,
+  BlogSlugRoute: BlogSlugRoute,
+  ProjectsSlugRoute: ProjectsSlugRoute,
+  BlogIndexRoute: BlogIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

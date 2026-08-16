@@ -40,6 +40,11 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  /* Tailwind v4 resolves `ring-<name>`/`text-<name>` against --color-<name>. Without this,
+     the 27 `focus-visible:ring-accent-bright` usages across the app compiled to nothing and
+     silently fell back to currentcolor, so focus rings took the element's text colour
+     instead of the accent. Both themes redefine --portfolio-accent-bright, so this tracks. */
+  --color-accent-bright: var(--portfolio-accent-bright);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -144,6 +149,7 @@
 }
 
 /* ===== Portfolio landing tokens & utilities ===== */
+/* Dark is the default identity of the site — light is an opt-in override. */
 :root {
   --portfolio-accent: #2f9bff;
   --portfolio-accent-bright: #5db6ff;
@@ -151,11 +157,156 @@
   --portfolio-ink: #ffffff;
   --portfolio-muted: #9fb3c8;
   --portfolio-space: #000005;
+
+  /* Themeable surfaces. Components must use these instead of hardcoding dark
+     hex/rgba values, or they turn into grey slabs in light mode. */
+  --portfolio-nav: rgba(0, 0, 5, 0.35);
+  --portfolio-surface: rgba(255, 255, 255, 0.04);
+  --portfolio-surface-2: rgba(47, 155, 255, 0.08);
+  --portfolio-panel: #0a1526;
+  --portfolio-panel-deep: #050c18;
+  --portfolio-sheet: rgba(0, 0, 5, 0.85);
+  /* 3.01:1 composited against --portfolio-space. WCAG 1.4.11 needs 3:1 for the boundary
+     of a control, and this border is the only visual edge the contact inputs have.
+     Alpha solved numerically — 0.42 only reaches 2.34. */
+  --portfolio-border: rgba(93, 182, 255, 0.51);
+  --portfolio-border-strong: rgba(93, 182, 255, 0.66);
+  --portfolio-scrim: rgba(2, 6, 18, 0.82);
+  --portfolio-shadow: rgba(0, 0, 0, 0.45);
+
+  /* Hackathon-winner gold. Was hardcoded #f5c518 in two components, which measured
+     1.63:1 on the light theme's white ground — this token is re-expressed below. */
+  --portfolio-gold: #f5c518;
+  --portfolio-gold-ink: #ffe27a;
+}
+
+/*
+ * Light palette. Scoped to `html.light` (toggled by src/lib/theme.ts). Keeps the
+ * blue accent identity while re-expressing the hardcoded dark tokens for a
+ * readable page. Contrast (on --portfolio-space #ffffff):
+ *   ink   #0a1526  ~ 17.4:1  (AAA body)
+ *   muted #435268  ~  6.7:1  (AA  body)
+ *   accent-bright #0f62c9 ~ 5.2:1 (AA text / links)
+ */
+html.light {
+  --portfolio-accent: #1a73d8;
+  --portfolio-accent-bright: #0f62c9;
+  --portfolio-accent-deep: #0a4f99;
+  --portfolio-ink: #0a1526;
+  --portfolio-muted: #435268;
+  --portfolio-space: #ffffff;
+
+  /* Light equivalents of the themeable surfaces. */
+  --portfolio-nav: rgba(255, 255, 255, 0.82);
+  --portfolio-surface: rgba(10, 21, 38, 0.035);
+  --portfolio-surface-2: rgba(26, 115, 216, 0.07);
+  --portfolio-panel: #ffffff;
+  --portfolio-panel-deep: #f2f6fd;
+  --portfolio-sheet: rgba(255, 255, 255, 0.95);
+  /* 3.02:1 against white — same 1.4.11 reasoning as the dark block. */
+  --portfolio-border: rgba(26, 115, 216, 0.74);
+  --portfolio-border-strong: rgba(26, 115, 216, 0.85);
+  --portfolio-scrim: rgba(226, 234, 246, 0.86);
+  --portfolio-shadow: rgba(15, 40, 80, 0.16);
+
+  /* #f5c518 measures 1.63:1 on white and fails AA badly. This darker amber reads as
+     the same "gold" note at 6.85:1. The pill keeps the bright gradient because it sits
+     on its own dark-on-gold fill, not on the page ground. */
+  --portfolio-gold: #7a5300;
+  --portfolio-gold-ink: #ffe27a;
+}
+
+/*
+ * SAFETY NET for light mode.
+ *
+ * Many components predate the theme and hardcode `text-white` / white-ish inline
+ * colours, which are invisible on a white page. Remap them to ink here so no text
+ * can disappear, then exempt the cases that genuinely sit on a permanently dark or
+ * saturated surface (see `.on-dark` below).
+ */
+html.light .text-white {
+  color: var(--portfolio-ink);
+}
+
+/* Opt-out: put `.on-dark` on any element whose own background stays dark/saturated
+   in light mode (e.g. a filled accent button or a photo overlay). */
+html.light .on-dark,
+html.light .on-dark .text-white {
+  color: #ffffff;
+}
+
+/* Softer role gradient so it reads as ink, not a glow, on a light background. */
+html.light .role-gradient {
+  background: linear-gradient(100deg, #1a73d8, #0f62c9 50%, #0a4f99);
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-shadow: none;
+}
+
+/* Dial the nebula wash right down; it's decorative and harsh on white. */
+html.light .nebula {
+  opacity: 0.5;
+}
+html.light .nebula::after {
+  background:
+    radial-gradient(120% 80% at 50% 18%, rgba(47, 155, 255, 0.05), transparent 60%),
+    radial-gradient(90% 60% at 80% 100%, rgba(10, 79, 153, 0.06), transparent 65%);
+}
+
+/* The starfield draws DARK particles in light mode (see src/hooks/use-starfield.ts,
+   which reads the resolved theme each frame), so the canvas stays fully visible —
+   same drifting-particle motion, just ink-on-white instead of white-on-black. */
+
+/*
+ * Theme cross-fade.
+ *
+ * Most colours now come from `var(--portfolio-*)` used in INLINE styles, and a custom
+ * property swap repaints instantly — which is what made switching look choppy. Listing
+ * a few utility classes here could never cover it.
+ *
+ * So instead: `src/lib/theme.ts` adds `.theme-switching` to <html> for the duration of
+ * the swap, which turns on a colour transition for every element (and pseudo-element),
+ * then removes it. Scoping it to the swap means we don't pay for a global transition
+ * during normal use, and we don't interfere with hover/focus transitions either.
+ *
+ * Keep the duration in sync with THEME_TRANSITION_MS in src/lib/theme.ts.
+ */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color 320ms ease,
+    border-color 320ms ease,
+    color 320ms ease,
+    fill 320ms ease,
+    stroke 320ms ease,
+    box-shadow 320ms ease,
+    text-shadow 320ms ease !important;
+  transition-delay: 0s !important;
+}
+
+/*
+ * `opacity` is deliberately EXCLUDED above: the photo wall and the constellation write
+ * opacity from RAF loops every frame, and forcing a 320ms transition on it would fight
+ * those engines and smear their animation. The nebula is static, so it gets its own.
+ */
+html.theme-switching .nebula {
+  transition: opacity 320ms ease !important;
+}
+
+/* Never animate the swap for reduced-motion users — flip instantly instead. */
+@media (prefers-reduced-motion: reduce) {
+  html.theme-switching *,
+  html.theme-switching *::before,
+  html.theme-switching *::after {
+    transition: none !important;
+  }
 }
 
 .font-display {
   font-family: "Sora", system-ui, sans-serif;
 }
+
 .font-body {
   font-family: "Space Grotesk", system-ui, sans-serif;
 }
@@ -179,26 +330,6 @@
   background-clip: text;
   color: transparent;
   text-shadow: 0 0 40px rgba(47, 155, 255, 0.25);
-}
-
-.load-word {
-  position: relative;
-}
-.load-word::after {
-  content: "LOADING";
-  position: absolute;
-  inset: 0;
-  color: transparent;
-  background: linear-gradient(90deg, #5db6ff, #fff);
-  -webkit-background-clip: text;
-  background-clip: text;
-  clip-path: inset(0 100% 0 0);
-  animation: wordfill 1.7s ease forwards;
-}
-@keyframes wordfill {
-  to {
-    clip-path: inset(0 0 0 0);
-  }
 }
 
 .nebula::after {
@@ -295,6 +426,14 @@ body {
     opacity: 0;
   }
 }
+/* An indefinite blink directly under the h1 is exactly what WCAG 2.2.2 is about, and
+   none of the other reduced-motion blocks covered it. Hold the caret solid instead. */
+@media (prefers-reduced-motion: reduce) {
+  .type-caret {
+    animation: none;
+    opacity: 1;
+  }
+}
 
 /* ===== Earth globe (Work Experience timeline node) ===== */
 .globe-shade {
@@ -338,5 +477,264 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .globe-pin::after {
     animation: none;
+  }
+}
+
+/* ===== Photo gallery (/gallery) =====
+ *
+ * Justified rows with ZERO JavaScript. `--aspect` is the only per-photo value, written
+ * inline by photo-gallery.tsx, and it drives all three properties that matter:
+ *
+ *   flex-basis: rowH * aspect   flex line-breaking sums the bases (plus gaps) and breaks
+ *                               when they exceed the container — that is exactly the greedy
+ *                               fill step of a justified-row algorithm.
+ *   flex-grow:  aspect          free space is then distributed in proportion to aspect, so
+ *                               w_i = aspect_i * (C - gaps) / sum(aspect) — the row-height
+ *                               solve, done by the layout engine.
+ *   aspect-ratio: aspect        every item's height derives from its flexed width, so a
+ *                               row's heights come out uniform automatically.
+ *
+ * Consequences: no measurement, no ResizeObserver, correct at every width, correct with JS
+ * disabled, and byte-identical on server and client — which is what lets the grid BE the
+ * SSR branch rather than a second component that can drift from it.
+ *
+ * `max-width` caps how far flex-grow may stretch a short final row. `flex-shrink` is left
+ * at its default so a photo wider than the container shrinks instead of overflowing, which
+ * is the correct one-per-row phone behaviour.
+ */
+.photo-grid {
+  /**
+   * The single knob. Target row height; flexbox solves the actual heights around it.
+   *
+   * ROW-ONE CONTRACT — do not retune these three numbers casually.
+   *
+   * The opening of the wall is arranged deliberately: row one is the Empire State Building
+   * at dusk, SummerHacks Winners and Blossoms Reaching for the Sky; row two opens with The
+   * Copper. But nothing in the code names a "row" — rows are an emergent result of aspect
+   * ratios, container width and this height, so that arrangement is held by arithmetic
+   * alone. Change a number here and the first row silently regroups with nothing failing.
+   *
+   * Every photo is phone-native 4:3 (1.333) or 3:4 (0.75). Row one is P,L,P = 2.833 aspect
+   * units; the tile that must NOT join it is The Copper, a 0.75 portrait. With gap g = 14
+   * and content box W:
+   *
+   *   three fit:   2.833h + 2g <= W
+   *   fourth wraps: 2.833h + 2g + g + 0.75h  >  W    ->   3.583h + 42 > W
+   *
+   * Below the 1180px section cap, W = 0.9*vw (padding is 5vw a side) and h = a*vw, so the
+   * wrap condition reduces to 3.583a > 0.9, i.e. **a > 0.2512 makes it hold at every width**.
+   * The old 24vw FAILED this: between roughly 1050 and 1180px a fourth tile joined row one.
+   * 26vw clears it. Checked end to end (h, W, three-fit, fourth-wraps):
+   *
+   *    390px   150   351   2 fit, 3rd wraps (mobile packs 2-up; expected)
+   *   1024px   266   922   782 <= 922        995 > 922
+   *   1180px   307  1062   897 <= 1062      1141 > 1062
+   *   1600px+  330  1020   963 <= 1020      1224 > 1020
+   *
+   * The 330px cap rather than 340 is what buys the widest case a 57px margin instead of 29.
+   * Row two (P,L,P again) packs identically, and any following tile wraps for any aspect.
+   * Below the fold, prefer L+P+P (963/1020) and L+L (894/1020); four consecutive portraits
+   * is the one combination that wraps by only 12px.
+   */
+  --photo-row-h: clamp(150px, 26vw, 330px);
+  --photo-gap: 14px;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--photo-gap);
+  /* Positioned so tiles report offsetLeft/offsetTop against THIS box — the coordinate
+     space the intro's transform offsets are expressed in. */
+  position: relative;
+}
+
+.photo-tile {
+  position: relative;
+  display: block;
+  padding: 0;
+  cursor: pointer;
+  transform-origin: center;
+
+  flex-basis: calc(var(--photo-row-h) * var(--aspect));
+  flex-grow: var(--aspect);
+  aspect-ratio: var(--aspect);
+  max-width: calc(var(--photo-row-h) * var(--aspect) * 1.5);
+}
+
+.photo-tile__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Resting state: photos sit under a desaturating knock-down and lift to full colour on
+     hover/focus. Real photos vary wildly in brightness, and this is what keeps a bright
+     frame from dominating the wall until you actually point at it. */
+  filter: saturate(0.5) brightness(0.88);
+  transition: filter 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* Low-opacity wash toward the site accent. `mix-blend-mode: color` shifts hue and chroma
+   while leaving luminance alone, so it reads as a tint rather than a grey film — and it
+   works in both themes without a second rule. */
+.photo-tile__wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--portfolio-accent);
+  mix-blend-mode: color;
+  opacity: 0.34;
+  transition: opacity 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* `:focus-visible`, NOT `:focus`. With `:focus` a mouse click leaves the tile permanently
+   lit once the lightbox closes and restores focus to the button that opened it. The colour
+   lift SUPPLEMENTS the focus ring (see the Tailwind ring classes on the tile) — it never
+   replaces it, because colour alone is not a focus indicator. */
+.photo-tile:hover .photo-tile__img,
+.photo-tile:focus-visible .photo-tile__img {
+  filter: none;
+}
+.photo-tile:hover .photo-tile__wash,
+.photo-tile:focus-visible .photo-tile__wash {
+  opacity: 0;
+}
+
+/* ===== Above-the-fold reveal =====
+   The CSS half of <Reveal immediate> (src/components/portfolio/section.tsx) — page headers
+   and any other content already on screen at first paint.
+
+   This exists because framer's `initial` ships as an inline `opacity: 0` in the prerendered
+   HTML that only hydration removes. A page's <h1> must not wait on the JS bundle to become
+   visible; CSS is render-blocking, so this paints with the document. Matches the framer
+   branch's motion exactly (36px, 700ms, same curve) so the two are indistinguishable. */
+@keyframes reveal-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 36px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.reveal-immediate {
+  animation: reveal-rise 700ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-immediate {
+    animation: none;
+  }
+}
+
+/* ===== Entrance =====
+   Tiles rise and fade in, staggered in reading order.
+
+   This replaced a rAF-driven golden-angle spiral (see the long note in photo-gallery.tsx for
+   why it looked wrong on real photographs). Everything here is deliberate restraint:
+
+   - Only `opacity` and `transform` animate, so the whole thing runs on the compositor and
+     never touches layout or paint. The justified rows are settled at first paint and the
+     animation cannot move them — it only moves how each tile is *drawn*.
+   - 16px on ONE axis, and no rotation. Tiles never cross each other's paths, which is what
+     turned the spiral into churn once actual images with hard edges were in the frame.
+   - `backwards` fill so a tile is invisible during its delay instead of flashing in and then
+     animating; `--i` comes from photo-gallery.tsx, already clamped to the stagger cap.
+   - 0.98 scale, not something punchier: at these tile sizes anything lower reads as a bounce.
+
+   WCAG 2.2.2 budget: 12 * 45ms + 520ms = 1.06s, one-shot, so no pause control is required.
+   Both numbers are mirrored in photo-gallery.tsx's STAGGER_CAP note — move one, re-do the sum. */
+@keyframes photo-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.photo-tile {
+  animation: photo-rise 520ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+/* Reduced motion removes the TRANSITION, not the reveal. A vestibular-sensitive visitor
+   still gets full colour on hover — instantly, with no animated ramp — and the grid it
+   lands on is the same grid, just without the entrance. */
+@media (prefers-reduced-motion: reduce) {
+  .photo-tile {
+    animation: none;
+  }
+
+  .photo-tile__img,
+  .photo-tile__wash {
+    transition: none;
+  }
+}
+
+/* ===== Cross-route view transitions ===== */
+/* Router sets defaultViewTransition; keep the cross-fade quick and unobtrusive. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.2s;
+}
+
+/* View transitions are motion. Honour the OS preference and disable them outright. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ===== Print / résumé styles ===== */
+/* Strip the cosmic chrome and print clean black-on-white for résumé/PDF export. */
+@media print {
+  /* Force a plain page regardless of the active theme. */
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body,
+  body * {
+    color: #000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Hide fixed chrome, the decorative backdrop, and any floating controls. */
+  nav,
+  canvas,
+  .nebula,
+  footer,
+  .theme-toggle {
+    display: none !important;
+  }
+
+  /* Gradient text has no fill in print — render it as solid ink. */
+  .role-gradient {
+    background: none !important;
+    -webkit-text-fill-color: #000 !important;
+    color: #000 !important;
+  }
+
+  /* Keep cards and sections from splitting across pages. */
+  section,
+  .rounded-xl,
+  .rounded-2xl,
+  .rounded-3xl {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Expand external link targets so they survive on paper. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    word-break: break-all;
   }
 }

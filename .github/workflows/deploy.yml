@@ -18,13 +18,23 @@ jobs:
   verify:
     uses: ./.github/workflows/verify.yml
 
-  deploy:
+  # The Lighthouse audit lives here, not in ci.yml, so it can actually gate the deploy.
+  # While it sat in a separate workflow the error-level accessibility/best-practices/SEO
+  # assertions were advisory: both workflows started independently on a push to main and
+  # a failing audit still published.
+  lighthouse:
     needs: verify
+    uses: ./.github/workflows/lighthouse.yml
+
+  deploy:
+    needs: [verify, lighthouse]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # The same artifact the lighthouse job audited — a deploy never runs a second,
+      # independent build that could drift from what was verified and audited.
       - name: Download build output
         uses: actions/download-artifact@v8
         with:

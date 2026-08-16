@@ -2,90 +2,125 @@
 
 ## Overview
 
-Five workflows live in `.github/workflows/`, plus one Dependabot config. They split into a
-reusable "verify" step and four workflows that each use it for a different purpose:
+Five workflows live in `.github/workflows/`, plus one Dependabot config. Two of them are
+reusable building blocks; the other three are entry points that compose them:
 
-| File             | Trigger                                         | Purpose                                                                             |
-| ---------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `verify.yml`     | `workflow_call` only (not run directly)         | Install, lint, typecheck, format-check, build. Shared by `ci.yml` and `deploy.yml`. |
-| `ci.yml`         | PRs and pushes to `main`/`master`               | Runs `verify`, then audits the build with Lighthouse CI.                            |
-| `deploy.yml`     | Pushes to `main`/`master`, manual dispatch      | Runs `verify`, then publishes the build to GitHub Pages.                            |
-| `codeql.yml`     | PRs, pushes to `main`/`master`, weekly schedule | Static security analysis (CodeQL) for JS/TS.                                        |
-| `dependabot.yml` | N/A (Dependabot's own schedule)                 | Weekly PRs for dependency and GitHub Actions updates.                               |
+| File             | Trigger                                         | Purpose                                                                           |
+| ---------------- | ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| `verify.yml`     | `workflow_call` only (not run directly)         | Install, lint, typecheck, format-check, build. Uploads the `site-build` artifact. |
+| `lighthouse.yml` | `workflow_call` only (not run directly)         | Audits the `site-build` artifact with Lighthouse CI.                              |
+| `ci.yml`         | Pull requests to `main`/`master`                | `verify` → `lighthouse`. Feedback on PRs.                                         |
+| `deploy.yml`     | Pushes to `main`/`master`, manual dispatch      | `verify` → `lighthouse` → publish to GitHub Pages.                                |
+| `codeql.yml`     | PRs, pushes to `main`/`master`, weekly schedule | Static security analysis (CodeQL) for JS/TS.                                      |
+| `dependabot.yml` | N/A (Dependabot's own schedule)                 | Weekly PRs for dependency and GitHub Actions updates.                             |
 
 The key design point: **nothing reaches GitHub Pages without passing lint, typecheck, format,
-and a successful build first.** Before this setup, `deploy.yml` built and published on every
-push with no gate — a broken commit would go straight to production.
+a successful build, and a Lighthouse audit first** — and the thing audited is the same
+artifact that gets published, not a lookalike built with different settings.
 
 ## `verify.yml` — the shared gate
 
 A [reusable workflow](https://docs.github.com/en/actions/using-workflows/reusing-workflows)
 invoked with `uses: ./.github/workflows/verify.yml`. It:
 
-1. Checks out the repo and installs Bun (with `~/.bun/install/cache` cached, keyed on `bun.lock`).
-2. `bun install --frozen-lockfile`
-3. `bun run lint` (ESLint)
-4. `bun run typecheck` (`tsc --noEmit`)
-5. `bun run format:check` (Prettier `--check`)
-6. `bun run build:static` (Vite build + prerender to `dist/public`)
-7. Uploads `dist/public` as a workflow artifact named `site-build`.
+1. Checks out the repo.
+2. Installs **Bun, pinned** (`oven-sh/setup-bun` with an explicit `bun-version`). An unpinned
+   `latest` would silently defeat `bunfig.toml`'s `minimumReleaseAge` supply-chain guard for
+   Bun itself, and let the toolchain drift out from under a green lockfile.
+3. Installs **Node, pinned** (`actions/setup-node`). `build:static` is
+   `vite build && node scripts/prerender.mjs` — it shells out to `node` explicitly, so
+   without this the prerender (and therefore `sitemap.xml`, `robots.txt` and every OG card)
+   would run on whatever ambient Node the runner image happens to ship. Dependabot's
+   `github-actions` ecosystem does **not** bump this input; bump it by hand when the Node LTS
+   line moves.
+4. Caches `~/.bun/install/cache`, keyed on `bun.lock`.
+5. `bun install --frozen-lockfile`
+6. `bun run lint` (ESLint)
+7. `bun run typecheck` (`tsc --noEmit`)
+8. `bun run format:check` (Prettier `--check`)
+9. `bun run build:static` with `NITRO_PRESET: node-server` (Vite build + prerender to
+   `dist/public`).
+10. Uploads `dist/public` as a workflow artifact named `site-build`.
 
-`deploy.yml` calls this once per run and then downloads the `site-build` artifact for
-publishing, instead of rebuilding from scratch — a deploy never runs a second, independent
-build that could drift from what was verified. (`ci.yml`'s Lighthouse job is the deliberate
-exception: it needs a build with different asset paths, see below.)
+Both `ci.yml` and `deploy.yml` call this exactly once per run, and every downstream job
+consumes the resulting artifact rather than rebuilding — a deploy never runs a second,
+independent build that could drift from what was verified.
 
-`typecheck` and `format:check` are new npm scripts added to `package.json` alongside the
-existing `lint`/`format` — they didn't exist before this pipeline, so this is the first time
-this codebase has been typechecked and format-checked in CI.
+## `lighthouse.yml` — the audit, on the real artifact
 
-## `ci.yml` — pull request feedback
+Also a reusable workflow. It checks out the repo (only for `lighthouserc.json` — the app is
+never built here), downloads the `site-build` artifact, sanity-checks it, and runs
+[Lighthouse CI](https://github.com/treosh/lighthouse-ci-action).
 
-Runs on every PR and on pushes to `main`/`master`. Two jobs:
+**The base-path trick.** `vite.config.ts` derives Vite's `base` from `GITHUB_REPOSITORY`, so
+the build's asset URLs are absolute and prefixed with `/portfolio-site/`. Lighthouse's static
+server serves `staticDistDir` from its root, so the artifact is unpacked one level down, into
+`dist/lhci/portfolio-site/`. That makes `http://localhost/portfolio-site/` byte-for-byte
+equivalent to the deployed site — including every asset URL, which is precisely what
+`src/lib/assets.ts` exists to get right.
 
-- **`verify`** — the shared gate above.
-- **`lighthouse`** — does its **own** build with `SITE_BASE: "/"` and runs
-  [Lighthouse CI](https://github.com/treosh/lighthouse-ci-action) (`treosh/lighthouse-ci-action`)
-  against it using `lighthouserc.json` at the repo root.
+The earlier arrangement did the opposite: a **separate** root-based build with `SITE_BASE=/`,
+audited instead of the real one. That is how the audit and the deploy drifted apart. The
+`SITE_BASE` override still exists in `vite.config.ts` and `scripts/routes.mjs` for local use,
+but no workflow sets it any more.
 
-Why the separate build: `vite.config.ts` derives Vite's `base` from `GITHUB_REPOSITORY`
-(always set on Actions runners), so the `verify` build's asset URLs are prefixed with
-`/portfolio-site/` — correct for the real GitHub Pages deployment, but broken when Lighthouse
-serves the same files from the root of its local ephemeral server (every asset 404s, the page
-never paints, and Lighthouse dies with `NO_FCP`). The `SITE_BASE` env var is an explicit
-override in `vite.config.ts` that forces a root-relative base. It has to be a custom variable:
-Actions **silently ignores** attempts to override reserved `GITHUB_*` variables via `env:`.
+**The guard step.** Before running the audit, a small shell step fails loudly and specifically
+rather than letting a path mismatch surface as a cryptic Lighthouse `NO_FCP` (every asset
+404s, the page never paints). It checks that:
 
-Concurrency is set to cancel superseded runs on the same ref, so pushing twice in a row doesn't
-queue up stale CI runs.
+- the repository name still matches the `/portfolio-site/` path baked into `lighthouserc.json`;
+- every page `lighthouserc.json` audits actually exists in the artifact;
+- the artifact's HTML really does contain `/portfolio-site/`-prefixed asset URLs, i.e. it is
+  the base-prefixed build and not a root-relative one.
+
+If you change the repo name, the deploy base path, or the audited URL list, this step is what
+tells you — update `lighthouserc.json`'s `url` entries and the download path together.
 
 ### Lighthouse CI (`lighthouserc.json`)
 
 Since this is a portfolio site, Lighthouse scores are part of what's being shown off, not just
-internal tooling — so this is checked on every PR:
+internal tooling — so this runs on every PR _and_ gates every deploy:
 
-- Audits the prerendered `dist/public` directory directly (`staticDistDir`), 3 runs averaged.
-- `"url": ["http://localhost/"]` restricts the audit to the home page. **Don't remove this
-  line** — without it, LHCI auto-discovers and audits _every_ `*.html` in `staticDistDir`,
-  including the generated `404.html`.
+- `staticDistDir: "./dist/lhci"`, 3 runs averaged, headless Chrome.
+- `url` lists the pages to audit: the home page and `/hobbies/`. **Keep this list explicit** —
+  without it, LHCI auto-discovers and audits _every_ `*.html` under `staticDistDir`, including
+  the generated `404.html`. Adding a page here means adding it to the guard step's page loop in
+  `lighthouse.yml` too.
 - Assertions:
   - `performance` — **warn** below 0.8 (perf scores are noisy on shared CI runners, so this
     doesn't hard-fail the build)
   - `accessibility`, `best-practices`, `seo` — **error** below 0.9 (these are deterministic
     enough to gate on)
-- Uploads the report to Lighthouse's temporary public storage (auto-deleted after 7 days) so the
-  full report is one click away from the Actions run log.
+- Uploads the report to Lighthouse's temporary public storage (auto-deleted after 7 days) and
+  attaches the raw results as a workflow artifact, so the full report is one click away from
+  the Actions run log.
 
 Adjust thresholds in `lighthouserc.json` if they turn out to be too strict/loose in practice.
 
-## `deploy.yml` — build and publish
+## `ci.yml` — pull request feedback
 
-Runs on pushes to `main`/`master` (and manually via `workflow_dispatch`). Two jobs:
+**Pull requests only.** Pushes to `main`/`master` are covered by `deploy.yml`, which runs the
+same `verify` + `lighthouse` jobs before it publishes. Running this workflow on push as well
+meant every merge did two full verify builds plus a third Lighthouse build, under two
+concurrency groups that could not coordinate with each other.
+
+Concurrency is set to cancel superseded runs on the same ref, so pushing twice in a row doesn't
+queue up stale CI runs.
+
+## `deploy.yml` — build, audit and publish
+
+Runs on pushes to `main`/`master` and manually via `workflow_dispatch`. Three jobs:
 
 - **`verify`** — the shared gate.
-- **`deploy`** — downloads the verified `site-build` artifact, re-packages it with
-  `actions/upload-pages-artifact` (the tar format GitHub Pages expects), and publishes with
-  `actions/deploy-pages`.
+- **`lighthouse`** — `needs: verify`; the reusable audit above.
+- **`deploy`** — `needs: [verify, lighthouse]`. Downloads the verified `site-build` artifact,
+  re-packages it with `actions/upload-pages-artifact` (the tar format GitHub Pages expects),
+  and publishes with `actions/deploy-pages`.
+
+The Lighthouse job lives here, not in `ci.yml`, so it can actually gate the deploy. While it
+sat in a separate workflow the error-level accessibility/best-practices/SEO assertions were
+advisory: both workflows started independently on a push to `main` and a failing audit still
+published.
 
 `concurrency: { group: pages, cancel-in-progress: false }` ensures deploys queue instead of
 overlapping or getting cancelled mid-publish.
@@ -106,33 +141,36 @@ Two update streams, both weekly:
   a single PR per week (`groups.dependencies.patterns: ["*"]`) instead of one PR per package, to
   keep the noise down for a single-maintainer repo.
 - `package-ecosystem: github-actions` — keeps the Action versions in these workflows
-  (`actions/checkout`, `github/codeql-action`, etc.) current.
+  (`actions/checkout`, `github/codeql-action`, etc.) current. It does **not** touch the
+  `bun-version` / `node-version` inputs in `verify.yml`.
 
 ## Running the checks locally
 
 ```bash
-bun run lint          # ESLint
+bun run lint           # ESLint
 bun run typecheck      # tsc --noEmit
 bun run format:check   # Prettier --check
-bun run format          # Prettier --write, to fix formatting issues
+bun run format         # Prettier --write, to fix formatting issues
 bun run build:static   # full production build + prerender, same as CI
 ```
 
-### Windows note: local Prettier/ESLint noise
+Line endings are pinned to LF in the working tree by `.gitattributes` (`* text=auto eol=lf`),
+which overrides Git for Windows' `core.autocrlf=true`. Without it, Prettier's `endOfLine: "lf"`
+default made `bun lint` and `bun run format:check` report a `Delete ␍` error on every line of
+every CRLF file locally while CI — which checks out LF on `ubuntu-latest` — stayed green. If
+you have a working copy from before that file existed, refresh it with:
 
-If you're on Windows with `core.autocrlf=true` (this repo's default), `bun run lint` and
-`bun run format:check` will report thousands of `Delete ␍` errors locally. **This is not a real
-problem** — Git stores every tracked file as LF in the repository (confirmed via
-`git ls-files --eol`), autocrlf just rewrites them to CRLF on your local checkout for Windows
-editors. GitHub's Linux runners check out the LF originals, so CI sees clean files regardless of
-what your local working tree looks like. Don't run `prettier --write .` to "fix" this — it'll
-just convert your whole working tree to CRLF-flagged content relative to what's committed.
+```bash
+git add --renormalize .
+```
+
+`public/contact.vcf` is deliberately exempt: RFC 6350 requires CRLF, so `.gitattributes` pins
+that one file the other way.
 
 ## Required repo configuration
 
 No secrets are needed — every workflow uses the default `GITHUB_TOKEN`. For `deploy.yml` to
-work, **Settings → Pages → Source** must be set to "GitHub Actions" (already the case, since the
-site was deploying before this change).
+work, **Settings → Pages → Source** must be set to "GitHub Actions".
 
 ## Deliberately not included (yet)
 
@@ -141,3 +179,6 @@ site was deploying before this change).
 - **PR preview deployments.** GitHub Pages doesn't support per-PR preview URLs. Adding that
   would mean standing up a second host (e.g. Cloudflare Pages) just for previews — worth doing
   if PR review becomes a real part of the workflow, not before.
+- **`scripts/fetch-github-stats.mjs` in CI.** The repo stats shown on project pages are baked
+  into `src/data/github-stats.json` by a manual run before a build; no workflow refreshes them.
+  </content>

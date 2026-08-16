@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+# Production sitemap. This static default targets the repo's GitHub Pages
+# project-page URL. The build (scripts/prerender.mjs -> scripts/seo.mjs)
+# regenerates this file into dist/public with a Sitemap: line derived from
+# SITE_ORIGIN + the deploy base path, so a custom domain or SITE_BASE override
+# stays consistent automatically.
+Sitemap: https://sai3000pro.github.io/portfolio-site/sitemap.xml

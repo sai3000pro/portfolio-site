@@ -1,13 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, type TargetAndTransition, type Transition } from "framer-motion";
-import { Github, Linkedin, Mail, ArrowUp } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  type TargetAndTransition,
+  type Transition,
+} from "framer-motion";
+import { Github, Linkedin, Mail } from "lucide-react";
 
-import { NAV_LINKS, PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
+import { KEYS } from "@/data/achievements";
+import { GENERATED_IMAGES } from "@/data/images.generated";
+import { PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
+import { trackMember, unlock } from "@/lib/achievements";
 import { About } from "@/components/portfolio/about";
 import { Experience } from "@/components/portfolio/experience";
 import { Projects } from "@/components/portfolio/projects";
 import { Contact, Footer } from "@/components/portfolio/contact";
+import { Nav } from "@/components/portfolio/nav";
+import { Starfield } from "@/components/portfolio/starfield";
+import { assetUrl } from "@/lib/assets";
+import { absoluteUrl } from "@/lib/site-url";
 
 const SOCIAL_ICONS: Record<string, typeof Github> = {
   GitHub: Github,
@@ -34,134 +49,30 @@ export const Route = createFileRoute("/")({
           "Portfolio of Sai (Saivenkat Jilla) — Software Engineer studying at the University of Waterloo",
       },
     ],
+    // The root shell deliberately declares no canonical (it would apply to every route —
+    // see the comment in __root.tsx), so "/" declares its own here. absoluteUrl() with no
+    // argument is the site root, trailing slash included.
+    links: [{ rel: "canonical", href: absoluteUrl() }],
   }),
   component: Index,
 });
 
-interface Star {
-  x: number;
-  y: number;
-  z: number;
-  tw: number;
-  hue: number;
-}
-interface StarfieldHandle {
-  setTarget: (t: number) => void;
-}
-
-function useStarfield(canvasRef: React.RefObject<HTMLCanvasElement | null>): StarfieldHandle {
-  const stateRef = useRef({
-    stars: [] as Star[],
-    n: 720,
-    w: 0,
-    h: 0,
-    cx: 0,
-    cy: 0,
-    speed: 0.0025,
-    target: 0.0025,
-    dpr: 1,
-    running: false,
-  });
-
-  const setTarget = useCallback((t: number) => {
-    stateRef.current.target = t;
-  }, []);
+/**
+ * Typewriter cycling through ROLES for the hero headline.
+ *
+ * `frozen` (prefers-reduced-motion) skips the timer chain entirely and settles on the
+ * first role, so nothing animates and nothing ticks for the life of the page. The freeze
+ * is applied from the effect, not from render, so the pre-hydration markup is the same
+ * either way and reduced motion cannot introduce a hydration mismatch.
+ */
+function useRotatingRole(frozen: boolean): string {
+  const [text, setText] = useState("");
 
   useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv) return;
-    const ctx = cv.getContext("2d");
-    if (!ctx) return;
-    const s = stateRef.current;
-    s.dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    const size = () => {
-      s.dpr = Math.min(window.devicePixelRatio || 1, 2);
-      s.w = cv.clientWidth;
-      s.h = cv.clientHeight;
-      cv.width = s.w * s.dpr;
-      cv.height = s.h * s.dpr;
-      s.cx = s.w / 2;
-      s.cy = s.h / 2;
-      ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
-    };
-    size();
-
-    s.stars = [];
-    for (let i = 0; i < s.n; i++) {
-      s.stars.push({
-        x: Math.random() * 2 - 1,
-        y: Math.random() * 2 - 1,
-        z: Math.random(),
-        tw: Math.random() * Math.PI * 2,
-        hue: Math.random() < 0.18 ? 205 : 0,
-      });
+    if (frozen) {
+      setText(ROLES[0]);
+      return;
     }
-
-    s.running = true;
-    const fov = 0.9;
-    const loop = (t: number) => {
-      if (!s.running) return;
-      s.speed += (s.target - s.speed) * 0.04;
-      ctx.clearRect(0, 0, s.w, s.h);
-      const warpish = s.speed > 0.02;
-      for (const star of s.stars) {
-        const pz = star.z;
-        star.z -= s.speed;
-        if (star.z <= 0.02) {
-          star.z = 1;
-          star.x = Math.random() * 2 - 1;
-          star.y = Math.random() * 2 - 1;
-          continue;
-        }
-        const k = fov / star.z;
-        const sx = s.cx + star.x * k * s.cx;
-        const sy = s.cy + star.y * k * s.cy;
-        if (sx < -50 || sx > s.w + 50 || sy < -50 || sy > s.h + 50) continue;
-        const sizePx = (1 - star.z) * 2.4 + (warpish ? 0.3 : 0.9);
-        let alpha = warpish
-          ? Math.min(1, (1 - star.z) * 1.4)
-          : Math.min(1, 0.45 + (1 - star.z) * 0.9);
-        if (!warpish) alpha *= 0.6 + 0.4 * Math.sin(t * 0.002 + star.tw);
-        const color = star.hue ? `rgba(150,200,255,${alpha})` : `rgba(255,255,255,${alpha})`;
-        if (warpish) {
-          const k0 = fov / pz;
-          const px = s.cx + star.x * k0 * s.cx;
-          const py = s.cy + star.y * k0 * s.cy;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = sizePx;
-          ctx.lineCap = "round";
-          ctx.beginPath();
-          ctx.moveTo(px, py);
-          ctx.lineTo(sx, sy);
-          ctx.stroke();
-        } else {
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(sx, sy, sizePx, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      requestAnimationFrame(loop);
-    };
-    requestAnimationFrame(loop);
-
-    window.addEventListener("resize", size);
-    return () => {
-      s.running = false;
-      window.removeEventListener("resize", size);
-    };
-  }, [canvasRef]);
-
-  return { setTarget };
-}
-
-/** Typewriter cycling through ROLES for the hero headline. */
-function useRotatingRole(active: boolean): string {
-  const [text, setText] = useState(active ? "" : ROLES[0]);
-
-  useEffect(() => {
-    if (!active) return;
     let timeout: ReturnType<typeof setTimeout>;
     let roleIdx = 0;
     let charIdx = 0;
@@ -193,68 +104,50 @@ function useRotatingRole(active: boolean): string {
 
     timeout = setTimeout(tick, 600);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, [frozen]);
 
   return text;
 }
 
-function Nav({ show }: { show: boolean }) {
+/**
+ * The rotating headline, isolated in its own leaf component.
+ *
+ * The typewriter re-renders 10-18x/s forever, so the hook must NOT live in Hero — that
+ * would rebuild the portrait, the name, the spinning ball and every stagger child (each
+ * with fresh inline style objects) on every keystroke. Here only this text node re-renders.
+ *
+ * ACCESSIBILITY: the animated text is `aria-hidden`. It is mid-word most of the time
+ * ("Amateur Photograph"), and assistive tech reading the region — or re-reading it after
+ * the DOM mutates — would voice that fragment as if it were the content. The complete list
+ * of roles is exposed once, statically, instead: strictly more information than the visual
+ * treatment shows at any instant, and it never changes under the reader.
+ */
+function RotatingRole() {
+  const prefersReduced = useReducedMotion() === true;
+  const role = useRotatingRole(prefersReduced);
+
   return (
-    <motion.nav
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
-      style={{
-        padding: "20px clamp(24px,5vw,80px)",
-        backdropFilter: "blur(8px)",
-        background: "rgba(0,0,5,0.35)",
-      }}
-      initial={false}
-      animate={{ opacity: show ? 1 : 0, y: show ? 0 : -12 }}
-      transition={{ duration: 0.6, delay: show ? 0.2 : 0 }}
-    >
-      <a href="#home" className="flex items-center gap-3 no-underline">
-        <img
-          src={PROFILE.logo}
-          alt="Sai logo"
-          style={{
-            width: 38,
-            height: 38,
-            borderRadius: "9999px",
-            boxShadow: "0 0 16px rgba(47,155,255,0.5)",
-          }}
-        />
-        <span className="font-display font-semibold text-white" style={{ fontSize: 18 }}>
-          {PROFILE.name}
-          <b className="text-accent-bright">.</b>
-        </span>
-      </a>
-      <div className="hidden md:flex items-center gap-1">
-        {NAV_LINKS.map((l) => (
-          <a
-            key={l.label}
-            href={l.href}
-            className="font-display font-medium no-underline rounded-full px-[15px] py-[8px] text-muted-portfolio hover:text-white transition-colors"
-            style={{ fontSize: 14.5 }}
-          >
-            {l.label}
-          </a>
-        ))}
-        <a
-          href={PROFILE.resumeUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-display font-semibold no-underline rounded-full px-[16px] py-[8px] text-white ml-1 transition-colors"
-          style={{
-            fontSize: 14.5,
-            background: "rgba(47,155,255,0.14)",
-            border: "1px solid rgba(93,182,255,0.35)",
-          }}
-        >
-          Résumé
-        </a>
-      </div>
-    </motion.nav>
+    <>
+      <span aria-hidden="true">
+        {role || "\u00A0"}
+        <span className="type-caret">|</span>
+      </span>
+      <span className="sr-only">{ROLES.join(" ")}</span>
+    </>
   );
 }
+
+/**
+ * Hero portrait derivatives. This is the LCP element, so the <img> stays EAGER — no
+ * `loading="lazy"` — and carries `fetchPriority="high"`; the build's `<link rel="preload">`
+ * is generated from the eager tags in the SSR output, so pointing `src` here repoints the
+ * preload too. The derivatives are already centre-cropped to 4/5 (matching the frame), which
+ * makes the `object-cover` below a no-op rather than a crop.
+ */
+const PORTRAIT_SOURCES = GENERATED_IMAGES.portrait.sources;
+/** Smallest source doubles as the `src` fallback for browsers that ignore srcSet. */
+const PORTRAIT_FALLBACK = PORTRAIT_SOURCES[0];
+const PORTRAIT_SRCSET = PORTRAIT_SOURCES.map((s) => `${assetUrl(s.src)} ${s.width}w`).join(", ");
 
 function Portrait() {
   return (
@@ -296,8 +189,14 @@ function Portrait() {
         }}
       >
         <img
-          src={PROFILE.portrait}
+          src={assetUrl(PORTRAIT_FALLBACK.src)}
+          srcSet={PORTRAIT_SRCSET}
+          sizes="212px"
           alt={PROFILE.portraitAlt}
+          width={PORTRAIT_FALLBACK.width}
+          height={PORTRAIT_FALLBACK.height}
+          fetchPriority="high"
+          decoding="async"
           className="w-full h-full object-cover"
         />
         {/* sheen */}
@@ -533,11 +432,18 @@ function SaiName() {
     const id = setInterval(() => setI((n) => n + 1), 10_000);
     return () => clearInterval(id);
   }, []);
+
+  // Only a deliberate hover counts toward Hat Trick — the 10s auto-rotation would
+  // otherwise hand out the badge to anyone who left the tab open.
+  const flip = () =>
+    setI((n) => {
+      const next = n + 1;
+      trackMember(KEYS.tittles, BALLS[next % BALLS.length].id);
+      return next;
+    });
+
   return (
-    <span
-      className="relative inline-block whitespace-nowrap cursor-default"
-      onMouseEnter={() => setI((n) => n + 1)}
-    >
+    <span className="relative inline-block whitespace-nowrap cursor-default" onMouseEnter={flip}>
       Sa
       {/* dotless i (U+0131) so the spinning ball can stand in for the dot */}
       <span className="relative inline-block">
@@ -548,8 +454,7 @@ function SaiName() {
   );
 }
 
-function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
-  const role = useRotatingRole(show);
+function Hero() {
   return (
     <motion.div
       className="relative w-full flex flex-col items-center justify-center text-center"
@@ -559,8 +464,8 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
         padding: "clamp(96px,14vh,150px) clamp(20px,6vw,40px) clamp(56px,9vh,90px)",
       }}
       variants={container}
-      initial={instant ? false : "hidden"}
-      animate={show ? "show" : "hidden"}
+      initial={false}
+      animate="show"
     >
       {/* Portrait */}
       <motion.div variants={item}>
@@ -575,8 +480,8 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
           fontSize: 12.5,
           letterSpacing: 3,
           padding: "7px 15px",
-          background: "rgba(47,155,255,0.08)",
-          border: "1px solid rgba(47,155,255,0.22)",
+          background: "var(--portfolio-surface-2)",
+          border: "1px solid var(--portfolio-border)",
         }}
       >
         <motion.span
@@ -591,7 +496,7 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
       {/* Name */}
       <motion.h1
         variants={item}
-        className="font-display font-extrabold text-white"
+        className="font-display font-extrabold text-ink"
         style={{ fontSize: "clamp(42px,6.6vw,88px)", lineHeight: 1.0, letterSpacing: "-0.02em" }}
       >
         Hi there,
@@ -611,10 +516,7 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
           paddingRight: "0.14em",
         }}
       >
-        {role || "\u00A0"}
-        <span className="type-caret" aria-hidden>
-          |
-        </span>
+        <RotatingRole />
       </motion.div>
 
       {/* Tagline */}
@@ -638,9 +540,10 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
         style={{ marginTop: 4 }}
       >
         <motion.a
-          href={PROFILE.resumeUrl}
+          href={assetUrl(PROFILE.resumeUrl)}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => unlock("paper-trail")}
           whileHover={{ y: -2, boxShadow: "0 12px 36px rgba(47,155,255,0.6)" }}
           whileTap={{ scale: 0.97 }}
           className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full"
@@ -658,16 +561,16 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
           href="#projects"
           whileHover={{
             y: -2,
-            borderColor: "rgba(93,182,255,0.55)",
-            background: "rgba(47,155,255,0.08)",
+            borderColor: "var(--portfolio-border-strong)",
+            background: "var(--portfolio-surface-2)",
           }}
           whileTap={{ scale: 0.97 }}
-          className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full text-white"
+          className="font-display font-semibold no-underline inline-flex items-center gap-2.5 rounded-full text-ink"
           style={{
             fontSize: 15,
             padding: "15px 28px",
-            border: "1px solid rgba(255,255,255,0.18)",
-            background: "rgba(255,255,255,0.03)",
+            border: "1px solid var(--portfolio-border-strong)",
+            background: "var(--portfolio-surface)",
           }}
         >
           Explore Work
@@ -685,13 +588,18 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
               target={s.href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
               aria-label={s.label}
-              whileHover={{ y: -3, borderColor: "rgba(93,182,255,0.55)", color: "#5db6ff" }}
+              onClick={() => trackMember(KEYS.socials, s.label)}
+              whileHover={{
+                y: -3,
+                borderColor: "var(--portfolio-border-strong)",
+                color: "var(--portfolio-accent-bright)",
+              }}
               className="grid place-items-center rounded-full text-muted-portfolio"
               style={{
                 width: 44,
                 height: 44,
-                border: "1px solid rgba(255,255,255,0.14)",
-                background: "rgba(255,255,255,0.03)",
+                border: "1px solid var(--portfolio-border)",
+                background: "var(--portfolio-surface)",
               }}
             >
               <Icon size={19} strokeWidth={1.8} />
@@ -703,81 +611,66 @@ function Hero({ show, instant }: { show: boolean; instant?: boolean }) {
   );
 }
 
-function ScrollTop() {
-  const [show, setShow] = useState(false);
+/** Thin accent bar at the very top that tracks scroll progress. Hidden entirely
+ *  when the visitor prefers reduced motion. */
+function ScrollProgress() {
+  const prefersReduced = useReducedMotion();
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 140,
+    damping: 30,
+    restDelta: 0.001,
+  });
 
-  useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 400);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  if (prefersReduced) return null;
 
   return (
-    <AnimatePresence>
-      {show && (
-        <motion.button
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          aria-label="Scroll to top"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
-          whileHover={{ y: -2, background: "rgba(255,255,255,0.1)" }}
-          whileTap={{ scale: 0.94 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed z-50 grid place-items-center rounded-full"
-          style={{
-            bottom: 24,
-            right: 24,
-            width: 46,
-            height: 46,
-            color: "#ffffff",
-            background: "transparent",
-          }}
-        >
-          <ArrowUp
-            size={26}
-            strokeWidth={2.2}
-            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.5))" }}
-          />
-        </motion.button>
-      )}
-    </AnimatePresence>
+    <motion.div
+      className="fixed top-0 left-0 right-0 z-[60] origin-left"
+      style={{
+        scaleX,
+        height: 3,
+        background: "linear-gradient(90deg,var(--portfolio-accent),var(--portfolio-accent-bright))",
+        boxShadow: "0 0 10px var(--portfolio-shadow)",
+        pointerEvents: "none",
+      }}
+      aria-hidden="true"
+    />
   );
 }
 
 function Index() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const stars = useStarfield(canvasRef);
-
-  useEffect(() => {
-    stars.setTarget(0.006);
-    // stars handle is stable (useCallback) but identity changes each render; intentionally excluded
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-space font-body text-ink">
-      {/* Persistent starfield background */}
-      <canvas ref={canvasRef} className="fixed inset-0 w-full h-full" style={{ zIndex: 0 }} />
-      <div className="nebula fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />
+      <ScrollProgress />
+      <Starfield />
 
-      <Nav show />
+      <Nav />
 
-      <section id="home" className="relative" style={{ zIndex: 2 }}>
-        <Hero show instant />
-      </section>
+      {/* Target of the skip-to-content link in __root.tsx. `tabIndex={-1}` so browsers
+          that will not focus a non-focusable fragment target still move focus here. */}
+      <main id="main-content" tabIndex={-1}>
+        <section id="home" className="relative" style={{ zIndex: 2 }}>
+          <Hero />
+        </section>
 
-      {/* Content sections */}
+        {/* Content sections */}
+        <div className="relative" style={{ zIndex: 2 }}>
+          <About />
+          <Experience />
+          <Projects />
+          <Contact />
+        </div>
+      </main>
+
+      {/* Outside <main> so the site footer stays a top-level contentinfo landmark. */}
       <div className="relative" style={{ zIndex: 2 }}>
-        <About />
-        <Experience />
-        <Projects />
-        <Contact />
         <Footer />
       </div>
 
-      <ScrollTop />
+      {/* Back-to-top used to be a private component here. It now lives in
+          components/portfolio/scroll-top.tsx and is mounted once in __root.tsx, so every
+          route gets it — do not re-add it here or it renders twice. */}
     </div>
   );
 }

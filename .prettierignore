@@ -6,3 +6,9 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+
+# Knowledge-graph output: machine-written JSON (AST and semantic caches, graph,
+# manifest). It is committed deliberately, but reformatting generated artifacts is
+# churn, and leaving it unignored fails `format:check` — and therefore verify.yml,
+# and therefore the deploy — on 60 files nobody edits by hand.
+graphify-out

@@ -1,0 +1,111 @@
+name: Lighthouse
+
+# Reusable audit step, invoked with `uses: ./.github/workflows/lighthouse.yml`.
+# Called by ci.yml (pull requests) and by deploy.yml, where it sits between `verify`
+# and `deploy` so a failing audit blocks publishing to Pages.
+#
+# It audits the *verified* `site-build` artifact — the exact bytes deploy.yml ships.
+# It deliberately does NOT rebuild: a second build with different settings is how the
+# audit and the deploy silently drifted apart before (see the base-path note below).
+on:
+  workflow_call:
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Only needed for lighthouserc.json; the app itself is never built here.
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The build's assets are absolute and base-prefixed (/portfolio-site/...), because
+      # vite.config.ts derives Vite's `base` from GITHUB_REPOSITORY. Lighthouse's static
+      # server serves `staticDistDir` from its root, so the artifact is unpacked one level
+      # down, into <staticDistDir>/portfolio-site/. That makes http://localhost/portfolio-site/
+      # byte-for-byte equivalent to https://sai3000pro.github.io/portfolio-site/ — including
+      # every asset URL, which is precisely what src/lib/assets.ts exists to get right.
+      - name: Download verified build
+        uses: actions/download-artifact@v8
+        with:
+          name: site-build
+          path: dist/lhci/portfolio-site
+
+      # Fail loudly and specifically rather than letting a path mismatch surface as a
+      # cryptic Lighthouse NO_FCP (every asset 404s, the page never paints).
+      - name: Check the artifact matches the audited base path
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          base_dir="${REPOSITORY#*/}"
+          if [ "$base_dir" != "portfolio-site" ]; then
+            echo "::error::Repository is '$REPOSITORY', so the build's base path is" \
+              "/$base_dir/, but lighthouserc.json audits /portfolio-site/. Update the" \
+              "'url' entries in lighthouserc.json and the download path in this workflow."
+            exit 1
+          fi
+          # MUST list exactly the pages in lighthouserc.json's 'url' array. They are two
+          # separate hardcoded lists and this loop is what catches them drifting apart:
+          # a URL audited but absent from the artifact otherwise surfaces as a cryptic
+          # NO_FCP (Lighthouse gets the SPA 404 fallback, or nothing, and never paints).
+          #
+          # Was "" + "hobbies/". /hobbies was the motion-heavy photo wall, which is what
+          # the thresholds were tuned against; the wall has moved to /gallery and /hobbies
+          # is now a near-empty hub that links to it, so auditing it would measure almost
+          # nothing. The audit follows the expensive page, not the old URL.
+          #
+          # Two URLs, not three: each one costs numberOfRuns (3) full Lighthouse runs, so
+          # adding the hub back would be +50% CI time to audit a page that is a heading and
+          # four links. Its risk is the shared shell — nav, starfield, footer, theme
+          # toggle — which the root page already exercises on every run, and it is no more
+          # exposed than /blog, /gaming or /volunteering, which are equally unaudited.
+          for page in "" "gallery/"; do
+            file="dist/lhci/portfolio-site/${page}index.html"
+            if [ ! -f "$file" ]; then
+              echo "::error::$file is missing from the site-build artifact, but" \
+                "lighthouserc.json audits it. Update lighthouserc.json's 'url' list."
+              exit 1
+            fi
+          done
+          # Prerender coverage for EVERY route, not just the two audited ones. This costs
+          # no Lighthouse runs — it is file tests against an artifact already on disk —
+          # and it restores the coverage that moving the audit off /hobbies gave up.
+          # Without it, the only thing standing between a route silently ceasing to
+          # prerender and a deploy is prerender.mjs failing on a non-OK SSR response.
+          #
+          # The list is derived from scripts/routes.mjs, the single source of truth, so a
+          # new route is covered the moment it is registered — no third hardcoded list to
+          # drift. `bun` is not installed in this job (it runs no repo scripts), so this
+          # reads the route list with node, which setup-node provides.
+          missing=0
+          while IFS= read -r route; do
+            rel="${route#/}"
+            [ -n "$rel" ] && rel="$rel/"
+            if [ ! -f "dist/lhci/portfolio-site/${rel}index.html" ]; then
+              echo "::error::/${rel} is in scripts/routes.mjs but did not prerender."
+              missing=1
+            fi
+          done < <(node -e 'import("./scripts/routes.mjs").then((m) => console.log(m.ROUTES.join("\n")))')
+          if [ "$missing" -ne 0 ]; then
+            echo "::error::One or more registered routes are absent from the build."
+            exit 1
+          fi
+
+          # React's renderToString and Vite's HTML transform both emit double-quoted
+          # attributes, so a bare `src="/portfolio-site/` match is enough. The canonical
+          # <link> is absolute (https://...) and so cannot satisfy this by accident.
+          if ! grep -qE '(src|href)="/portfolio-site/' dist/lhci/portfolio-site/index.html; then
+            echo "::error::The verified build has no /portfolio-site/-prefixed asset URLs." \
+              "Either the base path changed or the artifact is a root-relative build;" \
+              "auditing it here would not reflect what GitHub Pages serves."
+            exit 1
+          fi
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: "./lighthouserc.json"
+          uploadArtifacts: true
+          temporaryPublicStorage: true

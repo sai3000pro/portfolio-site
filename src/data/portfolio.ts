@@ -1,6 +1,8 @@
 // Central portfolio content. Pulled from the original portfolio-website and
 // kept here so every section reads from a single source of truth.
 
+import type { GeneratedImageId } from "./images.generated";
+
 export const PROFILE = {
   name: "Sai",
   fullName: "Saivenkat Jilla",
@@ -9,8 +11,18 @@ export const PROFILE = {
   portrait: "assets/portrait.jpeg",
   portraitAlt: "Pinky, the UWaterloo Math Faculty mascot, posing with Sai",
   logo: "assets/logo.png",
+  /**
+   * Canonical job title(s) — the single source of truth for identity strings that have to
+   * agree with each other. `routes/__root.tsx` feeds this straight into the schema.org
+   * `Person.jobTitle`; keep `tagline` below (the visible hero line), the <title>/og:title
+   * in __root.tsx + routes/index.tsx, and `public/contact.vcf`'s TITLE saying the same
+   * thing. Structured data that contradicts the rendered page is an SEO liability, and it
+   * previously did: the hero said "CS student" while the JSON-LD said "Software Engineer".
+   * schema.org allows multiple jobTitle values, and both of these are true at once.
+   */
+  jobTitle: ["Software Engineer", "Computer Science Student"],
   tagline:
-    "CS student at the University of Waterloo, striving to make the world a better place through well-written software.",
+    "Software engineer and CS student at the University of Waterloo, striving to make the world a better place through well-written software.",
   bio: "I'm Sai, a software engineer, amateur photographer, and passionate student advocate. My journey into tech began when I realized how much I love creating and solving problems. When I'm not coding, I enjoy watching Formula 1, playing basketball and capturing moments through my lens.",
 } as const;
 
@@ -126,6 +138,13 @@ export interface Project {
   title: string;
   description: string;
   image?: string;
+  /**
+   * Key into GENERATED_IMAGES for this project's responsive derivatives. Set explicitly
+   * rather than derived from `image`'s basename — the derivative ids are lowercase and
+   * the originals are not (`assets/Healthut.png` → `healthut`), so string-munging the
+   * filename would silently break the moment a new original is added with a different case.
+   */
+  imageId?: GeneratedImageId;
   link: string;
   winner?: boolean;
   // Hover call-to-action label (defaults to "View on Devpost →").
@@ -146,7 +165,7 @@ export const PROJECTS: Project[] = [
     tagline: "Biologically-modeled mouse brain trained to survive in a Unity world.",
     details:
       "A SYDE 552 final project that models the mouse visual and motor system using CORnet — a biologically-constrained deep neural network architecture. The model is trained with reinforcement learning inside a custom Unity environment where the mouse must forage for food while fleeing a looming hawk overhead, without being distracted by harmless passing clouds. A hand-crafted reward function balances survival, foraging efficiency, and energy expenditure, pushing the agent toward naturalistic behaviour rather than pure score maximisation.",
-    link: "https://sai3000pro.github.io/portfolio-site/assets/CORnet-Mouse.pdf",
+    link: "assets/CORnet-Mouse.pdf",
     cta: "Read paper →",
     repo: "https://github.com/Kriti1400/Syde552-Project",
     tech: ["Python", "Unity", "Reinforcement Learning", "AI/ML"],
@@ -158,6 +177,7 @@ export const PROJECTS: Project[] = [
     details:
       "Verbalyst is an AI speech-coaching web app built at a hackathon. Users upload an MP4 recording and the platform runs it through AssemblyAI to produce an accurate transcript, then feeds that transcript into Google Vertex AI for a detailed breakdown covering pacing, filler-word frequency, clarity, and overall confidence. A Flask + Python backend ties the two APIs together, while a Tailwind-styled vanilla JS frontend keeps the experience fast and focused. Won Best Overall at the hackathon.",
     image: "assets/verbalyst.png",
+    imageId: "verbalyst",
     link: "https://devpost.com/software/verbalyst",
     winner: true,
     tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind", "AI/ML"],
@@ -169,6 +189,7 @@ export const PROJECTS: Project[] = [
     details:
       "Healthut is a two-part mental health companion. The website surfaces curated resources organised by topic — crisis lines, self-help tools, community forums — with a clean HTML/CSS/JS interface designed to reduce friction when someone needs help fast. Alongside it, a Python-powered Discord bot brings the same resources directly into the servers where people already spend time, letting users search and browse without ever leaving their community. The Healthut logo was hand-drawn in Procreate.",
     image: "assets/Healthut.png",
+    imageId: "healthut",
     link: "https://devpost.com/software/healthub",
     winner: true,
     tech: ["Python", "JavaScript", "HTML", "CSS"],
@@ -180,6 +201,7 @@ export const PROJECTS: Project[] = [
     details:
       "PatronPal lowers the barrier between fans and the creators they love. A Chrome extension built on Google Manifest V3 detects creator content as you browse and surfaces a one-click support panel without interrupting your flow. The extension talks to a Flask + Python backend that handles transactions and creator profiles, while the web dashboard — built with Tailwind and Flowbite components — gives creators a clean home to manage their page and track support.",
     image: "assets/patronPal.png",
+    imageId: "patronpal",
     link: "https://devpost.com/software/patronpal",
     tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind"],
   },
@@ -190,6 +212,7 @@ export const PROJECTS: Project[] = [
     details:
       "devDucky is a local-first AI debugging companion that runs entirely on your machine — no cloud, no data leaks. Describe your bug or paste in your code and a locally hosted LLM (served via Ollama with Unsloth-optimised models) walks you through the problem Socratically, asking questions rather than just handing you the answer. Session history is stored with Mongoose so you can revisit past debugging threads. The stack is a Vite + Node/Express frontend paired with a Flask + Python backend.",
     image: "assets/devDucky.jpg",
+    imageId: "devducky",
     link: "https://devpost.com/software/devducky",
     tech: ["Python", "Flask", "JavaScript", "Node.js", "Express", "Vite", "AI/ML"],
   },
@@ -206,10 +229,39 @@ export const SOCIALS: Social[] = [
   { label: "Email", href: "mailto:sljilla@uwaterloo.ca" },
 ];
 
-export const NAV_LINKS = [
-  { label: "Home", href: "#home" },
-  { label: "About", href: "#about" },
-  { label: "Experience", href: "#experience" },
-  { label: "Projects", href: "#projects" },
-  { label: "Contact", href: "#contact" },
+export interface NavLink {
+  label: string;
+  /** In-page anchor on "/" (no leading "#"). Mutually exclusive with `to`. */
+  section?: string;
+  /** Router path, for links that leave the landing page. */
+  to?: string;
+  /**
+   * Sub-destinations. An entry with children becomes a dropdown on the desktop bar
+   * — one trigger, one tab stop — so adding routes here never widens the bar. The
+   * mobile sheet has room and lists parent + children flat instead.
+   *
+   * Children are leaves: they carry `to` only, and are not nested further.
+   */
+  children?: NavLink[];
+}
+
+export const NAV_LINKS: NavLink[] = [
+  { label: "Home", section: "home" },
+  { label: "About", section: "about" },
+  { label: "Experience", section: "experience" },
+  { label: "Projects", section: "projects" },
+  { label: "Contact", section: "contact" },
+  {
+    // The hub at /hobbies survives as its own page; these four are the routes it
+    // was split into. Keeping the hub as the parent `to` is what keeps it
+    // reachable — nothing else in the site links to it.
+    label: "Beyond the Code",
+    to: "/hobbies",
+    children: [
+      { label: "Photography", to: "/gallery" },
+      { label: "Blog", to: "/blog" },
+      { label: "Gaming", to: "/gaming" },
+      { label: "Volunteering", to: "/volunteering" },
+    ],
+  },
 ];

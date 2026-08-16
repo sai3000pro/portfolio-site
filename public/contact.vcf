@@ -1,0 +1,11 @@
+BEGIN:VCARD
+VERSION:3.0
+N:Jilla;Saivenkat;;;
+FN:Saivenkat Jilla
+TITLE:Software Engineer
+ORG:University of Waterloo
+EMAIL;TYPE=INTERNET:sljilla@uwaterloo.ca
+URL:https://sai3000pro.github.io/portfolio-site/
+X-SOCIALPROFILE;TYPE=github:https://github.com/sai3000pro
+X-SOCIALPROFILE;TYPE=linkedin:https://linkedin.com/in/saivenkat-jilla
+END:VCARD
