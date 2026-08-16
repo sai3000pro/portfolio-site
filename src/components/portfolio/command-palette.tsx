@@ -5,15 +5,19 @@ import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useReducedMotion } from "framer-motion";
 import {
   Briefcase,
+  Camera,
   Copy,
   ExternalLink,
   FileText,
   FolderGit2,
+  Gamepad2,
   Github,
+  HeartHandshake,
   Home,
   Linkedin,
   Mail,
   Palette,
+  PenLine,
   Sparkles,
   Trophy,
   User,
@@ -32,7 +36,7 @@ import {
 } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { CONSOLE_CODE_WORD, KEYS } from "@/data/achievements";
-import { NAV_LINKS, PROFILE, PROJECTS, SOCIALS } from "@/data/portfolio";
+import { NAV_LINKS, PROFILE, PROJECTS, SOCIALS, type NavLink } from "@/data/portfolio";
 import { trackMember, unlock } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
 import { claimKeyboardWarrior, setPaletteOpen, usePaletteOpen } from "@/lib/command-palette";
@@ -48,7 +52,9 @@ const GROUP_CLASS =
   "[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold " +
   "[&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider";
 
-// Icon per nav label, falling back to a neutral glyph.
+// Icon per nav label, falling back to a neutral glyph. Every label reachable from
+// NAV_LINKS needs an entry, children included: the lookup below falls back to
+// ExternalLink, which would silently mislabel an internal route as off-site.
 const NAV_ICONS: Record<string, LucideIcon> = {
   Home: Home,
   About: User,
@@ -56,7 +62,22 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   Projects: FolderGit2,
   Contact: Mail,
   "Beyond the Code": Palette,
+  Photography: Camera,
+  Blog: PenLine,
+  Gaming: Gamepad2,
+  Volunteering: HeartHandshake,
 };
+
+/**
+ * NAV_LINKS flattened to one palette entry per destination.
+ *
+ * The bar collapses "Beyond the Code"'s children into a dropdown to stay six items
+ * wide; the palette has the opposite problem and no width at all, so each child
+ * gets to be its own searchable row — typing "gallery" should land on the gallery,
+ * not on the hub it used to live in. The parent stays too: /hobbies is a real page
+ * and NAV_LINKS is the only thing on the site that links to it.
+ */
+const NAV_DESTINATIONS: NavLink[] = NAV_LINKS.flatMap((link) => [link, ...(link.children ?? [])]);
 
 // Icon per social label.
 const SOCIAL_ICONS: Record<string, LucideIcon> = {
@@ -163,11 +184,16 @@ export function CommandPalette() {
             </CommandEmpty>
 
             <CommandGroup heading="Navigate" className={GROUP_CLASS}>
-              {NAV_LINKS.map((link) => {
+              {NAV_DESTINATIONS.map((link) => {
                 const Icon = NAV_ICONS[link.label] ?? ExternalLink;
-                const keywords = [link.label, link.section, link.to].filter((v): v is string =>
-                  Boolean(v),
-                );
+                // The bare path as well as the routed one, so "gallery" scores as
+                // a prefix match rather than having to fuzzy past the leading "/".
+                const keywords = [
+                  link.label,
+                  link.section,
+                  link.to,
+                  link.to?.replace(/^\//, ""),
+                ].filter((v): v is string => Boolean(v));
                 return (
                   <CommandItem
                     key={link.label}
@@ -190,7 +216,10 @@ export function CommandPalette() {
                 );
               })}
 
-              {/* Not in NAV_LINKS — a seventh text link would crowd the desktop bar. */}
+              {/* Not in NAV_LINKS, and no longer in the nav at all — the trophy
+                  button was pulled from the bar and the sheet. This row, the
+                  "See all achievements" link on an unlock toast, and the URL are
+                  what /achievements is reachable by now, so it stays. */}
               <CommandItem
                 value="nav achievements trophies badges"
                 keywords={["achievements", "trophies", "badges"]}

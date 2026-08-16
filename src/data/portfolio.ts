@@ -235,6 +235,14 @@ export interface NavLink {
   section?: string;
   /** Router path, for links that leave the landing page. */
   to?: string;
+  /**
+   * Sub-destinations. An entry with children becomes a dropdown on the desktop bar
+   * — one trigger, one tab stop — so adding routes here never widens the bar. The
+   * mobile sheet has room and lists parent + children flat instead.
+   *
+   * Children are leaves: they carry `to` only, and are not nested further.
+   */
+  children?: NavLink[];
 }
 
 export const NAV_LINKS: NavLink[] = [
@@ -243,5 +251,17 @@ export const NAV_LINKS: NavLink[] = [
   { label: "Experience", section: "experience" },
   { label: "Projects", section: "projects" },
   { label: "Contact", section: "contact" },
-  { label: "Beyond the Code", to: "/hobbies" },
+  {
+    // The hub at /hobbies survives as its own page; these four are the routes it
+    // was split into. Keeping the hub as the parent `to` is what keeps it
+    // reachable — nothing else in the site links to it.
+    label: "Beyond the Code",
+    to: "/hobbies",
+    children: [
+      { label: "Photography", to: "/gallery" },
+      { label: "Blog", to: "/blog" },
+      { label: "Gaming", to: "/gaming" },
+      { label: "Volunteering", to: "/volunteering" },
+    ],
+  },
 ];
