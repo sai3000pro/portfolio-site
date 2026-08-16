@@ -28,7 +28,7 @@ export const PROFILE = {
 
 // Rotating roles for the hero headline.
 export const ROLES: string[] = [
-  "Web Developer.",
+  "Software Engineer.",
   "Amateur Photographer.",
   "Student Advocate.",
   "ML Researcher.",

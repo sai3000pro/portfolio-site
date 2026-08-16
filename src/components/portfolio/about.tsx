@@ -4,8 +4,6 @@ import { unlock } from "@/lib/achievements";
 import { assetUrl } from "@/lib/assets";
 import { Reveal, Section, SectionHeading } from "./section";
 
-const TAGS = ["Web Development", "Photography", "Machine Learning", "Student Advocacy"];
-
 export function About() {
   return (
     <Section id="about">
@@ -22,25 +20,6 @@ export function About() {
         </Reveal>
 
         <Reveal delay={0.1}>
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            {TAGS.map((tag) => (
-              <span
-                key={tag}
-                className="font-display font-medium rounded-full text-ink"
-                style={{
-                  fontSize: 13.5,
-                  padding: "9px 17px",
-                  background: "var(--portfolio-surface)",
-                  border: "1px solid var(--portfolio-border)",
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </Reveal>
-
-        <Reveal delay={0.18}>
           <motion.a
             href={assetUrl(PROFILE.resumeUrl)}
             target="_blank"
@@ -52,7 +31,10 @@ export function About() {
               background: "var(--portfolio-surface-2)",
             }}
             whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-2.5 font-display font-semibold no-underline rounded-full text-ink mt-10"
+            // mt-12, not mt-10: this button used to sit under a row of tag pills that
+            // contributed their own mt-10, so the bio had two gaps between it and here.
+            // With the pills gone a single mt-10 collapsed the section noticeably.
+            className="inline-flex items-center gap-2.5 font-display font-semibold no-underline rounded-full text-ink mt-12"
             style={{
               fontSize: 15,
               padding: "13px 26px",
