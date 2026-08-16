@@ -11,7 +11,7 @@
 //   bun run photos
 //
 // For each original this writes into public/assets/hobbies/:
-//   <slug>.webp        tile — long edge 640px, what the conveyor belts render
+//   <slug>.webp        tile — long edge 1024px, what the justified grid renders
 //   <slug>-full.webp   full — long edge 1600px, fetched only when the lightbox opens
 //                             (skipped when the original is already tile-sized)
 //
@@ -94,8 +94,17 @@ const IMAGES_MANIFEST_PATH = join(ROOT, "src/data/images.generated.ts");
 const URL_PREFIX = "assets/hobbies";
 const DERIVED_PREFIX = "assets/derived";
 
-/** Long-edge caps. 24 tiles are all visible at once during the spiral, so the tile stays small. */
-const TILE_MAX = 640;
+/**
+ * Long-edge caps.
+ *
+ * TILE_MAX was 640 when the wall was conveyor belts, where a tile was never rendered much
+ * above 260 CSS px and two dozen were on screen at once. The justified grid inverted both
+ * halves of that: `--photo-row-h` tops out at 330px, so a landscape tile in a two-up row is
+ * drawn around 500 CSS px wide, and lazy loading means only the first rows are ever fetched.
+ * At 640 those tiles were visibly soft on a 2x display. 1024 covers 1x outright and 2x
+ * adequately, and is simpler than a `srcset` plus a second derivative for every photo.
+ */
+const TILE_MAX = 1024;
 const FULL_MAX = 1600;
 const TILE_QUALITY = 78;
 const FULL_QUALITY = 82;
@@ -199,15 +208,22 @@ async function readHobbiesSource() {
   const described = new Set();
   const tagged = new Set();
   if (textBlock) {
-    for (const [, id, body] of textBlock[1].matchAll(/"([^"]+)"\s*:\s*\{([\s\S]*?)\n\s*\},/g)) {
-      described.add(id);
-      if (/\bhobby\s*:/.test(body)) tagged.add(id);
-    }
+    // A key is quoted ("cn-tower") only when it has to be. Prettier strips the quotes from
+    // every key that is a valid JS identifier — blossoms, coast, dawn, fish, lake, sunset —
+    // so matching quoted keys alone under-counted by 20 of 75 and the run then nagged for
+    // alt text that was already written. That is the kind of false alarm you "fix" by
+    // pasting a duplicate entry, so both spellings are matched here.
+    const KEY = String.raw`^ {2}(?:"([^"]+)"|([A-Za-z_$][\w$]*))\s*:\s*`;
+    const collect = (re) => {
+      for (const [, quoted, bare, body] of textBlock[1].matchAll(re)) {
+        const id = quoted ?? bare;
+        described.add(id);
+        if (/\bhobby\s*:/.test(body)) tagged.add(id);
+      }
+    };
+    collect(new RegExp(KEY + String.raw`\{([\s\S]*?)\n {2}\},`, "gm"));
     // Single-line entries: "id": { alt: "..." },
-    for (const [, id, body] of textBlock[1].matchAll(/"([^"]+)"\s*:\s*\{([^\n{}]*)\},/g)) {
-      described.add(id);
-      if (/\bhobby\s*:/.test(body)) tagged.add(id);
-    }
+    collect(new RegExp(KEY + String.raw`\{([^\n{}]*)\},`, "gm"));
   }
 
   return { tags, described, tagged };
@@ -320,7 +336,27 @@ function readExif(exif) {
 
   const lens = String(tags.Photo?.LensModel ?? "").trim();
   const focal = Number(tags.Photo?.FocalLength);
-  const optic = lens || (Number.isFinite(focal) && focal > 0 ? `${Math.round(focal)}mm` : "");
+
+  /* Phones describe their own lens in prose and repeat the body while doing it: an iPhone 11
+     reports LensModel "iPhone 11 back dual wide camera 4.25mm f/1.8", which rendered the
+     metadata row as "Aug 2026 · Apple iPhone 11 - iPhone 11 back dual wide camera 4.25mm
+     f/1.8". Two rules clean that up without touching the real-camera path:
+
+       1. A lens that restates the body is not a lens name — drop it.
+       2. A sub-10mm focal length is a phone's true focal, not the 35mm-equivalent anyone
+          means by "35mm", so printing it is worse than printing nothing.
+
+     An interchangeable-lens body still reads as before ("Sony A7 IV - 35mm"), and a phone
+     now reads as just the body ("Apple iPhone 11"), which is the whole truth available. */
+  const lensRestatesBody = Boolean(
+    lens && model && lens.toLowerCase().includes(model.toLowerCase()),
+  );
+  const optic =
+    !lens || lensRestatesBody
+      ? Number.isFinite(focal) && focal >= 10
+        ? `${Math.round(focal)}mm`
+        : ""
+      : lens;
 
   const gear = [camera, optic].filter(Boolean).join(" - ");
   if (gear) out.gear = gear;

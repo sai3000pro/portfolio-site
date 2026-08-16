@@ -7,8 +7,10 @@
  * in src/lib/achievements.ts evaluates every rule declaratively, and the UI is
  * driven entirely off this list.
  *
- * SSR SAFETY: no `window` / `document` anywhere. Member lists are derived from
- * src/data/portfolio.ts at module scope, which is plain data.
+ * SSR SAFETY: no `window` / `document` anywhere. Member lists and targets are
+ * derived at module scope from src/data/portfolio.ts and src/data/hobbies.ts,
+ * both of which are plain data with no browser globals and no import back into
+ * this file — so there is no cycle and nothing to break during prerender.
  *
  * DESIGN NOTES
  *   - `secret: true` badges render as a `???` silhouette until earned, leaking
@@ -60,6 +62,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { HOBBY_PHOTOS } from "@/data/hobbies";
 import { EXPERIENCES, PROJECTS } from "@/data/portfolio";
 import { slugify } from "@/lib/slug";
 
@@ -155,6 +158,38 @@ const PROJECT_SLUGS = PROJECTS.map((p) => slugify(p.title));
 
 /** Distinct company names, derived from the experience timeline. */
 const COMPANIES = [...new Set(EXPERIENCES.map((e) => e.company))];
+
+/**
+ * How many distinct photos "Gallery Crawl" costs — DERIVED, never hardcoded.
+ *
+ * This was a literal 15 while the photo wall padded itself to 24 tiles for the conveyor
+ * belts. The justified grid needs no padding, and the moment the collection dropped below
+ * 15 the badge became unreachable — taking `completionist` (rule: meta) with it, since that
+ * one requires every other badge. An unreachable badge is not a bug you notice; it is a
+ * badge nobody ever reports earning.
+ *
+ * Deriving it makes that class of disagreement impossible. Three-quarters of the wall is
+ * enough to mean "you actually browsed", the floor of 5 keeps it from degenerating if the
+ * collection is ever trimmed hard, and `min` with the collection size is the load-bearing
+ * clamp — the target can never exceed what exists.
+ *
+ * Safe to change downward at any time: a `set` rule is re-evaluated against stored members,
+ * so lowering a target only ever unlocks retroactively. It never revokes. (Note it is a
+ * `target`, not a `members` list, precisely because a members list WOULD revoke — adding a
+ * photo would un-earn the badge for everyone who had it, and placeholder ids shift as real
+ * photos land.)
+ */
+const GALLERY_CRAWL_TARGET = Math.min(
+  HOBBY_PHOTOS.length,
+  // Ceiling. The 0.75 ratio below was tuned when the wall held a dozen tiles, where it gave
+  // a target of 9. It does not survive the collection growing: at 75 photos it asks for 56
+  // distinct lightbox opens for an *uncommon* badge — and because "completionist" requires
+  // every other badge, a target nobody reaches quietly takes a legendary down with it. The
+  // ratio still governs a small collection; this caps a large one at the ~15 the badge was
+  // always meant to mean.
+  15,
+  Math.max(5, Math.round(HOBBY_PHOTOS.length * 0.75)),
+);
 
 /** Points per tier — pure flavour, but it makes the progress header feel earned. */
 export const TIER_POINTS: Record<Tier, number> = {
@@ -364,16 +399,19 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     rule: { kind: "set", key: KEYS.photosViewed, target: 1 },
   },
   {
+    // The id is frozen. It is persisted in localStorage and hardcoded in the allowlist in
+    // workers/achievement-stats/src/index.ts — renaming it orphans everybody's progress.
+    // Only the copy and the target move, and both now follow the collection.
     id: "gallery-crawl",
     name: "Gallery Crawl",
-    description: "Flipped through fifteen photos. Someone is procrastinating.",
-    hint: "View fifteen different photos in the lightbox.",
+    description: `Flipped through ${GALLERY_CRAWL_TARGET} photos. Someone is procrastinating.`,
+    hint: `View ${GALLERY_CRAWL_TARGET} different photos in the lightbox.`,
     tier: "uncommon",
     category: "tinkerer",
     secret: false,
     icon: Images,
     rarityHint: "Uncommon",
-    rule: { kind: "set", key: KEYS.photosViewed, target: 15 },
+    rule: { kind: "set", key: KEYS.photosViewed, target: GALLERY_CRAWL_TARGET },
   },
   {
     id: "elevator-pitch",
