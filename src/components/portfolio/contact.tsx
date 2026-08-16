@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
-import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Download, Printer } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
@@ -207,21 +206,18 @@ export function Footer() {
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-center md:text-left">
           <p className="font-display font-semibold text-ink" style={{ fontSize: 15.5 }}>
-            © 2024 - {new Date().getFullYear()} | {PROFILE.fullName}
+            © 2019 - {new Date().getFullYear()} | {PROFILE.fullName}
           </p>
           <p className="text-muted-portfolio" style={{ fontSize: 13.5 }}>
             Software Engineer, Creator, and Problem Solver
           </p>
         </div>
+        {/* Externals only. /gallery used to sit here too, but a route link reads as one more
+            profile beside GitHub and LinkedIn; it lives in the nav's "Beyond the Code" menu
+            and its mobile sheet, which is where site navigation belongs. Nothing depended on
+            this copy — `spacewalk` unlocks on visiting /gallery by any route, and only the
+            SOCIALS entries below feed `KEYS.socials`. */}
         <div className="flex gap-5">
-          {/* Also reachable from the nav's mobile sheet — this is the footer's copy. */}
-          <Link
-            to="/gallery"
-            className="font-display text-muted-portfolio no-underline transition-colors hover:text-accent-bright"
-            style={{ fontSize: 14 }}
-          >
-            Photography
-          </Link>
           {SOCIALS.map((s) => (
             <a
               key={s.label}

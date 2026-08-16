@@ -9,7 +9,7 @@ import {
   type TargetAndTransition,
   type Transition,
 } from "framer-motion";
-import { Github, Linkedin, Mail, ArrowUp } from "lucide-react";
+import { Github, Linkedin, Mail } from "lucide-react";
 
 import { KEYS } from "@/data/achievements";
 import { GENERATED_IMAGES } from "@/data/images.generated";
@@ -639,64 +639,6 @@ function ScrollProgress() {
   );
 }
 
-function ScrollTop() {
-  const prefersReduced = useReducedMotion();
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    // Reveal after roughly one viewport of scrolling.
-    const onScroll = () => setShow(window.scrollY > window.innerHeight * 0.9);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  const enterExit = prefersReduced
-    ? { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } }
-    : {
-        initial: { opacity: 0, y: 12 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: 12 },
-      };
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.button
-          onClick={() => {
-            unlock("elevator-pitch");
-            window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
-          }}
-          aria-label="Back to top"
-          initial={enterExit.initial}
-          animate={enterExit.animate}
-          exit={enterExit.exit}
-          whileHover={prefersReduced ? undefined : { y: -2 }}
-          whileTap={prefersReduced ? undefined : { scale: 0.94 }}
-          transition={{ duration: prefersReduced ? 0 : 0.25, ease: "easeOut" }}
-          className="fixed z-50 grid place-items-center rounded-full text-ink transition-colors hover:text-accent-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-          style={{
-            bottom: 24,
-            right: 24,
-            width: 46,
-            height: 46,
-            background: "var(--portfolio-surface-2)",
-            border: "1px solid var(--portfolio-border-strong)",
-            backdropFilter: "blur(8px)",
-          }}
-        >
-          <ArrowUp
-            size={22}
-            strokeWidth={2.2}
-            aria-hidden="true"
-            style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.4))" }}
-          />
-        </motion.button>
-      )}
-    </AnimatePresence>
-  );
-}
-
 function Index() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-space font-body text-ink">
@@ -726,7 +668,9 @@ function Index() {
         <Footer />
       </div>
 
-      <ScrollTop />
+      {/* Back-to-top used to be a private component here. It now lives in
+          components/portfolio/scroll-top.tsx and is mounted once in __root.tsx, so every
+          route gets it — do not re-add it here or it renders twice. */}
     </div>
   );
 }

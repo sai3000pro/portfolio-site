@@ -13,6 +13,7 @@ import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { AchievementToaster } from "../components/portfolio/achievement-toast";
 import { AchievementTracker } from "../components/portfolio/achievement-tracker";
+import { ScrollTop } from "../components/portfolio/scroll-top";
 import { FAVICON } from "../data/images.generated";
 import { PROFILE, SOCIALS } from "../data/portfolio";
 import { unlock } from "../lib/achievements";
@@ -360,6 +361,10 @@ function RootComponent() {
             mounted here so they survive route changes and work off the landing page. */}
         <AchievementTracker />
         <AchievementToaster />
+        {/* Back-to-top. Mounted here rather than per-route: it reveals itself off scroll
+            position, so it costs nothing on a page too short to scroll and appears on any
+            page that grows — /gallery above all, which is 32 rows of photos deep. */}
+        <ScrollTop />
       </MotionConfig>
     </QueryClientProvider>
   );
