@@ -274,7 +274,8 @@ function AchievementCard({
   clueLevel: ClueLevel;
   progress: number;
   unlockedAt?: number;
-  rarity: string;
+  /** null when there is no measurement and the hint would only repeat the tier. */
+  rarity: string | null;
 }) {
   const [probing, setProbing] = useState(false);
   const earned = clueLevel === "earned";
@@ -368,20 +369,31 @@ function AchievementCard({
         className="mt-auto flex items-center gap-1.5 pt-3 text-muted-portfolio"
         style={{ fontSize: 11.5 }}
       >
+        {/* Tier is printed in BOTH states, and that is the point of this shape.
+            It used to be the locked-only half of an if/else, so the moment you earned a
+            badge the one line telling you how rare it was got replaced by its point value —
+            the rarity vanished exactly when you had most earned the right to see it. A
+            locked card claiming "Rare" that goes quiet on unlock reads like the card is
+            hiding the good part.
+
+            The separator belongs to the piece that follows it, never between two
+            always-present slots, so nothing can trail a bare "·". The lock glyph takes no
+            separator (it is an icon butting against a word); "+10" does. */}
         {earned ? (
           <>
             <span className="text-accent-bright">+{TIER_POINTS[achievement.tier]}</span>
             <span aria-hidden="true">·</span>
-            <span>{rarity}</span>
           </>
         ) : (
+          <Lock size={11} aria-hidden="true" />
+        )}
+        <span className="capitalize">{achievement.tier}</span>
+        {rarity ? (
           <>
-            <Lock size={11} aria-hidden="true" />
-            <span className="capitalize">{achievement.tier}</span>
             <span aria-hidden="true">·</span>
             <span>{rarity}</span>
           </>
-        )}
+        ) : null}
       </div>
 
       {earned && unlockedAt ? (

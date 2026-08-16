@@ -125,12 +125,24 @@ export function rarityPercent(id: string, result: RarityResult): number | null {
 }
 
 /**
- * Display string for a badge's rarity line. Live data reads as a real
- * measurement; the fallback is explicitly prefixed "est." so the page never
- * claims a number it doesn't have.
+ * Display string for a badge's rarity line, or `null` when there is nothing worth
+ * saying. Live data reads as a real measurement; the fallback is explicitly prefixed
+ * "est." so the page never claims a number it doesn't have.
+ *
+ * Returns null when the fallback would only echo the tier the card already prints.
+ * `rarityHint` is meant to describe how many people hold a badge, but 35 of the 36
+ * set it to the tier word itself, so with the stats endpoint unconfigured — which is
+ * the default, and therefore what every visitor sees — the card rendered
+ * "Common · est. common". Two slots, one fact, said twice. The tier is the better of
+ * the two (it is always true, and not an estimate of anything), so the rarity line
+ * yields. Configure VITE_ACHIEVEMENTS_ENDPOINT and this all becomes a real percentage;
+ * write a hint that isn't just the tier ("Everyone has this") and it shows through.
  */
-export function formatRarity(achievement: Achievement, result: RarityResult): string {
+export function formatRarity(achievement: Achievement, result: RarityResult): string | null {
   const pct = rarityPercent(achievement.id, result);
-  if (pct === null) return `est. ${achievement.rarityHint.toLowerCase()}`;
-  return `${pct < 1 ? pct.toFixed(1) : Math.round(pct)}% of visitors`;
+  if (pct !== null) return `${pct < 1 ? pct.toFixed(1) : Math.round(pct)}% of visitors`;
+
+  const hint = achievement.rarityHint.trim();
+  if (hint.toLowerCase() === achievement.tier) return null;
+  return `est. ${hint.toLowerCase()}`;
 }
