@@ -121,7 +121,7 @@ export function HobbyLightbox({
     >
       <motion.div
         ref={panelRef}
-        className="relative w-full rounded-2xl overflow-hidden"
+        className="relative flex w-full flex-col rounded-2xl overflow-hidden"
         style={{
           maxWidth: 980,
           maxHeight: "88vh",
@@ -168,9 +168,23 @@ export function HobbyLightbox({
           <X size={18} strokeWidth={2} />
         </button>
 
+        {/* `flex: 1 1 auto` + `minHeight: 0` is what keeps the caption bar on screen.
+            `aspectRatio` alone sets the height from the panel's full width — 980px of 4:3 is
+            735px tall, and a 3:4 portrait is 1306px — which overflows the 88vh panel, and
+            `overflow-hidden` then silently ate the entire bar below: caption, the prev/next
+            arrows and the counter with it. Letting this box SHRINK below its aspect-derived
+            height (which needs `minHeight: 0`, since a flex item's default `min-height: auto`
+            refuses to go below content size) hands the leftover space back. The image is
+            `object-fit: contain`, so it just letterboxes against the backing colour instead
+            of cropping. Verified at 730px viewport height, where it previously clipped. */}
         <div
           className="w-full overflow-hidden"
-          style={{ aspectRatio: String(photo.aspect ?? 4 / 3), background: "#050c18" }}
+          style={{
+            aspectRatio: String(photo.aspect ?? 4 / 3),
+            background: "#050c18",
+            flex: "1 1 auto",
+            minHeight: 0,
+          }}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
         >
@@ -194,7 +208,9 @@ export function HobbyLightbox({
 
         <div
           className="flex items-center justify-between gap-4"
-          style={{ padding: "14px clamp(16px,3vw,24px) 18px" }}
+          // `flexShrink: 0` — this bar carries the caption, the arrows and the counter, so it
+          // is the one thing in the panel that must never give up height.
+          style={{ padding: "14px clamp(16px,3vw,24px) 18px", flexShrink: 0 }}
         >
           {/* The caption element stays mounted even when hidden: the dialog's
               aria-labelledby points at it, so unmounting would leave the dialog
