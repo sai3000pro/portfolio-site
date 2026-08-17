@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
-import { Lock, RotateCcw, Sparkles } from "lucide-react";
+import { HelpCircle, Lock, RotateCcw, Sparkles } from "lucide-react";
 
 import {
   ACHIEVEMENTS,
@@ -22,7 +22,7 @@ import { Reveal, Section, SectionHeading } from "@/components/portfolio/section"
  * The trophy case: progress header, filters, and the grouped badge grid.
  *
  * PRERENDER CONTRACT: this renders correctly with no client state at all — the
- * static HTML shows every badge locked and "0 / 36", which is exactly right for a
+ * static HTML shows every badge locked and "0 / <total>", which is exactly right for a
  * first-time visitor and gives the page real indexable content. Real progress
  * arrives from useAchievements()'s effect after hydration.
  */
@@ -252,10 +252,14 @@ export function TrophyCase() {
  * One badge tile. Four visual states, driven entirely by `clueLevel`:
  * earned, locked-with-hint, secret-with-clue, and fully hidden.
  *
- * A fully hidden secret is a disclosure: activating it swaps the body copy for the
- * "interact more" message. The swap is React state rather than CSS `:hover` because
- * a CSS-only reveal is invisible to assistive tech, and the control carries
- * `aria-expanded` plus real Enter/Space handling so it is operable without a mouse.
+ * TWO tiles are disclosures, for opposite reasons. A fully hidden secret hides its
+ * "interact more" message behind a hover or a click. An *earned* tile hides its
+ * criteria — the "before" text — behind a click, because unlocking a badge replaces the
+ * one line that said what to do with a line of flavour, and a week later nobody
+ * remembers which of thirty-seven things they did to get it. Both swaps are React state
+ * rather than CSS `:hover`, because a CSS-only reveal is invisible to assistive tech,
+ * and the control carries `aria-expanded` plus real Enter/Space handling so it is
+ * operable without a mouse.
  *
  * WHY NOT A NATIVE `<button>`: a button's content model is phrasing content, and
  * this tile's children are flow content — `<p>`, the layout `<div>`s, and the
@@ -285,8 +289,14 @@ function AchievementCard({
 
   const title = earned || !achievement.secret ? achievement.name : hidden ? "???" : "Hidden badge";
 
+  // The "before" text: what you actually had to do. Ordinary badges print it while
+  // locked and it then disappears behind the flavour line; secrets never show it at all,
+  // and their sharp clue is the same instruction written as a nudge. Once earned, either
+  // one answers the only question a finished badge leaves — "what did I do for this?"
+  const criteria = achievement.hint ?? achievement.clues?.[1] ?? null;
+
   const body = (() => {
-    if (earned) return achievement.description;
+    if (earned) return probing && criteria ? criteria : achievement.description;
     if (!achievement.secret) return achievement.hint ?? "";
     if (probing && hidden) return "Interact with the site more to receive clues.";
     switch (clueLevel) {
@@ -308,7 +318,16 @@ function AchievementCard({
   // `probing` in exactly one branch, `probing && hidden`. At category / vague /
   // sharp the clue is already on screen, so exposing those tiles as buttons
   // advertised an action that could never change anything.
-  const revealable = achievement.secret && hidden;
+  const probeable = achievement.secret && hidden;
+
+  // An earned tile is the other kind of disclosure: click to swap the brag for the
+  // criteria. Click and keyboard only — no hover. A hidden secret is a single tile you
+  // go hunting for, but the earned set is most of the wall, and swapping text under the
+  // cursor as you sweep across it turns reading the page into a flicker.
+  const recallable = earned && criteria !== null;
+
+  const toggle = () => setProbing((v) => !v);
+  const revealable = probeable || recallable;
 
   return (
     <div
@@ -319,23 +338,27 @@ function AchievementCard({
             role: "button" as const,
             tabIndex: 0,
             "aria-expanded": probing,
-            onMouseEnter: () => setProbing(true),
-            onMouseLeave: () => setProbing(false),
-            onFocus: () => setProbing(true),
-            onBlur: () => setProbing(false),
-            onClick: () => setProbing((v) => !v),
+            onClick: toggle,
             // WCAG 2.1.1: `role="button"` promises Enter and Space, and neither
             // did anything here. Space additionally has to be swallowed or it
             // scrolls the page out from under the tile the visitor is reading.
             onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
               if (event.key !== "Enter" && event.key !== " ") return;
               event.preventDefault();
-              setProbing((v) => !v);
+              toggle();
             },
+            ...(probeable
+              ? {
+                  onMouseEnter: () => setProbing(true),
+                  onMouseLeave: () => setProbing(false),
+                  onFocus: () => setProbing(true),
+                  onBlur: () => setProbing(false),
+                }
+              : {}),
           }
         : {})}
       className={`flex flex-col items-center rounded-2xl text-center transition-colors ${
-        hinting ? "cursor-help" : ""
+        hinting ? "cursor-help" : recallable ? "cursor-pointer" : ""
       } ${
         revealable ? "focus-visible:outline-none focus-visible:ring-2" : ""
       } focus-visible:ring-accent-bright`}
@@ -364,6 +387,20 @@ function AchievementCard({
       >
         {body}
       </p>
+
+      {/* The affordance. Without it the swap is undiscoverable — nothing about a
+          finished tile suggests it still has a second face. The label names what you
+          get, not what you press, so it doubles as the expanded/collapsed readout for
+          anyone hearing the tile rather than seeing it. */}
+      {recallable && (
+        <div
+          className="flex items-center gap-1 font-display text-accent-bright"
+          style={{ fontSize: 11.5, marginTop: 6 }}
+        >
+          <HelpCircle size={11} aria-hidden="true" />
+          {probing ? "Hide" : "How you got it"}
+        </div>
+      )}
 
       <div
         className="mt-auto flex items-center gap-1.5 pt-3 text-muted-portfolio"

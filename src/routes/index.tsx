@@ -11,10 +11,10 @@ import {
 } from "framer-motion";
 import { Github, Linkedin, Mail } from "lucide-react";
 
-import { KEYS } from "@/data/achievements";
+import { KEYS, TITTLE_VANISH } from "@/data/achievements";
 import { GENERATED_IMAGES } from "@/data/images.generated";
 import { PROFILE, ROLES, SOCIALS } from "@/data/portfolio";
-import { trackMember, unlock } from "@/lib/achievements";
+import { trackBurst, trackMember, unlock } from "@/lib/achievements";
 import { About } from "@/components/portfolio/about";
 import { Experience } from "@/components/portfolio/experience";
 import { Projects } from "@/components/portfolio/projects";
@@ -397,13 +397,41 @@ const BALLS: {
   },
 ];
 
-function SpinningBall({ index, style }: { index: number; style?: React.CSSProperties }) {
+function SpinningBall({
+  index,
+  vanished,
+  style,
+}: {
+  index: number;
+  /** True while the ball has been hovered into hiding. See {@link SaiName}. */
+  vanished?: boolean;
+  style?: React.CSSProperties;
+}) {
   const ball = BALLS[index % BALLS.length];
+  const prefersReduced = useReducedMotion();
 
   return (
-    <span
+    // The poof lives on the WRAPPER, not on the ball's own exit variant. An exiting
+    // child in AnimatePresence keeps the props it was last rendered with, so a
+    // `vanished`-dependent `exit` would never be the one that plays. Hiding the
+    // container instead also means the flip underneath can run to completion off-screen,
+    // which is what lets a different ball be waiting when it comes back.
+    //
+    // `x: "-50%"` rather than a `transform` string: framer owns transform here and would
+    // otherwise drop the centring the moment it animates scale.
+    <motion.span
       className="absolute inline-block"
-      style={{ left: "50%", transform: "translateX(-50%)", lineHeight: 1, ...style }}
+      style={{ left: "50%", x: "-50%", lineHeight: 1, ...style }}
+      animate={
+        vanished
+          ? { scale: 0, opacity: 0, rotate: prefersReduced ? 0 : 200 }
+          : { scale: 1, opacity: 1, rotate: 0 }
+      }
+      transition={
+        prefersReduced
+          ? { duration: 0.2 }
+          : { duration: vanished ? 0.42 : 0.55, ease: vanished ? "easeIn" : [0.34, 1.56, 0.64, 1] }
+      }
       aria-hidden
     >
       <AnimatePresence mode="wait">
@@ -420,27 +448,75 @@ function SpinningBall({ index, style }: { index: number; style?: React.CSSProper
           {ball.content}
         </motion.span>
       </AnimatePresence>
-    </span>
+    </motion.span>
   );
+}
+
+/**
+ * Rolling-window hover counter behind Disappearing Act.
+ *
+ * Kept as module state rather than a ref so it survives a remount of the hero, and
+ * deliberately never persisted — "ten hovers in five seconds" has to mean one burst of
+ * poking, not ten idle passes over a week. This mirrors the burst map in
+ * src/lib/achievements.ts, which is the authority for the badge itself; this copy only
+ * decides when to play the animation.
+ */
+let tittleHoverTimes: number[] = [];
+
+/** How long the tittle stays gone. Long enough to register as absence, short enough
+ *  that nobody thinks they broke the page. */
+const VANISH_MS = 1600;
+
+function bumpTittleHovers(): number {
+  const now = Date.now();
+  tittleHoverTimes = tittleHoverTimes.filter((t) => now - t <= TITTLE_VANISH.windowMs);
+  tittleHoverTimes.push(now);
+  return tittleHoverTimes.length;
 }
 
 /** Renders "Sai" where the tittle of the lowercase i is a sports ball that
  *  flips to the next one each time you hover the name. */
 function SaiName() {
   const [i, setI] = useState(0);
+  const [vanished, setVanished] = useState(false);
+
   useEffect(() => {
     const id = setInterval(() => setI((n) => n + 1), 10_000);
     return () => clearInterval(id);
   }, []);
 
+  // Bring it back. Owned by an effect rather than a bare setTimeout in the handler so
+  // navigating away mid-poof cannot leave a timer writing to an unmounted component —
+  // and so the ball can never get stuck invisible.
+  useEffect(() => {
+    if (!vanished) return;
+    const id = setTimeout(() => setVanished(false), VANISH_MS);
+    return () => clearTimeout(id);
+  }, [vanished]);
+
   // Only a deliberate hover counts toward Hat Trick — the 10s auto-rotation would
   // otherwise hand out the badge to anyone who left the tab open.
-  const flip = () =>
+  const flip = () => {
+    if (vanished) return; // nothing to poke while it is hiding
+
     setI((n) => {
       const next = n + 1;
       trackMember(KEYS.tittles, BALLS[next % BALLS.length].id);
       return next;
     });
+
+    // Disappearing Act. `trackBurst` is the authority on the badge; the local counter
+    // only decides whether to play the gag, so it still fires for someone who has opted
+    // out of tracking or who earned this months ago.
+    trackBurst(KEYS.tittleHovers);
+    if (bumpTittleHovers() >= TITTLE_VANISH.target) {
+      tittleHoverTimes = []; // one poof per burst, not one per hover past the threshold
+      setVanished(true);
+      // Advance again while it is hidden: the flip plays out of sight, so the ball that
+      // pops back is a different one. "I always come back" — just not as the same ball.
+      setI((n) => n + 1);
+    }
+  };
 
   return (
     <span className="relative inline-block whitespace-nowrap cursor-default" onMouseEnter={flip}>
@@ -448,7 +524,11 @@ function SaiName() {
       {/* dotless i (U+0131) so the spinning ball can stand in for the dot */}
       <span className="relative inline-block">
         ı
-        <SpinningBall index={i} style={{ top: "-0.34em", fontSize: "0.34em" }} />
+        <SpinningBall
+          index={i}
+          vanished={vanished}
+          style={{ top: "-0.34em", fontSize: "0.34em" }}
+        />
       </span>
     </span>
   );

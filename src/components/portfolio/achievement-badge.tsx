@@ -10,15 +10,15 @@ import type { Achievement, Tier } from "@/data/achievements";
  * A hexagonal plate carries a per-tier gradient and a specular highlight, ringed
  * by orbiting points of light whose density escalates with rarity. The orbit
  * motif is deliberate: it is the same visual grammar as starfield.tsx and the
- * project constellation, so 36 badges belong to the site instead of looking like
- * stock icons bolted on.
+ * project constellation, so the whole wall belongs to the site instead of looking
+ * like stock icons bolted on.
  *
  * The plate is a filled shape rather than text, so the tier hex pairs are safe in
  * both themes; the icon sits on that permanently-saturated surface and therefore
  * carries `.on-dark` (see the light-mode safety net in src/styles.css) to stay
  * white instead of being remapped to ink.
  *
- * SVG gradient ids are namespaced with `useId()` — a grid renders 36 of these and
+ * SVG gradient ids are namespaced with `useId()` — a grid renders dozens of these and
  * duplicate ids would make every badge inherit the first one's gradient.
  */
 

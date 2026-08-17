@@ -56,6 +56,7 @@ const VALID_IDS = new Set([
   "keyboard-warrior",
   "the-old-ways",
   "hat-trick",
+  "disappearing-act",
   "stargazer",
   "dark-matter",
   "lost-in-space",

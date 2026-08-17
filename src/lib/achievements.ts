@@ -11,7 +11,7 @@
  * WHY NO REACT CONTEXT: `unlock()` needs to be callable from src/lib helpers
  * (print-resume.ts, vcard.ts) and from deep inside components that would
  * otherwise need threading. A module-level function plus a DOM event keeps every
- * call site to a single line, which is the only way a 36-achievement system
+ * call site to a single line, which is the only way an achievement system this size
  * doesn't turn into a 20-file refactor.
  *
  * WHY NO INIT SCRIPT: unlike the theme there is nothing to paint before hydration,

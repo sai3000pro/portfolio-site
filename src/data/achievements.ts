@@ -1,7 +1,7 @@
 /**
  * Achievement registry — the single source of truth for the trophy system.
  *
- * This file is pure data. To add achievement #37 you add one object here and
+ * This file is pure data. To add the next achievement you add one object here and
  * (if it needs a bespoke trigger) one `unlock()` / `trackMember()` call in the
  * component that already owns the interaction. Nothing else changes: the engine
  * in src/lib/achievements.ts evaluates every rule declaratively, and the UI is
@@ -39,6 +39,7 @@ import {
   FileText,
   Footprints,
   Gamepad2,
+  Ghost,
   Globe,
   Hand,
   Hourglass,
@@ -69,7 +70,7 @@ import { slugify } from "@/lib/slug";
 /** Rarity tier. Drives badge ring styling, point value, and grid sort order. */
 export type Tier = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
-/** Grouping used to keep a 36-badge grid readable. */
+/** Grouping used to keep a badge grid this size readable. */
 export type Category = "first-contact" | "explorer" | "tinkerer" | "deep-space" | "long-haul";
 
 /**
@@ -135,6 +136,8 @@ export const KEYS = {
   socials: "socials",
   /** Sports-ball tittle variants seen on the hero name. */
   tittles: "tittles",
+  /** Hero-name hovers — burst-tracked, in memory only. Feeds Disappearing Act. */
+  tittleHovers: "tittle-hovers",
   /** Photos opened in the photo wall lightbox. */
   photosViewed: "photos-viewed",
   /** Theme toggles — burst-tracked, in memory only. */
@@ -149,6 +152,19 @@ export const KEYS = {
  * the printer and the matcher can never disagree.
  */
 export const CONSOLE_CODE_WORD = "stardust";
+
+/**
+ * How hard you have to hover the hero name before the ball on the 'i' gives up and
+ * vanishes — the trigger for Disappearing Act.
+ *
+ * It lives here rather than in index.tsx because TWO things consume it and they must
+ * never disagree: the `burst` rule below (which awards the badge) and `SaiName` (which
+ * plays the vanish). Deliberately a separate counter on each side, not a shared one —
+ * the animation is a joke the site tells everybody, so it still fires for a visitor who
+ * has opted out of tracking or who already owns the badge, while the rule stays the
+ * single authority on when the badge is earned.
+ */
+export const TITTLE_VANISH = { target: 10, windowMs: 5_000 } as const;
 
 /** Every home-page section id, in document order. Mirrors nav.tsx's SECTION_IDS. */
 const SECTION_IDS = ["home", "about", "experience", "projects", "contact"] as const;
@@ -265,7 +281,11 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
   {
     id: "trophy-hunter",
     name: "Trophy Hunter",
-    description: "Found the trophy room. Welcome — there are 35 more.",
+    // The count is hand-maintained: it cannot read ACHIEVEMENTS.length from inside the
+    // literal that defines it. Bump it whenever you add a badge — it is TOTAL minus this
+    // one. (Wrong here is cosmetic, unlike GALLERY_CRAWL_TARGET below, where a stale
+    // number makes a badge unreachable.)
+    description: "Found the trophy room. Welcome — there are 36 more.",
     hint: "Visit the achievements page.",
     tier: "common",
     category: "first-contact",
@@ -352,7 +372,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     id: "globetrotter",
     name: "Globetrotter",
     description: "Around the world in less than 80 days! Jules Verne would be proud.",
-    hint: "See the globe pin three different locations.",
+    hint: "Pinpoint 3 locations on the map.",
     tier: "uncommon",
     category: "explorer",
     secret: false,
@@ -517,6 +537,29 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     icon: Volleyball,
     rarityHint: "Rare",
     rule: { kind: "set", key: KEYS.tittles, target: 5 },
+  },
+  {
+    // Sits directly after Hat Trick on purpose: same letter, same hover, one step
+    // further. Finding it is what happens when you keep poking the thing that already
+    // gave you a badge.
+    id: "disappearing-act",
+    name: "Disappearing Act",
+    description: "Don't worry, I always come back!",
+    clues: [
+      "One thing on this page does not enjoy being poked.",
+      "Hover the ball on the 'i' over and over, fast, until it disappears.",
+    ],
+    tier: "epic",
+    category: "deep-space",
+    secret: true,
+    icon: Ghost,
+    rarityHint: "Epic",
+    rule: {
+      kind: "burst",
+      key: KEYS.tittleHovers,
+      target: TITTLE_VANISH.target,
+      windowMs: TITTLE_VANISH.windowMs,
+    },
   },
   {
     id: "stargazer",

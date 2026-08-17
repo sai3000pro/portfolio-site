@@ -130,7 +130,7 @@ export function rarityPercent(id: string, result: RarityResult): number | null {
  * "est." so the page never claims a number it doesn't have.
  *
  * Returns null when the fallback would only echo the tier the card already prints.
- * `rarityHint` is meant to describe how many people hold a badge, but 35 of the 36
+ * `rarityHint` is meant to describe how many people hold a badge, but all but one
  * set it to the tier word itself, so with the stats endpoint unconfigured — which is
  * the default, and therefore what every visitor sees — the card rendered
  * "Common · est. common". Two slots, one fact, said twice. The tier is the better of
