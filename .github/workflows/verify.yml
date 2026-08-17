@@ -32,7 +32,7 @@ jobs:
       # `@types/node` targets, so runtime and types agree. Dependabot's github-actions
       # ecosystem does NOT bump this input, so bump it by hand when the LTS line moves.
       - name: Setup Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: "22.23.2"
 
