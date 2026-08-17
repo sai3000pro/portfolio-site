@@ -435,7 +435,9 @@ export function Nav() {
         padding: "20px clamp(24px,5vw,80px)",
         backdropFilter: "blur(8px)",
         background: "var(--portfolio-nav)",
-        borderBottom: "1px solid var(--portfolio-border)",
+        // Deliberately borderless. The translucent background plus the blur already
+        // separate the bar from what scrolls under it; a 1px rule on top of that read
+        // as a seam across the starfield rather than as an edge.
         height: NAV_HEIGHT,
       }}
       initial={false}
