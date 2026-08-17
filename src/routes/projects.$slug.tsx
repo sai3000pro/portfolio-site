@@ -196,9 +196,10 @@ function GitHubStats({ repo }: { repo: string }) {
 const HERO_SIZES = "(min-width: 900px) 800px, 90vw";
 
 /**
- * The case-study hero. Renders nothing at all when the project has no image — CORnet-Mouse
- * is the one such project, and it keeps the text-only layout it has today rather than
- * gaining an empty frame.
+ * The case-study hero. Renders nothing at all when the project has no image, so a project
+ * without a screenshot keeps a text-only layout rather than gaining an empty frame. Every
+ * project carries one today; the guard stays because the field is optional and the next one
+ * added may not.
  *
  * `imageId` keys into the generated derivatives; a project with an `image` but no encoded
  * sizes yet degrades to the committed original. Every URL goes through `assetUrl()` — the
@@ -345,14 +346,25 @@ function CaseStudy() {
         {/* Hero image — absent for projects that have no screenshot */}
         <HeroImage project={project} />
 
-        {/* Details write-up */}
+        {/* Details write-up. A `summary` array is a multi-paragraph case study; without
+            one this collapses to the single blurb the constellation modal also shows, so
+            projects that never opted in render byte-identically to before. */}
         <section className="mt-10" aria-label="About this project">
-          <p
-            className="text-muted-portfolio"
-            style={{ fontSize: "clamp(15px,1.4vw,17px)", lineHeight: 1.85, textWrap: "pretty" }}
-          >
-            {project.details ?? project.description}
-          </p>
+          {(project.summary ?? [project.details ?? project.description]).map((paragraph, i) => (
+            <p
+              // Authored prose, fixed order, never reordered — the index IS the identity.
+              key={i}
+              className="text-muted-portfolio"
+              style={{
+                fontSize: "clamp(15px,1.4vw,17px)",
+                lineHeight: 1.85,
+                textWrap: "pretty",
+                marginTop: i === 0 ? 0 : "1.15em",
+              }}
+            >
+              {paragraph}
+            </p>
+          ))}
         </section>
 
         {/* GitHub stats */}

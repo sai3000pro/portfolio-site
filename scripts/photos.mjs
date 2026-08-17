@@ -133,6 +133,13 @@ const DERIVATIVE_TARGETS = [
   { file: "Healthut.png", widths: [400, 800], quality: 80 },
   { file: "patronPal.png", widths: [400, 800], quality: 80 },
   { file: "devDucky.jpg", widths: [400, 800], quality: 80 },
+  // CORnet-Mouse Unity captures. The first is the card thumbnail and case-study hero; the
+  // other two only ever appear in that page's gallery grid, which tops out near 400px, so
+  // they get one width instead of two. Flat-shaded 3D with large uniform skies and ground
+  // planes, which WebP encodes cheaply — 80 is already past the point of visible gain.
+  { file: "cornet-environment.png", widths: [400, 800], quality: 80 },
+  { file: "cornet-predator.png", widths: [400, 800], quality: 80 },
+  { file: "cornet-agent.png", widths: [400, 800], quality: 80 },
 ];
 
 /**

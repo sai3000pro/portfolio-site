@@ -37,7 +37,10 @@ export type GeneratedImageId =
   | "verbalyst"
   | "healthut"
   | "patronpal"
-  | "devducky";
+  | "devducky"
+  | "cornet-environment"
+  | "cornet-predator"
+  | "cornet-agent";
 
 export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
   logo: {
@@ -93,6 +96,36 @@ export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
     cropped: false,
     aspect: 1.5038,
     sources: [{ src: "assets/derived/devducky-400w.webp", width: 400, height: 266 }],
+  },
+  "cornet-environment": {
+    id: "cornet-environment",
+    original: "assets/cornet-environment.png",
+    cropped: false,
+    aspect: 1.5021,
+    sources: [
+      { src: "assets/derived/cornet-environment-400w.webp", width: 400, height: 266 },
+      { src: "assets/derived/cornet-environment-721w.webp", width: 721, height: 480 },
+    ],
+  },
+  "cornet-predator": {
+    id: "cornet-predator",
+    original: "assets/cornet-predator.png",
+    cropped: false,
+    aspect: 1.7556,
+    sources: [
+      { src: "assets/derived/cornet-predator-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/cornet-predator-790w.webp", width: 790, height: 450 },
+    ],
+  },
+  "cornet-agent": {
+    id: "cornet-agent",
+    original: "assets/cornet-agent.png",
+    cropped: false,
+    aspect: 1.3937,
+    sources: [
+      { src: "assets/derived/cornet-agent-400w.webp", width: 400, height: 287 },
+      { src: "assets/derived/cornet-agent-800w.webp", width: 800, height: 574 },
+    ],
   },
 };
 

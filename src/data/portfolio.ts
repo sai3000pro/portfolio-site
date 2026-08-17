@@ -153,6 +153,14 @@ export interface Project {
   // Constellation fields — all optional for backward compat.
   tagline?: string; // short text on the card; falls back to description
   details?: string; // full summary in the modal; falls back to description
+  /**
+   * Long-form write-up, one string per paragraph, shown ONLY on the /projects/$slug
+   * page. Separate from `details` on purpose: `details` also feeds the constellation
+   * modal, which is a hover-sized card that a four-paragraph case study would bury.
+   * A project with real depth to explain gets this; everything else falls back to
+   * `details` and renders exactly as before.
+   */
+  summary?: string[];
   photos?: string[];
   tech?: string[];
 }
@@ -165,6 +173,18 @@ export const PROJECTS: Project[] = [
     tagline: "Biologically-modeled mouse brain trained to survive in a Unity world.",
     details:
       "A SYDE 552 final project that models the mouse visual and motor system using CORnet — a biologically-constrained deep neural network architecture. The model is trained with reinforcement learning inside a custom Unity environment where the mouse must forage for food while fleeing a looming hawk overhead, without being distracted by harmless passing clouds. A hand-crafted reward function balances survival, foraging efficiency, and energy expenditure, pushing the agent toward naturalistic behaviour rather than pure score maximisation.",
+    summary: [
+      "When a hawk's shadow expands overhead, a mouse has milliseconds to choose: freeze, or bolt for cover. This project asks whether an artificial neural network, trained under the same survival pressures, converges on the same circuit design evolution already found.",
+      "We built a biologically-constrained dual-pathway network modelling the mouse visuo-motor system end to end — from retina to spinal motor output. A fast subcortical pathway (retina → superior colliculus → periaqueductal gray) handles split-second reflexive freeze/escape decisions, mirroring circuitry that survives even when the visual cortex is lesioned. A slower cortical pathway — including CORnet-M, a mouse-adapted variant of the primate CORnet-S architecture, redesigned with parallel, neuron-count-scaled visual areas instead of a serial chain — handles contextual evaluation: what the threat actually is, and where the nearest shelter lies. The two streams converge at the motor output, competing through a softmax gate that mirrors the real mutual inhibition between the brain's escape and freeze circuits.",
+      "Rather than training on static labelled datasets, we trained the model inside a custom Unity 3D environment where an agent forages for food while evading a looming aerial predator, learning to ignore harmless sweeping distractors. Its actions drive real physical forces — inertia, acceleration limits, turning radius — so the network has to solve actual motor control, not just classification. A hand-crafted reward function balances foraging, death, and energy expenditure, so freeze-vs-flee behaviour emerges from ecological pressure rather than being hard-coded.",
+      "To evaluate whether the architecture's structure is actually necessary — not just sufficient — we designed in-silico lesion studies: ablating the fast pathway, the cortical pathway, or both, and comparing survival outcomes against the intact model.",
+    ],
+    image: "assets/cornet-environment.png",
+    imageId: "cornet-environment",
+    // Derivatives, not the originals: the gallery renders a plain <img> with no srcSet, so
+    // whatever is listed here is what ships. The widest derivative of each is still under
+    // 20KB and the grid never draws these above ~430px.
+    photos: ["assets/derived/cornet-predator-790w.webp", "assets/derived/cornet-agent-800w.webp"],
     link: "assets/CORnet-Mouse.pdf",
     cta: "Read paper →",
     repo: "https://github.com/Kriti1400/Syde552-Project",

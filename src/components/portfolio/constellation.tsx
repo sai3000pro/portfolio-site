@@ -697,8 +697,13 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
                   ) : photos.length > 0 ? (
                     photos.map((src, i) => (
                       <img
-                        key={i}
-                        src={src}
+                        key={src}
+                        // Same rule as projectImageProps above: `photos` entries are bare,
+                        // document-relative paths and 404 under the Pages base path unless
+                        // they go through assetUrl(). This branch only renders for a project
+                        // with photos and no `image`, so the miss went unseen — every project
+                        // has an `image` today.
+                        src={assetUrl(src)}
                         alt={`${project.title} — ${i + 1}`}
                         loading="lazy"
                         className="w-full rounded-xl object-cover"
