@@ -207,7 +207,7 @@ export function HobbyLightbox({
         </div>
 
         <div
-          className="flex items-center justify-between gap-4"
+          className="flex items-start justify-between gap-4"
           // `flexShrink: 0` — this bar carries the caption, the arrows and the counter, so it
           // is the one thing in the panel that must never give up height.
           style={{ padding: "14px clamp(16px,3vw,24px) 18px", flexShrink: 0 }}
@@ -215,7 +215,7 @@ export function HobbyLightbox({
           {/* The caption element stays mounted even when hidden: the dialog's
               aria-labelledby points at it, so unmounting would leave the dialog
               with no accessible name. */}
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p
               id="hobby-lightbox-caption"
               className={`font-body text-muted-portfolio on-dark${captionVisible ? "" : " sr-only"}`}
