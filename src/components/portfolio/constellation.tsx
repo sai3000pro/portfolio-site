@@ -1,7 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion, motionValue, useReducedMotion } from "framer-motion";
 import type { MotionValue } from "framer-motion";
-import { X, Camera, ArrowRight } from "lucide-react";
+import { X, Camera, ArrowLeft, ArrowRight } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@/data/portfolio";
 import { KEYS } from "@/data/achievements";
@@ -605,7 +605,19 @@ function StaticProjectGrid({
 
 // ─── ProjectModal ─────────────────────────────────────────────────────────────
 
-function ProjectModal({ project, onClose }: { project: Project | null; onClose: () => void }) {
+function ProjectModal({
+  project,
+  projectIndex,
+  projectCount,
+  onClose,
+  onNavigate,
+}: {
+  project: Project | null;
+  projectIndex: number;
+  projectCount: number;
+  onClose: () => void;
+  onNavigate: (delta: number) => void;
+}) {
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, project !== null);
 
@@ -613,6 +625,8 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
     if (!project) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft") onNavigate(-1);
+      else if (e.key === "ArrowRight") onNavigate(1);
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -621,7 +635,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [project, onClose]);
+  }, [project, onClose, onNavigate]);
 
   const photos = (project?.photos ?? []).slice(0, 2);
 
@@ -630,8 +644,12 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
       {project && (
         <motion.div
           key="backdrop"
-          className="fixed inset-0 z-[70] flex items-center justify-center"
-          style={{ background: "var(--portfolio-scrim)", padding: "clamp(16px,4vw,40px)" }}
+          className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto"
+          style={{
+            background: "var(--portfolio-scrim)",
+            padding: "clamp(84px,10vh,108px) clamp(16px,4vw,40px) clamp(16px,4vw,40px)",
+            alignItems: "flex-start",
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -646,7 +664,7 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
             className="relative w-full rounded-2xl overflow-hidden"
             style={{
               maxWidth: 860,
-              maxHeight: "88vh",
+              maxHeight: "calc(100dvh - clamp(100px, 12vh, 140px))",
               background: "var(--portfolio-panel)",
               border: "1px solid var(--portfolio-border-strong)",
               boxShadow: "0 30px 80px var(--portfolio-shadow)",
@@ -680,8 +698,44 @@ function ProjectModal({ project, onClose }: { project: Project | null; onClose: 
               tabIndex={0}
               role="group"
               aria-labelledby="project-modal-title"
-              style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}
+              style={{
+                maxHeight: "calc(100dvh - clamp(100px, 12vh, 140px))",
+                overflowY: "auto",
+                overflowX: "hidden",
+                overscrollBehavior: "contain",
+              }}
             >
+              <button
+                type="button"
+                onClick={() => onNavigate(-1)}
+                aria-label={`Previous project: ${projectIndex > 0 ? "go to previous" : "wrap to last"}`}
+                className="absolute left-2 top-1/2 z-10 grid -translate-y-1/2 place-items-center rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: "var(--portfolio-panel-deep)",
+                  border: "1px solid var(--portfolio-border-strong)",
+                  color: "var(--portfolio-muted)",
+                }}
+              >
+                <ArrowLeft size={19} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate(1)}
+                aria-label={`Next project: ${projectIndex + 1 < projectCount ? "go to next" : "wrap to first"}`}
+                className="absolute right-2 top-1/2 z-10 grid -translate-y-1/2 place-items-center rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: "var(--portfolio-panel-deep)",
+                  border: "1px solid var(--portfolio-border-strong)",
+                  color: "var(--portfolio-muted)",
+                }}
+              >
+                <ArrowRight size={19} aria-hidden="true" />
+              </button>
+
               <div className="grid grid-cols-1 md:grid-cols-2">
                 {/* Left — media */}
                 <div className="flex flex-col gap-3 p-3">
@@ -889,6 +943,23 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
       });
     },
     [navigate],
+  );
+
+  const handleNavigate = useCallback(
+    (delta: number) => {
+      if (!pParam) return;
+      const currentIndex = projects.findIndex((project) => slugify(project.title) === pParam);
+      const nextIndex = (currentIndex + delta + projects.length) % projects.length;
+      const nextProject = projects[nextIndex];
+      if (!nextProject) return;
+      trackMember(KEYS.projectModals, slugify(nextProject.title));
+      navigate({
+        to: ".",
+        search: (prev) => ({ ...prev, p: slugify(nextProject.title) }),
+        resetScroll: false,
+      });
+    },
+    [navigate, pParam, projects],
   );
 
   const handleClose = useCallback(() => {
@@ -1180,7 +1251,13 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
         )}
       </div>
 
-      <ProjectModal project={openProject} onClose={handleClose} />
+      <ProjectModal
+        project={openProject}
+        projectIndex={openProject ? projects.findIndex((p) => p.title === openProject.title) : 0}
+        projectCount={projects.length}
+        onClose={handleClose}
+        onNavigate={handleNavigate}
+      />
     </>
   );
 }
