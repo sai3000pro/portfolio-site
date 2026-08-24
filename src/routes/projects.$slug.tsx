@@ -1,3 +1,5 @@
+import { useCallback, useState } from "react";
+import { AnimatePresence } from "framer-motion";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, ExternalLink, Github, GitFork, Star } from "lucide-react";
 
@@ -10,6 +12,7 @@ import { formatLastCommit, getRepoStats } from "@/lib/github-stats";
 import { Nav } from "@/components/portfolio/nav";
 import { Starfield } from "@/components/portfolio/starfield";
 import { Footer } from "@/components/portfolio/contact";
+import { ProjectLightbox } from "@/components/portfolio/project-lightbox";
 
 /** Resolve a project (and its neighbours) from a route slug. */
 function resolveBySlug(slug: string): {
@@ -152,6 +155,30 @@ function StatChip({ icon, children }: { icon: React.ReactNode; children: React.R
   );
 }
 
+function YouTubeEmbed({ project }: { project: Project }) {
+  if (!project.video) return null;
+
+  return (
+    <div
+      className="mt-10 overflow-hidden rounded-xl"
+      style={{
+        aspectRatio: "16 / 9",
+        border: "1px solid var(--portfolio-border)",
+        background: "var(--portfolio-surface)",
+      }}
+    >
+      <iframe
+        src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(project.video)}`}
+        title={`${project.title} demo video`}
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        className="h-full w-full border-0"
+      />
+    </div>
+  );
+}
+
 function GitHubStats({ repo }: { repo: string }) {
   const stats = getRepoStats(repo);
   if (!stats) return null;
@@ -240,11 +267,29 @@ function HeroImage({ project }: { project: Project }) {
 
 function CaseStudy() {
   const { slug } = Route.useParams();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const match = resolveBySlug(slug);
-  if (!match) return <NotFound />;
-  const { project, prev, next } = match;
+  const project = match?.project;
+  const prev = match?.prev ?? null;
+  const next = match?.next ?? null;
+  const openGalleryAt = useCallback((index: number) => setOpenIndex(index), []);
+  const closeGallery = useCallback(() => setOpenIndex(null), []);
+  if (!project) return <NotFound />;
   const photos = project.photos ?? [];
-
+  const galleryPhotos = [
+    ...(project.video && project.image
+      ? [
+          {
+            src: project.image,
+            alt: `${project.title} — interactive Gaussian-splat memory capture`,
+          },
+        ]
+      : []),
+    ...photos.map((src, i) => ({
+      src,
+      alt: project.photoCaptions?.[i] ?? `${project.title} — project image ${i + 1}`,
+    })),
+  ];
   return (
     <Shell>
       <article
@@ -343,8 +388,9 @@ function CaseStudy() {
           </div>
         </header>
 
-        {/* Hero image — absent for projects that have no screenshot */}
-        <HeroImage project={project} />
+        {/* Projects with a video lead with the embedded demo; otherwise the project image
+            remains the hero. The image is added to the gallery below when displaced. */}
+        {project.video ? <YouTubeEmbed project={project} /> : <HeroImage project={project} />}
 
         {/* Details write-up. A `summary` array is a multi-paragraph case study; without
             one this collapses to the single blurb the constellation modal also shows, so
@@ -383,20 +429,52 @@ function CaseStudy() {
               className="mt-4 grid gap-4"
               style={{ gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}
             >
-              {photos.map((src, i) => (
-                <img
-                  key={src}
-                  src={assetUrl(src)}
-                  alt={`${project.title} — screenshot ${i + 1}`}
-                  loading="lazy"
-                  className="w-full rounded-xl object-cover"
-                  style={{
-                    aspectRatio: "4 / 3",
-                    border: "1px solid var(--portfolio-border)",
-                    background: "var(--portfolio-surface)",
-                  }}
-                />
-              ))}
+              {project.video && project.image && (
+                <button
+                  type="button"
+                  onClick={() => setOpenIndex(0)}
+                  className="block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+                  aria-label={`Open ${project.title} hero image`}
+                >
+                  <img
+                    src={assetUrl(project.image)}
+                    alt={`${project.title} — interactive Gaussian-splat memory capture`}
+                    loading="lazy"
+                    className="w-full rounded-xl object-cover"
+                    style={{
+                      aspectRatio: "4 / 3",
+                      border: "1px solid var(--portfolio-border)",
+                      background: "var(--portfolio-surface)",
+                    }}
+                  />
+                </button>
+              )}
+              {photos.map((src, i) => {
+                const galleryIndex = (project.video && project.image ? 1 : 0) + i;
+                return (
+                  <button
+                    key={src}
+                    type="button"
+                    onClick={() => setOpenIndex(galleryIndex)}
+                    className="block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+                    aria-label={`Open ${project.title} screenshot ${i + 1}`}
+                  >
+                    <img
+                      src={assetUrl(src)}
+                      alt={
+                        project.photoCaptions?.[i] ?? `${project.title} — project image ${i + 1}`
+                      }
+                      loading="lazy"
+                      className="w-full rounded-xl object-cover"
+                      style={{
+                        aspectRatio: "4 / 3",
+                        border: "1px solid var(--portfolio-border)",
+                        background: "var(--portfolio-surface)",
+                      }}
+                    />
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}
@@ -439,6 +517,16 @@ function CaseStudy() {
           )}
         </nav>
       </article>
+      <AnimatePresence>
+        {openIndex !== null && (
+          <ProjectLightbox
+            photos={galleryPhotos}
+            index={openIndex}
+            onClose={closeGallery}
+            onNavigate={openGalleryAt}
+          />
+        )}
+      </AnimatePresence>
     </Shell>
   );
 }
