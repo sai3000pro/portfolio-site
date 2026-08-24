@@ -153,6 +153,8 @@ export interface Project {
   // Constellation fields — all optional for backward compat.
   tagline?: string; // short text on the card; falls back to description
   details?: string; // full summary in the modal; falls back to description
+  /** Optional YouTube video ID shown on the dedicated case-study page. */
+  video?: string;
   /**
    * Long-form write-up, one string per paragraph, shown ONLY on the /projects/$slug
    * page. Separate from `details` on purpose: `details` also feeds the constellation
@@ -162,10 +164,78 @@ export interface Project {
    */
   summary?: string[];
   photos?: string[];
+  photoCaptions?: string[];
   tech?: string[];
 }
 
 export const PROJECTS: Project[] = [
+  {
+    title: "Spark",
+    description:
+      "A privacy-first system that turns real-world walks into searchable, explorable 3D memories using a camera rover, iPhone LiDAR, and local AI.",
+    tagline: "A camera rover that turns real-world experiences into searchable 3D memories.",
+    details:
+      "Spark is a privacy-focused system that combines robotics, mobile sensing, computer vision, artificial intelligence, and 3D Gaussian splatting to transform real experiences into explorable and searchable 3D memories. A custom-built capture rover and mobile application record the environment, spatial data, and movement, while a local pipeline reconstructs the scene, detects objects, and transcribes speech. The resulting memories can be revisited through connected Album, Map, Trips, and Capture views. Built by Matthew Sakhno, Jack Le, Saivenkat Jilla, and Aman Shah, Spark won first place in the SummerHacks Main Track and second place in the TECHNATION Data Intelligence Track among approximately 150 hackers.",
+    summary: [
+      "At SummerHacks 2026, four students set out to solve a problem most people have experienced: the more effort you spend recording a moment, the less present you are for it. The result was Spark, a privacy-focused system that combines robotics, mobile sensing, computer vision, artificial intelligence, and 3D Gaussian splatting to transform real experiences into explorable and searchable 3D memories.",
+      "Built by Matthew Sakhno, Jack Le, Saivenkat Jilla, and Aman Shah, Spark won first place in the SummerHacks Main Track and second place in the TECHNATION Data Intelligence Track among approximately 150 hackers. The team earned $1,600 in prizes, along with TECHNATION backpacks and assorted accessories.",
+      "Spark began with a simple question: what would it look like to preserve an experience without constantly stopping to take photographs? Most digital memories are stored as disconnected files. A photograph preserves one angle. A video preserves one path through a space. An audio recording preserves a conversation, but often without the context of where it happened. Even when people record an entire event, the result rarely captures the experience of actually being there.",
+      "Spark was designed to bring those pieces back together. The system combines a custom-built capture rover, a mobile application, a local 3D reconstruction pipeline, object detection, searchable transcription, and a web experience for revisiting the completed memories. Instead of simply opening a folder of photographs, a user can return to an interactive reconstruction of the place, move through it from different viewpoints, find objects that appeared during the experience, revisit conversations, and explore the route they took.",
+      "How Spark works. A phone or camera mounted on the rover records the environment while the rover moves through the space. The footage is sent over a local Wi-Fi hotspot to a laptop, where Spark processes the data and constructs a 3D Gaussian-splat reconstruction. Alongside the video, the mobile application can collect information such as AR tracking, LiDAR depth, GPS coordinates, camera intrinsics, and camera-pose data.",
+      "These signals provide information about where the camera was located and how it moved. Rather than relying entirely on visual feature matching to estimate the camera’s trajectory, Spark can use data already available from the phone and rover to reduce the amount of movement that must be inferred from the images alone. The reconstruction pipeline runs locally and builds on open-source technologies including Brush for Gaussian-splat reconstruction, Whisper for speech transcription, and YOLO for object detection.",
+      "This local-first architecture was important to the team. Personal memories can contain private conversations, faces, locations, and possessions. Spark was designed so that much of the processing could happen on the user’s own computer or directly in the browser rather than requiring footage to be uploaded to an external cloud service.",
+      "Once a scan is complete, it becomes more than a 3D model. Each memory can be connected to photographs, detected objects, conversation transcripts, routes, and notable moments. Memories can be organized into trips, placed on a map, shared publicly, or kept private. The goal is to make memories feel less like folders and more like places a person can return to.",
+    ],
+    image: "assets/spark/sai-at-work.png",
+    imageId: "sai-at-work",
+    video: "s5GVI3ibZUA",
+    link: "https://devpost.com/software/spark-350yoq",
+    winner: true,
+    cta: "View on Devpost →",
+    repo: "https://github.com/sai3000pro/spark",
+    photos: [
+      "assets/spark/homepage.png",
+      "assets/spark/album.png",
+      "assets/spark/generated-walk.jpg",
+      "assets/spark/world-map.png",
+      "assets/spark/stats.png",
+      "assets/spark/architecture.png",
+      "assets/spark/gallery.png",
+      "assets/spark/capture.png",
+      "assets/spark/aerial-view-via-splat.jpg",
+      "assets/spark/rover.jpg",
+      "assets/spark/rover-top-view.jpg",
+      "assets/spark/vietnamese-dinner.jpg",
+      "assets/spark/winners.jpg",
+    ],
+    photoCaptions: [
+      "Spark’s landing page introduces the idea of stepping back into a captured memory.",
+      "The Album view presents completed Gaussian-splat memories as places to revisit.",
+      "A generated walk demonstrates the reconstructed scene from an exploratory viewpoint.",
+      "The World Map view plots captured memories and moments at their geographic locations.",
+      "Spark’s statistics view surfaces reconstruction and memory-capture data.",
+      "An architecture diagram shows how Spark connects capture hardware, local processing, and the web experience.",
+      "The Gallery view organizes photographs and preserved moments from a memory.",
+      "The Capture view starts a new scan and connects the rover or phone to Spark.",
+      "An aerial Gaussian-splat view shows the reconstructed environment from above.",
+      "The custom camera rover used to collect imagery while moving through an environment.",
+      "A top-down photograph shows the rover’s camera, chassis, and drive layout.",
+      "A captured dinner scene illustrates how Spark preserves an event as a spatial memory.",
+      "The Spark team celebrates its SummerHacks win with the project and award materials.",
+    ],
+    tech: [
+      "Next.js",
+      "TypeScript",
+      "Python",
+      "Swift",
+      "Three.js",
+      "ARKit",
+      "LiDAR",
+      "YOLO",
+      "Whisper",
+      "Gaussian Splatting",
+    ],
+  },
   {
     title: "CORnet-Mouse",
     description:

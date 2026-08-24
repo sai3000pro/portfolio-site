@@ -88,6 +88,12 @@ const HOBBIES_TS = join(ROOT, "src/data/hobbies.ts");
 
 const ASSET_DIR = join(ROOT, "public/assets");
 const DERIVED_DIR = join(ASSET_DIR, "derived");
+
+/** Ensure nested asset targets (for example assets/spark/) have a matching
+ * generated directory before Sharp writes their derivatives. */
+async function ensureParentDir(filePath) {
+  await mkdir(dirname(filePath), { recursive: true });
+}
 const IMAGES_MANIFEST_PATH = join(ROOT, "src/data/images.generated.ts");
 
 /** Public URL prefix. Base-less on purpose — assetUrl() applies BASE_URL at render time. */
@@ -133,6 +139,20 @@ const DERIVATIVE_TARGETS = [
   { file: "Healthut.png", widths: [400, 800], quality: 80 },
   { file: "patronPal.png", widths: [400, 800], quality: 80 },
   { file: "devDucky.jpg", widths: [400, 800], quality: 80 },
+  { file: "spark/sai-at-work.png", widths: [400, 800], quality: 80 },
+  { file: "spark/homepage.png", widths: [400, 800], quality: 80 },
+  { file: "spark/album.png", widths: [400, 800], quality: 80 },
+  { file: "spark/gallery.png", widths: [400, 800], quality: 80 },
+  { file: "spark/generated-walk.jpg", widths: [400, 800], quality: 80 },
+  { file: "spark/world-map.png", widths: [400, 800], quality: 80 },
+  { file: "spark/stats.png", widths: [400, 800], quality: 80 },
+  { file: "spark/architecture.png", widths: [400, 800], quality: 80 },
+  { file: "spark/capture.png", widths: [400, 800], quality: 80 },
+  { file: "spark/aerial-view-via-splat.jpg", widths: [400, 800], quality: 80 },
+  { file: "spark/rover.jpg", widths: [400, 800], quality: 80 },
+  { file: "spark/rover-top-view.jpg", widths: [400, 800], quality: 80 },
+  { file: "spark/vietnamese-dinner.jpg", widths: [400, 800], quality: 80 },
+  { file: "spark/winners.jpg", widths: [400, 800], quality: 80 },
   // CORnet-Mouse Unity captures. The first is the card thumbnail and case-study hero; the
   // other two only ever appear in that page's gallery grid, which tops out near 400px, so
   // they get one width instead of two. Flat-shaded 3D with large uniform skies and ground
@@ -644,6 +664,7 @@ async function buildDerivatives(target) {
     const stale = FORCE || (await mtime(dest)) < srcTime;
 
     if (stale && !DRY) {
+      await ensureParentDir(dest);
       await encodeDerivative(srcPath, dest, width, height, target.quality);
       written++;
     }

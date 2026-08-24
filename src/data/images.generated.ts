@@ -38,6 +38,20 @@ export type GeneratedImageId =
   | "healthut"
   | "patronpal"
   | "devducky"
+  | "sai-at-work"
+  | "homepage"
+  | "album"
+  | "gallery"
+  | "generated-walk"
+  | "world-map"
+  | "stats"
+  | "architecture"
+  | "capture"
+  | "aerial-view-via-splat"
+  | "rover"
+  | "rover-top-view"
+  | "vietnamese-dinner"
+  | "winners"
   | "cornet-environment"
   | "cornet-predator"
   | "cornet-agent";
@@ -96,6 +110,146 @@ export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
     cropped: false,
     aspect: 1.5038,
     sources: [{ src: "assets/derived/devducky-400w.webp", width: 400, height: 266 }],
+  },
+  "sai-at-work": {
+    id: "sai-at-work",
+    original: "assets/spark/sai-at-work.png",
+    cropped: false,
+    aspect: 1.7544,
+    sources: [
+      { src: "assets/derived/sai-at-work-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/sai-at-work-800w.webp", width: 800, height: 456 },
+    ],
+  },
+  homepage: {
+    id: "homepage",
+    original: "assets/spark/homepage.png",
+    cropped: false,
+    aspect: 2.1978,
+    sources: [
+      { src: "assets/derived/homepage-400w.webp", width: 400, height: 182 },
+      { src: "assets/derived/homepage-800w.webp", width: 800, height: 364 },
+    ],
+  },
+  album: {
+    id: "album",
+    original: "assets/spark/album.png",
+    cropped: false,
+    aspect: 1.7544,
+    sources: [
+      { src: "assets/derived/album-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/album-800w.webp", width: 800, height: 456 },
+    ],
+  },
+  gallery: {
+    id: "gallery",
+    original: "assets/spark/gallery.png",
+    cropped: false,
+    aspect: 1.7544,
+    sources: [
+      { src: "assets/derived/gallery-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/gallery-800w.webp", width: 800, height: 456 },
+    ],
+  },
+  "generated-walk": {
+    id: "generated-walk",
+    original: "assets/spark/generated-walk.jpg",
+    cropped: false,
+    aspect: 1.7621,
+    sources: [
+      { src: "assets/derived/generated-walk-400w.webp", width: 400, height: 227 },
+      { src: "assets/derived/generated-walk-800w.webp", width: 800, height: 454 },
+    ],
+  },
+  "world-map": {
+    id: "world-map",
+    original: "assets/spark/world-map.png",
+    cropped: false,
+    aspect: 1.7621,
+    sources: [
+      { src: "assets/derived/world-map-400w.webp", width: 400, height: 227 },
+      { src: "assets/derived/world-map-800w.webp", width: 800, height: 454 },
+    ],
+  },
+  stats: {
+    id: "stats",
+    original: "assets/spark/stats.png",
+    cropped: false,
+    aspect: 1.7582,
+    sources: [
+      { src: "assets/derived/stats-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/stats-800w.webp", width: 800, height: 455 },
+    ],
+  },
+  architecture: {
+    id: "architecture",
+    original: "assets/spark/architecture.png",
+    cropped: false,
+    aspect: 1.7582,
+    sources: [
+      { src: "assets/derived/architecture-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/architecture-800w.webp", width: 800, height: 455 },
+    ],
+  },
+  capture: {
+    id: "capture",
+    original: "assets/spark/capture.png",
+    cropped: false,
+    aspect: 1.7544,
+    sources: [
+      { src: "assets/derived/capture-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/capture-800w.webp", width: 800, height: 456 },
+    ],
+  },
+  "aerial-view-via-splat": {
+    id: "aerial-view-via-splat",
+    original: "assets/spark/aerial-view-via-splat.jpg",
+    cropped: false,
+    aspect: 1.7505,
+    sources: [
+      { src: "assets/derived/aerial-view-via-splat-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/aerial-view-via-splat-800w.webp", width: 800, height: 457 },
+    ],
+  },
+  rover: {
+    id: "rover",
+    original: "assets/spark/rover.jpg",
+    cropped: false,
+    aspect: 1.3333,
+    sources: [
+      { src: "assets/derived/rover-400w.webp", width: 400, height: 300 },
+      { src: "assets/derived/rover-800w.webp", width: 800, height: 600 },
+    ],
+  },
+  "rover-top-view": {
+    id: "rover-top-view",
+    original: "assets/spark/rover-top-view.jpg",
+    cropped: false,
+    aspect: 0.7498,
+    sources: [
+      { src: "assets/derived/rover-top-view-400w.webp", width: 400, height: 534 },
+      { src: "assets/derived/rover-top-view-800w.webp", width: 800, height: 1067 },
+    ],
+  },
+  "vietnamese-dinner": {
+    id: "vietnamese-dinner",
+    original: "assets/spark/vietnamese-dinner.jpg",
+    cropped: false,
+    aspect: 1.7505,
+    sources: [
+      { src: "assets/derived/vietnamese-dinner-400w.webp", width: 400, height: 228 },
+      { src: "assets/derived/vietnamese-dinner-800w.webp", width: 800, height: 457 },
+    ],
+  },
+  winners: {
+    id: "winners",
+    original: "assets/spark/winners.jpg",
+    cropped: false,
+    aspect: 1.3008,
+    sources: [
+      { src: "assets/derived/winners-400w.webp", width: 400, height: 308 },
+      { src: "assets/derived/winners-800w.webp", width: 800, height: 615 },
+    ],
   },
   "cornet-environment": {
     id: "cornet-environment",
