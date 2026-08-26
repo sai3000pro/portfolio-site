@@ -529,7 +529,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     description: "Found all five balls hiding on the dot of the 'i'.",
     clues: [
       "One letter on this site is wearing something it shouldn't be.",
-      "Hover the name in the hero. The tittle on the 'i' keeps changing sport.",
+      "Hover the name in the hero. The dot on the 'i' keeps changing sport.",
     ],
     tier: "rare",
     category: "deep-space",
