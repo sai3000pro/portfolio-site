@@ -1,5 +1,14 @@
 import process from "node:process";
 
+// KEPT ON PURPOSE, despite having no importers in this repo.
+//
+// Its only caller was src/lib/api/example.functions.ts, deleted as unused scaffold — which
+// makes this look like the obvious next thing to delete. It is not: Lovable is still
+// connected to this repository, and this file plus the notes below are the pattern its
+// generated server code expects to find. Removing it saves 26 lines and costs a working
+// integration. Same goes for .lovable/, the @lovable.dev/vite-tanstack-config dev
+// dependency, and src/lib/lovable-error-reporting.ts.
+//
 // Server-only config. The .server.ts suffix prevents Vite from bundling
 // this file into the client — values here never reach the browser.
 //
