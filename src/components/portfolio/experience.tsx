@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Camera } from "lucide-react";
 import { KEYS } from "@/data/achievements";
-import { EXPERIENCES, type Experience } from "@/data/portfolio";
+import { EXPERIENCES, type Experience, type ExperienceLogo } from "@/data/portfolio";
 import { trackMember } from "@/lib/achievements";
-import { assetUrl } from "@/lib/assets";
+import { assetUrl, responsiveImageProps } from "@/lib/assets";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { Section, SectionHeading } from "./section";
 
@@ -17,6 +18,9 @@ const ORBIT_RX = N * 0.62; // horizontal orbit radius (extends beyond the globe)
 const ORBIT_RY = N * 0.17; // vertical radius (thin => seen nearly edge-on)
 const NODE_OFFSET = `calc(-1 * clamp(28px,4vw,48px) - ${N / 2}px)`;
 const DEFAULT_VIEW = { lat: 38, lon: -95 }; // North America, used for "Remote"
+// The overlay is 860px wide at most and the logos sit in its left half, one or two to a
+// row, so a plate never paints wider than ~400 CSS px and half that when there are two.
+const LOGO_SIZES = "(max-width: 767px) 45vw, 400px";
 
 function earthView(coords: { lat: number; lon: number }) {
   const fx = (coords.lon + 180) / 360;
@@ -194,6 +198,42 @@ function EarthNode({
   );
 }
 
+/**
+ * One organisation's logo, on the background its artwork was drawn for.
+ *
+ * Two things here are deliberate. The mark is `object-contain` inside a fixed box rather
+ * than cropped to fill it: these lockups run from 12:1 (Marsh McLennan's wordmark) to
+ * square (MathSoc's tie), and `cover` would slice the ends off the wide ones. And the
+ * plate colour comes from the logo's own `plate`, not from the page theme, because black
+ * wordmarks and white ones cannot share a background — see the note on ExperienceLogo.
+ *
+ * The owner's name goes in both `alt` and `title`, so the attribution travels with the
+ * image whether it is being read by a screen reader or hovered by a person.
+ */
+function LogoPlate({ logo, company }: { logo: ExperienceLogo; company: string }) {
+  const light = logo.plate === "light";
+  return (
+    <div
+      className="grid flex-1 place-items-center rounded-xl overflow-hidden"
+      style={{
+        aspectRatio: "5 / 2",
+        padding: "clamp(12px,3%,22px)",
+        background: light ? "#ffffff" : "#11171c",
+        border: `1px solid ${light ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.10)"}`,
+      }}
+    >
+      <img
+        {...responsiveImageProps(logo.src, logo.id, LOGO_SIZES)}
+        alt={`${logo.owner} logo`}
+        title={`${logo.owner} — logo reproduced to identify ${company}`}
+        loading="lazy"
+        className="max-h-full w-auto max-w-full object-contain"
+        style={{ height: "auto" }}
+      />
+    </div>
+  );
+}
+
 function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => void }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -213,6 +253,7 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
   }, [onClose]);
 
   const photos = (exp.photos ?? []).slice(0, 2);
+  const logos = exp.logos ?? [];
 
   return (
     <motion.div
@@ -270,8 +311,15 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
           style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}
         >
           <div className="grid grid-cols-1 md:grid-cols-2">
-            {/* photos — left */}
+            {/* logos and photos — left */}
             <div className="flex flex-col gap-3 p-3">
+              {logos.length > 0 && (
+                <div className="flex gap-3">
+                  {logos.map((logo) => (
+                    <LogoPlate key={logo.src} logo={logo} company={exp.company} />
+                  ))}
+                </div>
+              )}
               {photos.length > 0 ? (
                 photos.map((src, i) => (
                   <img
@@ -490,9 +538,25 @@ export function Experience() {
         </div>
       </div>
 
-      <AnimatePresence>
-        {selected && <ExperienceModal exp={selected} onClose={() => setSelected(null)} />}
-      </AnimatePresence>
+      {/*
+        Portalled to <body> rather than rendered here, because "here" is inside a wrapper
+        with z-index: 2 — a stacking context, which caps everything within it. The overlay
+        asks for z-70 and gets it only relative to that wrapper, so the fixed nav at z-50
+        painted over the top 78px of the panel and swallowed clicks on its close button;
+        Escape and a backdrop click still worked, which is why it went unnoticed. A portal
+        moves the overlay out to the document root where its z-index means what it says.
+
+        Safe under prerender: `selected` is null on first paint, so createPortal never runs
+        during SSR, where it is unsupported.
+      */}
+      {typeof document === "undefined"
+        ? null
+        : createPortal(
+            <AnimatePresence>
+              {selected && <ExperienceModal exp={selected} onClose={() => setSelected(null)} />}
+            </AnimatePresence>,
+            document.body,
+          )}
     </Section>
   );
 }
