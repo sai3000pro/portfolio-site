@@ -219,7 +219,13 @@ function LogoPlate({ logo, company }: { logo: ExperienceLogo; company: string })
         aspectRatio: "5 / 2",
         padding: "clamp(12px,3%,22px)",
         background: light ? "#ffffff" : "#11171c",
-        border: `1px solid ${light ? "rgba(0,0,0,0.10)" : "rgba(255,255,255,0.10)"}`,
+        // The plate's fill is fixed by the artwork, so its edge is the only thing that can
+        // adapt — and it has to, because in the light theme a white plate sits on a white
+        // panel and a 10%-black hairline all but disappears. A firmer edge plus a soft drop
+        // shadow keeps it reading as a card in light mode without tinting the mark, which
+        // is what borrowing a theme token (a saturated blue in both themes) would have done.
+        border: `1px solid ${light ? "rgba(15,23,42,0.16)" : "rgba(255,255,255,0.10)"}`,
+        boxShadow: light ? "0 1px 3px rgba(15,23,42,0.08)" : "none",
       }}
     >
       <img

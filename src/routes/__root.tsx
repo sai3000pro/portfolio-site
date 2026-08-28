@@ -75,7 +75,14 @@ function buildJsonLd(): string {
     },
   };
 
-  return JSON.stringify([person, website]);
+  // Escaped, not raw. This string goes into the page through dangerouslySetInnerHTML, and
+  // inside a <script> element the HTML parser is still hunting for "</script" — a value
+  // containing one would close the tag early and spill the remainder into the document as
+  // markup. Every value here is authored in this repo, so nothing today can carry that
+  // sequence; the escape is what keeps it true when a future bio or job title is pasted in
+  // from somewhere else. Escaping "<" as its JSON unicode form leaves the parsed data
+  // identical, so consumers see exactly the same object.
+  return JSON.stringify([person, website]).replace(/</g, "\\u003c");
 }
 
 const JSON_LD = buildJsonLd();

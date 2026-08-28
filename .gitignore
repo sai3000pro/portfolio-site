@@ -21,6 +21,19 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Environment files. `*.local` above already catches .env.local, but not a plain .env or
+# .env.production — and src/lib/config.server.ts tells you to create exactly those ("Define
+# in .env with the VITE_ prefix"). Without these lines the first person to follow that
+# instruction commits the file. .env.example stays tracked so the expected keys are still
+# documented in the repo.
+.env
+.env.*
+!.env.example
+
+# Knowledge-graph output from the graphify tool. Regenerated on demand, ~3MB of cache JSON,
+# and nothing in the build reads it.
+/graphify-out
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

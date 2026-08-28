@@ -2,7 +2,15 @@
   "ci": {
     "collect": {
       "staticDistDir": "./dist/lhci",
-      "url": ["http://localhost/portfolio-site/", "http://localhost/portfolio-site/gallery/"],
+      "url": [
+        "http://localhost/portfolio-site/",
+        "http://localhost/portfolio-site/gallery/",
+        "http://localhost/portfolio-site/gaming/",
+        "http://localhost/portfolio-site/volunteering/",
+        "http://localhost/portfolio-site/achievements/",
+        "http://localhost/portfolio-site/blog/",
+        "http://localhost/portfolio-site/projects/spark/"
+      ],
       "numberOfRuns": 3,
       "settings": {
         "chromeFlags": "--disable-gpu --no-sandbox --disable-dev-shm-usage --headless"
