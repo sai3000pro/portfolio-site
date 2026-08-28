@@ -84,7 +84,15 @@ export type GeneratedImageId =
   | "title-card"
   | "detection"
   | "hydropet"
-  | "fair-play";
+  | "fair-play"
+  | "civ6"
+  | "genshin"
+  | "railway-empire"
+  | "mtg-arena"
+  | "minecraft"
+  | "clash-royale"
+  | "frostpunk"
+  | "cities-skylines-2";
 
 export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
   logo: {
@@ -609,6 +617,86 @@ export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
     sources: [
       { src: "assets/derived/fair-play-400w.webp", width: 400, height: 224 },
       { src: "assets/derived/fair-play-800w.webp", width: 800, height: 449 },
+    ],
+  },
+  civ6: {
+    id: "civ6",
+    original: "assets/games/civ6.jpg",
+    cropped: false,
+    aspect: 0.6667,
+    sources: [
+      { src: "assets/derived/civ6-200w.webp", width: 200, height: 300 },
+      { src: "assets/derived/civ6-400w.webp", width: 400, height: 600 },
+    ],
+  },
+  genshin: {
+    id: "genshin",
+    original: "assets/games/genshin.jpg",
+    cropped: false,
+    aspect: 1,
+    sources: [
+      { src: "assets/derived/genshin-200w.webp", width: 200, height: 200 },
+      { src: "assets/derived/genshin-400w.webp", width: 400, height: 400 },
+    ],
+  },
+  "railway-empire": {
+    id: "railway-empire",
+    original: "assets/games/railway-empire.jpg",
+    cropped: false,
+    aspect: 0.6667,
+    sources: [
+      { src: "assets/derived/railway-empire-200w.webp", width: 200, height: 300 },
+      { src: "assets/derived/railway-empire-400w.webp", width: 400, height: 600 },
+    ],
+  },
+  "mtg-arena": {
+    id: "mtg-arena",
+    original: "assets/games/mtg-arena.jpg",
+    cropped: false,
+    aspect: 0.6667,
+    sources: [
+      { src: "assets/derived/mtg-arena-200w.webp", width: 200, height: 300 },
+      { src: "assets/derived/mtg-arena-400w.webp", width: 400, height: 600 },
+    ],
+  },
+  minecraft: {
+    id: "minecraft",
+    original: "assets/games/minecraft.jpg",
+    cropped: false,
+    aspect: 1,
+    sources: [
+      { src: "assets/derived/minecraft-200w.webp", width: 200, height: 200 },
+      { src: "assets/derived/minecraft-400w.webp", width: 400, height: 400 },
+    ],
+  },
+  "clash-royale": {
+    id: "clash-royale",
+    original: "assets/games/clash-royale.jpg",
+    cropped: false,
+    aspect: 1,
+    sources: [
+      { src: "assets/derived/clash-royale-200w.webp", width: 200, height: 200 },
+      { src: "assets/derived/clash-royale-400w.webp", width: 400, height: 400 },
+    ],
+  },
+  frostpunk: {
+    id: "frostpunk",
+    original: "assets/games/frostpunk.jpg",
+    cropped: false,
+    aspect: 0.6667,
+    sources: [
+      { src: "assets/derived/frostpunk-200w.webp", width: 200, height: 300 },
+      { src: "assets/derived/frostpunk-400w.webp", width: 400, height: 600 },
+    ],
+  },
+  "cities-skylines-2": {
+    id: "cities-skylines-2",
+    original: "assets/games/cities-skylines-2.jpg",
+    cropped: false,
+    aspect: 0.6667,
+    sources: [
+      { src: "assets/derived/cities-skylines-2-200w.webp", width: 200, height: 300 },
+      { src: "assets/derived/cities-skylines-2-400w.webp", width: 400, height: 600 },
     ],
   },
 };

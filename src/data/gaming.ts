@@ -1,14 +1,28 @@
 /**
  * The games shelf.
  *
- * Rendered as a bookshelf rather than a grid of cover art, and that is a constraint as
- * much as a design choice: box art is the publisher's, not mine, so a wall of scraped
- * covers would be republishing someone else's work on a personal site. CSS spines owe
- * nobody anything, and they buy something a cover grid cannot — a spine has a *thickness*,
- * so the shelf can encode hours played in the one dimension a bookshelf already uses.
+ * A bookshelf, because a shelf has a dimension a grid of covers does not: thickness. Each
+ * book's spine width is the hours on the clock, so the fat books are the ones actually
+ * lived in, and the shelf says something a list of titles cannot.
  *
- * That is the whole idea: the fat books are the ones I have actually lived in.
+ * ON THE COVER ART. Every image under public/assets/games/ is the publisher's, not ours.
+ * They are the official current images — Steam's own library art for the five Steam
+ * titles, the App Store artwork returned by the iTunes Search API for the three mobile
+ * ones — rather than anything scraped off a fan wiki, so nobody is being misattributed and
+ * nothing is out of date. Each carries its rights holder in `publisher`, which the
+ * renderer puts into the image's alt text and title attribute, and the page states the
+ * position in full underneath the shelf.
+ *
+ * Worth being straight about in the file that holds them: a credit line is not a licence,
+ * and "for portfolio use" is not a legal exemption. What makes this ordinary rather than
+ * risky is the shape of the use — a handful of thumbnails, on a personal page, naming
+ * games actually played, each one linking to the publisher's own store page. If a
+ * publisher ever objects the answer is to remove the image, and the shelf below is built
+ * so that losing one costs nothing: `cover` is optional, and a book without it falls back
+ * to the CSS spine this page shipped with.
  */
+import type { GeneratedImageId } from "./images.generated";
+
 export interface Game {
   title: string;
   /**
@@ -31,7 +45,16 @@ export interface Game {
   /** Shown verbatim when the platform is more precise than a round number of hours. */
   hoursLabel?: string;
   url: string;
-  /** Spine gradient (top → bottom) and its text colour. */
+  /**
+   * Official cover art, and who owns it. Optional as a pair: a game with no `cover` falls
+   * back to the plain gradient spine, which is what the whole shelf looked like before the
+   * art arrived and is why removing an image is a one-line change rather than a redesign.
+   */
+  cover?: string;
+  coverId?: GeneratedImageId;
+  /** Rights holder, named in the alt text and the notice under the shelf. */
+  publisher?: string;
+  /** Spine gradient (top → bottom) and its text colour. Also the backdrop behind a cover. */
   spine: { from: string; to: string; ink: string };
   /** One line on why it earns the shelf space. */
   note?: string;
@@ -45,6 +68,9 @@ export interface Game {
  */
 export const FAVOURITE: Game = {
   title: "Sid Meier's Civilization VI",
+  cover: "assets/games/civ6.jpg",
+  coverId: "civ6",
+  publisher: "Firaxis Games / 2K",
   hours: 400,
   hoursLabel: "399h 56m",
   url: "https://store.steampowered.com/app/289070/",
@@ -60,18 +86,27 @@ export const FAVOURITE: Game = {
 export const SHELF: Game[] = [
   {
     title: "Genshin Impact",
+    cover: "assets/games/genshin.jpg",
+    coverId: "genshin",
+    publisher: "HoYoverse",
     hours: 400,
     url: "https://genshin.hoyoverse.com/en/",
     spine: { from: "#5ec8dd", to: "#17505f", ink: "#f0fbfd" },
   },
   {
     title: "Railway Empire",
+    cover: "assets/games/railway-empire.jpg",
+    coverId: "railway-empire",
+    publisher: "Gaming Minds Studios / Kalypso Media",
     hours: 150,
     url: "https://store.steampowered.com/app/503940/",
     spine: { from: "#c07a44", to: "#432414", ink: "#fbf1e8" },
   },
   {
     title: "Magic: The Gathering Arena",
+    cover: "assets/games/mtg-arena.jpg",
+    coverId: "mtg-arena",
+    publisher: "Wizards of the Coast",
     shelfTitle: "MTG Arena",
     hours: 200,
     url: "https://magic.wizards.com/en/mtgarena",
@@ -79,6 +114,9 @@ export const SHELF: Game[] = [
   },
   {
     title: "Minecraft",
+    cover: "assets/games/minecraft.jpg",
+    coverId: "minecraft",
+    publisher: "Mojang Studios",
     hours: null,
     url: "https://www.minecraft.net/",
     spine: { from: "#72ad55", to: "#2b431f", ink: "#f2fbee" },
@@ -86,12 +124,18 @@ export const SHELF: Game[] = [
   },
   {
     title: "Clash Royale",
+    cover: "assets/games/clash-royale.jpg",
+    coverId: "clash-royale",
+    publisher: "Supercell",
     hours: 200,
     url: "https://supercell.com/en/games/clashroyale/",
     spine: { from: "#4a8ff0", to: "#16305e", ink: "#eef5ff" },
   },
   {
     title: "Frostpunk",
+    cover: "assets/games/frostpunk.jpg",
+    coverId: "frostpunk",
+    publisher: "11 bit studios",
     hours: 40,
     url: "https://store.steampowered.com/app/323190/",
     spine: { from: "#8fb4d1", to: "#1f3243", ink: "#f2f8fc" },
@@ -104,6 +148,9 @@ export const SHELF: Game[] = [
  */
 export const NEXT_UP: Game = {
   title: "Cities: Skylines II",
+  cover: "assets/games/cities-skylines-2.jpg",
+  coverId: "cities-skylines-2",
+  publisher: "Colossal Order / Paradox Interactive",
   hours: null,
   url: "https://store.steampowered.com/app/949230/",
   spine: { from: "#94a2b1", to: "#2f3742", ink: "#f4f7fa" },
@@ -153,4 +200,18 @@ export function playtimeLabel(game: Game): string | null {
 export function totalTrackedHoursLabel(): string {
   const total = [FAVOURITE, ...SHELF].reduce((sum, game) => sum + (game.hours ?? 0), 0);
   return String(total).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+/**
+ * Every distinct rights holder on the shelf, for the notice underneath it.
+ *
+ * Deduplicated and sorted so the line is stable: derived from the data rather than written
+ * out by hand, because a hardcoded list is exactly the kind of thing that silently stops
+ * matching the shelf the first time a game is added.
+ */
+export function coverArtHolders(): string[] {
+  const holders = [FAVOURITE, ...SHELF, NEXT_UP]
+    .map((game) => game.publisher)
+    .filter((p): p is string => Boolean(p));
+  return [...new Set(holders)].sort((a, b) => a.localeCompare(b));
 }

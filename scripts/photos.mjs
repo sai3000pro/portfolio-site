@@ -204,6 +204,23 @@ const DERIVATIVE_TARGETS = [
   { file: "hydrohomies/detection.png", widths: [400, 800], quality: 80 },
   { file: "hydrohomies/hydropet.png", widths: [400, 800], quality: 80 },
   { file: "hydrohomies/fair-play.png", widths: [400, 800], quality: 80 },
+
+  // Game cover art for /gaming. Publisher artwork, not mine — see the note at the top of
+  // src/data/gaming.ts. Sourced from Steam's own library art for the five Steam titles and
+  // the iTunes Search API for the three mobile ones, so every file is the publisher's
+  // current official image rather than something scraped off a fan wiki.
+  //
+  // 400 is the widest any of these is ever painted: the face-out cover is 188 CSS px and
+  // the spines are 34-76px, so 400 covers both at 2x. The 200 is for the spines, which are
+  // a narrow centre-crop and never need more.
+  { file: "games/civ6.jpg", widths: [200, 400], quality: 82 },
+  { file: "games/genshin.jpg", widths: [200, 400], quality: 82 },
+  { file: "games/railway-empire.jpg", widths: [200, 400], quality: 82 },
+  { file: "games/mtg-arena.jpg", widths: [200, 400], quality: 82 },
+  { file: "games/minecraft.jpg", widths: [200, 400], quality: 82 },
+  { file: "games/clash-royale.jpg", widths: [200, 400], quality: 82 },
+  { file: "games/frostpunk.jpg", widths: [200, 400], quality: 82 },
+  { file: "games/cities-skylines-2.jpg", widths: [200, 400], quality: 82 },
 ];
 
 /**
