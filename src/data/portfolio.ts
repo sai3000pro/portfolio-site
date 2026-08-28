@@ -430,51 +430,54 @@ export const PROJECTS: Project[] = [
 ];
 
 /**
- * The second shelf: everything that is a real project but not a headline.
+ * A second-shelf project.
  *
- * Same `Project` shape on purpose — the cards reuse the constellation's fields rather than
- * inventing a parallel type — but these deliberately do NOT get a /projects/<slug> page.
- * scripts/routes.mjs derives those routes by slicing portfolio.ts from `export const
- * PROJECTS` to the next top-level `export`, so this array sits outside that window and is
- * invisible to the prerenderer, the sitemap and the OG-card generator. That is the whole
- * reason it is a separate export instead of a `featured: false` flag: a flag would need
- * routes.mjs, prerender.mjs and seo.mjs each taught to filter on it, and a miss in any one
- * of them ships an empty case-study page with a real canonical pointing at it.
+ * Deliberately NOT `Project`. It started as one, but the two constraints diverged: a
+ * constellation project always has somewhere to send you, while a course project has a
+ * link only if its code can be public — and for CS 241 and CS 246 it cannot be, because
+ * a searchable solution to a course assignment is a problem for whoever takes it next.
+ * Widening `Project.link` to optional would have loosened the type for the seven featured
+ * projects and their thirteen annotations to buy nothing; a narrower type for the shelf
+ * costs one interface and keeps `link` required exactly where it is genuinely required.
  *
- * The consequence to keep in mind: `link` is the only way out of one of these cards, so
- * every entry needs one that goes somewhere useful.
- *
- * The five games at the end have no screenshots and no Devpost page — they are older
- * standalone builds, two of them school projects — so they carry no `image` and the
- * gallery renders them as text cards. That is intentional: inventing a screenshot for a
- * Java game nobody has a capture of would be worse than the card admitting it has none.
+ * These get no /projects/<slug> page. scripts/routes.mjs derives those by slicing
+ * portfolio.ts from `export const PROJECTS` to the next top-level `export`, so this array
+ * sits outside that window and is invisible to the prerenderer, the sitemap and the OG
+ * generator by construction rather than by a flag three scripts would each have to honour.
  */
-export const MORE_PROJECTS: Project[] = [
-  {
-    title: "PatronPal",
-    description:
-      "A Chrome extension that splits one small monthly budget across the creators you actually watch, weighted by how much you watch them.",
-    tagline: "A Chrome extension that makes tipping creators effortless.",
-    details:
-      "PatronPal lowers the barrier between fans and the creators they love. Supporting fifteen creators at $10 each is $150 a month that nobody wants to spend, so PatronPal inverts it: you set aside one small amount and it allocates the slices. A Manifest V3 Chrome extension reads watch history and pages viewed from supported platforms, then weights each creator by how often they upload against how much of them you consume — a minute of someone posting daily is worth less than a minute of someone posting monthly. A Flask backend handles the split and a Tailwind + Flowbite dashboard lets you override any of it. Built at Hack the 6ix 2023.",
-    image: "assets/patronPal.png",
-    imageId: "patronpal",
-    link: "https://devpost.com/software/patronpal",
-    cta: "View on Devpost →",
-    photos: ["assets/derived/extension-800w.webp", "assets/derived/creators-800w.webp"],
-    photoCaptions: [
-      "The extension surfaces a support panel over the video you are already watching.",
-      "The dashboard ranks creators by time watched and shows what each one is being paid.",
-    ],
-    tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind"],
-  },
+export interface ShelfProject {
+  title: string;
+  description: string;
+  /** Card thumbnail. Absent for the projects nobody has a capture of. */
+  image?: string;
+  imageId?: GeneratedImageId;
+  /** Where the card sends you. Absent when there is nowhere public to send anyone. */
+  link?: string;
+  /** Label for `link`. */
+  cta?: string;
+  /**
+   * Shown in place of the link when there is none, so a card without one still says why
+   * rather than just ending. "Code available on request" is a sentence a reader can act
+   * on; a dead card is not.
+   */
+  linkNote?: string;
+  repo?: string;
+  /** Extra frames, opened in the shared lightbox from the card's thumbnail. */
+  photos?: string[];
+  photoCaptions?: string[];
+  tech?: string[];
+}
+
+/**
+ * Ordered strongest-first rather than chronologically, with one layout concession: the two
+ * cards that have screenshots lead, because a grid row sizes to its tallest card and
+ * putting both images in the first row keeps the text-only cards below it compact.
+ */
+export const MORE_PROJECTS: ShelfProject[] = [
   {
     title: "SmartSkin",
     description:
       "A wearable that tracks humidity and temperature and warns people with eczema before a flare-up, grading local conditions 0–9. Built at GeeseHacks.",
-    tagline: "A wearable that sees an eczema flare-up coming.",
-    details:
-      "SmartSkin started because one of the team has eczema and was tired of checking several separate pages for the temperature and humidity that predict a flare-up. An Arduino-based wearable reads humidity and temperature and grades the environment on a 0–9 scale, sending the data to a Python backend that feeds both a React dashboard and a Chrome extension, so the number is one click away. It can also be stuck to a wall or a car rather than worn. Built at GeeseHacks.",
     image: "assets/smartskin/bench.jpg",
     imageId: "bench",
     link: "https://devpost.com/software/smartskin-sqmony",
@@ -495,13 +498,41 @@ export const MORE_PROJECTS: Project[] = [
     tech: ["Python", "React", "TypeScript", "Express", "Arduino", "Tailwind"],
   },
   {
-    title: "Pong",
+    title: "PatronPal",
     description:
-      "The 1972 arcade original rebuilt in Java — two paddles, one ball, first to five points wins.",
-    link: "https://github.com/sai3000pro/Pong",
-    cta: "View the source →",
-    repo: "https://github.com/sai3000pro/Pong",
-    tech: ["Java"],
+      "A Chrome extension that splits one small monthly budget across the creators you actually watch, weighted by how much you watch them. Built at Hack the 6ix 2023.",
+    image: "assets/patronPal.png",
+    imageId: "patronpal",
+    link: "https://devpost.com/software/patronpal",
+    cta: "View on Devpost →",
+    photos: ["assets/derived/extension-800w.webp", "assets/derived/creators-800w.webp"],
+    photoCaptions: [
+      "The extension surfaces a support panel over the video you are already watching.",
+      "The dashboard ranks creators by time watched and shows what each one is being paid.",
+    ],
+    tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind"],
+  },
+  {
+    title: "Mini-C Compiler",
+    description:
+      "A compiler for a subset of C, written in C++: tokenisation, LR(1) parsing on a pushdown automaton, semantic analysis over an AST, and code generation targeting MIPS assembly. Constant folding, function inlining and dead-code elimination on top — 21st of 300+ students for binary size. CS 241 at Waterloo.",
+    linkNote: "Course project — code available on request",
+    tech: ["C++", "Compilers", "MIPS"],
+  },
+  {
+    title: "Biquardis",
+    description:
+      "A Tetris-style game in C++ built on MVC, with an Observer-pattern game state to keep coupling down, event-driven 2D graphics over X11, custom keybinds, and smart pointers throughout so nothing leaks. CS 246 at Waterloo.",
+    linkNote: "Course project — code available on request",
+    tech: ["C++", "OOP", "MVC", "X11"],
+  },
+  {
+    title: "COVID-19 Spike Protein Plasmid",
+    description:
+      "A plasmid designed in Benchling to mass-produce SARS-CoV-2 spike protein for vaccine development, built from NCBI reference sequence NC_045512.2 and the pxP420 backbone.",
+    link: "https://benchling.com/s/seq-WpdLWcbE5lQy0nijXcfb",
+    cta: "View the sequence →",
+    tech: ["Benchling", "Recombinant DNA"],
   },
   {
     title: "Jump Whale",
@@ -513,6 +544,15 @@ export const MORE_PROJECTS: Project[] = [
     tech: ["Java"],
   },
   {
+    title: "TicTacToe Remastered",
+    description:
+      "Tic-tac-toe in C++ with the board size left up to you, so the win condition has to be worked out rather than hard-coded.",
+    link: "https://github.com/sai3000pro/TicTacToeRemastered",
+    cta: "View the source →",
+    repo: "https://github.com/sai3000pro/TicTacToeRemastered",
+    tech: ["C++"],
+  },
+  {
     title: "Townia and the Tyrant",
     description:
       "A text-based adventure in Java — save the town of Townia from a firedrake tyrant. Written as an ICS4U project.",
@@ -522,13 +562,13 @@ export const MORE_PROJECTS: Project[] = [
     tech: ["Java"],
   },
   {
-    title: "TicTacToe Remastered",
+    title: "Pong",
     description:
-      "Tic-tac-toe in C++ with the board size left up to you, so the win condition has to be worked out rather than hard-coded.",
-    link: "https://github.com/sai3000pro/TicTacToeRemastered",
+      "The 1972 arcade original rebuilt in Java — two paddles, one ball, first to five points wins.",
+    link: "https://github.com/sai3000pro/Pong",
     cta: "View the source →",
-    repo: "https://github.com/sai3000pro/TicTacToeRemastered",
-    tech: ["C++"],
+    repo: "https://github.com/sai3000pro/Pong",
+    tech: ["Java"],
   },
   {
     title: "The Simon Game",

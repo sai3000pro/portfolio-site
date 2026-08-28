@@ -28,12 +28,131 @@ export interface Volunteering {
   /** YYYY-MM, or null while ongoing. */
   end: string | null;
   location?: string;
-  description: string;
+  /**
+   * Optional, and that is the point: several of these roles are elected positions with no
+   * write-up anywhere, and the alternative to an empty field is inventing duties for a
+   * real person on a real résumé. A role with a title, an organisation and a date range
+   * is already a true and useful claim; the card renders it without a paragraph.
+   */
+  description?: string;
   highlights?: string[];
   url?: string;
 }
 
-export const VOLUNTEERING: Volunteering[] = [];
+export const VOLUNTEERING: Volunteering[] = [
+  {
+    organisation: "Holland Bloorview Kids Rehabilitation Hospital",
+    role: "Therapeutic Recreation Volunteer",
+    start: "2023-06",
+    end: null,
+    location: "Toronto, ON",
+    description:
+      "Worked closely with Therapeutic Recreation staff to engage patients in activities designed to support physical and social rehabilitation.",
+    highlights: [
+      "Provided one-on-one support and led group activities, including a paper-plane-making event for over 100 clients and their families as part of the Robotics program.",
+      "Facilitated play-based learning in the Therapeutic Playroom, assisted with event programming, and offered bedside support to patients recovering from brain and orthopedic injuries.",
+      "Demonstrated swimming skills in the Aquatics program, contributing to clients' overall rehabilitation and well-being.",
+    ],
+    url: "https://hollandbloorview.ca",
+  },
+  {
+    organisation: "Mathematics Society, University of Waterloo",
+    role: "Director",
+    start: "2024-09",
+    end: null,
+    location: "Waterloo, ON",
+    url: "https://mathsoc.uwaterloo.ca",
+  },
+  {
+    organisation: "Mathematics Society, University of Waterloo",
+    role: "Computer Science Representative",
+    start: "2024-09",
+    end: null,
+    location: "Waterloo, ON",
+    url: "https://mathsoc.uwaterloo.ca",
+  },
+  {
+    organisation: "Mathematics Society, University of Waterloo",
+    role: "At-Large Representative",
+    start: "2024-05",
+    end: "2024-08",
+    location: "Waterloo, ON",
+    url: "https://mathsoc.uwaterloo.ca",
+  },
+  {
+    organisation: "University of Waterloo",
+    role: "Math Orientation Director",
+    start: "2024-04",
+    end: null,
+    location: "Waterloo, ON",
+    description:
+      "Served as a Devisor, Tie Guard and Black Tie across first-year orientation — planning the events, running them through the week, and manning the help desk.",
+    url: "https://uwaterloo.ca",
+  },
+  {
+    organisation: "Mathematics Endowment Fund, University of Waterloo",
+    role: "First Year Representative",
+    start: "2024-01",
+    end: "2024-04",
+    location: "Waterloo, ON",
+    url: "https://uwaterloo.ca/math-endowment-fund/",
+  },
+  {
+    organisation: "JAMHacks",
+    role: "JAMHacks 7 Volunteer",
+    start: "2023-06",
+    end: "2023-06",
+    location: "Waterloo, ON",
+    url: "https://jamhacks.ca",
+  },
+  {
+    organisation: "Toronto Public Library",
+    role: "Leading to Reading Program Mentor",
+    start: "2021-02",
+    end: "2022-06",
+    location: "Toronto, ON",
+    url: "https://www.torontopubliclibrary.ca",
+  },
+];
+
+/**
+ * The same entries, grouped by organisation.
+ *
+ * The page groups rather than listing flat because four of these roles are at two
+ * institutions, and a flat reverse-chronological list renders "Mathematics Society" three
+ * times in a column — which reads as repetition rather than as a progression through an
+ * organisation. Grouping also gives the section a shape the experience timeline does not
+ * have, which is the point: it is a different kind of history and should not look like a
+ * second copy of the résumé.
+ *
+ * Groups are ordered by their most recent role, and roles within a group keep
+ * getSortedVolunteering()'s order, so "currently a Director" sits above "was an At-Large
+ * Representative" without either list needing its own sort.
+ */
+export interface VolunteeringGroup {
+  organisation: string;
+  url?: string;
+  location?: string;
+  roles: Volunteering[];
+}
+
+export function getVolunteeringGroups(): VolunteeringGroup[] {
+  const groups = new Map<string, VolunteeringGroup>();
+  for (const entry of getSortedVolunteering()) {
+    const existing = groups.get(entry.organisation);
+    if (existing) {
+      existing.roles.push(entry);
+    } else {
+      groups.set(entry.organisation, {
+        organisation: entry.organisation,
+        url: entry.url,
+        location: entry.location,
+        roles: [entry],
+      });
+    }
+  }
+  return [...groups.values()];
+}
 
 /** Most recent first. Ongoing roles (end === null) sort above finished ones. */
 export function getSortedVolunteering(): Volunteering[] {
