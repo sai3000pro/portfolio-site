@@ -56,6 +56,24 @@ jobs:
       - name: Format check
         run: bun run format:check
 
+      # Refreshes src/data/github-stats.json in the runner's working tree so the star and
+      # language chips on the project cards are current as of THIS build, not as of the
+      # last time someone remembered to run the script by hand. The result is deliberately
+      # not committed back: the file in git is the fallback, and this step is the refresh.
+      #
+      # Placed after the checks and before the build because it mutates a file the build
+      # reads — running it earlier would make `format:check` and `typecheck` grade fetched
+      # data instead of the committed source.
+      #
+      # The script never fails the build: on a network error, a 403/429 rate-limit or a
+      # 404 it warns, preserves the committed JSON and exits 0. That is why there is no
+      # `continue-on-error` here — a non-zero exit would be a real bug worth failing on.
+      # The token only raises the rate limit; the unauthenticated path works too.
+      - name: Refresh GitHub repo stats
+        run: bun run stats
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
       - name: Build
         run: bun run build:static
         env:

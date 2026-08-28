@@ -44,7 +44,7 @@ const STAGGER_CAP = 12;
  */
 const FIRST_ROW_EAGER = 3;
 
-/** Used when a photo has no measured aspect. Every generated photo has one; placeholders too. */
+/** Used when a photo has no measured aspect. Every generated photo has one, so this is a guard. */
 const DEFAULT_ASPECT = 4 / 3;
 
 /** Re-express an `hsl(h s l)` accent as `hsl(h s l / a)` so borders/glow can be tinted subtly. */

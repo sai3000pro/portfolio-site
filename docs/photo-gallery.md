@@ -246,12 +246,16 @@ tiles at every width ≥768px, so this is precisely row one and no more. On the 
 viewports the row packs 2-up and this over-eagers one image, which is far cheaper than
 lazy-loading the LCP one. If the contract is renegotiated, this number moves with it.
 
-## Placeholders and the photo-count trap
+## The photo-count trap
 
-`src/data/hobbies.ts` tops the collection up to `MIN_TILES` with generated SVG placeholders.
-That was **24** for the belts (they needed enough tiles to fill a wide viewport twice over or
-the wrap seam showed); it is **12** now, purely so the page reads as a few rows deep at desktop
-width. The grid itself is correct with one photo.
+`src/data/hobbies.ts` used to top the collection up to a `MIN_TILES` floor with generated SVG
+placeholders — **24** for the belts (they needed enough tiles to fill a wide viewport twice
+over or the wrap seam showed), later **12**, purely so the page read as a few rows deep at
+desktop width. That top-up is gone: the collection passed 12 long ago, so the branch was
+unreachable, and the grid is correct with one photo anyway. `HOBBY_PHOTOS` is now exactly the
+real photos, in hanging order.
+
+The trap it was entangled with is still live, which is why this section is.
 
 **This number is coupled to the achievement registry, and the coupling used to be silent.**
 `gallery-crawl` was `{ kind: "set", key: photosViewed, target: 15 }` and `completionist` is
@@ -264,9 +268,15 @@ like a badge nobody happens to have.
 ```ts
 const GALLERY_CRAWL_TARGET = Math.min(
   HOBBY_PHOTOS.length,
+  15,
   Math.max(5, Math.round(HOBBY_PHOTOS.length * 0.75)),
 );
 ```
+
+The literal `15` is a ceiling for the other direction. The `0.75` ratio was tuned against a
+dozen tiles; at 75 photos it asks for 56 distinct lightbox opens for an _uncommon_ badge, and
+a target nobody reaches takes `completionist` down with it just as surely as an impossible
+one does.
 
 The `min` against the collection size is the load-bearing clamp — the target can never exceed
 what exists. The description and hint interpolate the same constant, so the copy cannot
@@ -278,15 +288,16 @@ Two constraints on anyone touching this:
   in `workers/achievement-stats/src/index.ts`.
 - **Use `target`, never `members`.** Lowering a `target` only ever unlocks retroactively — it
   never revokes. A `members` list would revoke: adding a photo would un-earn the badge for
-  everyone who had it, and placeholder ids shift as real photos land.
+  everyone who had it.
 
 `achievements.ts` importing `hobbies.ts` is safe: `hobbies.ts` imports only
 `hobbies.generated.ts`, never back into `achievements.ts` (no cycle), and touches no `window`
 or `document`, so `achievements.ts` stays SSR-safe.
 
-Placeholders deliberately carry no `location`, `date` or `gear`. The lightbox prints those
-verbatim as capture data, and the real photos have none — seeding placeholders with sample
-EXIF meant the only photos claiming a camera and a place were the ones that never existed.
+One rule outlived the placeholders and applies to real photos too: never seed `location`,
+`date` or `gear` with sample values. The lightbox prints them verbatim as capture data, and
+these files carry no GPS EXIF — the rest was stripped on import. While placeholders existed,
+the only photos on the wall claiming a camera and a place were the ones that never existed.
 
 ## Codebase traps this feature ran into
 

@@ -486,77 +486,6 @@ const REAL_PHOTOS: HobbyPhoto[] = GENERATED_PHOTOS.map((g) => {
   };
 });
 
-const TILE_W = 640;
-const TILE_H = 480;
-
-/**
- * An SVG data URI standing in for a real photo.
- *
- * Deliberately a real <img> rather than a styled <div>: placeholders then travel the exact
- * same decode/paint path as real photos, so animation timing tuned today still holds once
- * the actual files land.
- */
-function placeholderSrc(label: string, hue: number): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${TILE_W}" height="${TILE_H}" viewBox="0 0 ${TILE_W} ${TILE_H}">
-<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-<stop offset="0" stop-color="hsl(${hue} 70% 34%)"/><stop offset="1" stop-color="hsl(${(hue + 26) % 360} 76% 11%)"/>
-</linearGradient></defs>
-<rect width="${TILE_W}" height="${TILE_H}" fill="url(#g)"/>
-<text x="50%" y="52%" text-anchor="middle" font-family="Sora, system-ui, sans-serif" font-size="34" font-weight="600" fill="rgba(255,255,255,0.62)" letter-spacing="2">${label}</text>
-</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-const HUES = [205, 265, 12, 158, 38, 320];
-const TAGS: HobbyTag[] = ["landscape", "water", "sky", "forest", "urban", "travel"];
-
-/**
- * Placeholders carry no `location`, `date` or `gear` — on purpose.
- *
- * They used to be seeded from sample EXIF arrays ("Monaco", "Sony A7 IV - 35mm") so the
- * lightbox metadata row had something to render against. But the lightbox prints those
- * values verbatim, as capture data, and the real photos have none of them: the files carry
- * no GPS EXIF and the rest was stripped on import. The result was that the only photos on
- * the wall claiming a camera and a place were the ones that never existed — exactly the
- * invented facts the note at the top of PHOTO_TEXT says not to put on the page.
- *
- * The lightbox filters the row's items and skips the whole <p> when none survive, so a
- * placeholder simply shows its caption with no metadata line beneath it.
- */
-function makePlaceholders(count: number, offset = 0): HobbyPhoto[] {
-  return Array.from({ length: count }, (_, k) => {
-    const i = k + offset;
-    const tag = TAGS[i % TAGS.length];
-    const label = `${tag} ${String(i + 1).padStart(2, "0")}`;
-    const hue = HUES[i % HUES.length];
-    return {
-      id: `placeholder-${i}`,
-      src: placeholderSrc(label, hue),
-      alt: `Placeholder tile ${i + 1} — a ${tag} photo will go here`,
-      hobby: tag,
-      aspect: TILE_W / TILE_H,
-      accent: `hsl(${hue} 85% 62%)`,
-    };
-  });
-}
-
-/**
- * How many tiles the gallery is topped up to while real photos are still being added.
- *
- * This used to be 24, because the conveyor belts needed enough tiles to fill a wide
- * viewport twice over or the wrap seam showed on screen. The justified grid has no seam
- * and no minimum — it is correct with one photo — so the only remaining job is to keep the
- * page from looking like an accident, i.e. a few rows deep at a desktop width. Twelve does
- * that with 7 real photos and 5 placeholders.
- *
- * NOT free to lower further without looking at src/data/achievements.ts: `gallery-crawl`
- * derives its target from this collection's size, and `completionist` requires every other
- * badge, so a collection smaller than the crawl target would make both permanently
- * unearnable by everyone. The target is derived rather than hardcoded precisely so the two
- * numbers can no longer disagree — but a target of 2 would still be a silly achievement.
- */
-const MIN_TILES = 12;
-
 /**
  * Hand-picked display order. The generator emits photos alphabetically, which is a filing
  * order, not a hanging order — this is the hanging order.
@@ -641,13 +570,19 @@ const PHOTO_ORDER: string[] = [
 const ORDER_RANK = new Map(PHOTO_ORDER.map((id, i) => [id, i]));
 const UNRANKED = Number.MAX_SAFE_INTEGER;
 
-const ORDERED_PHOTOS: HobbyPhoto[] = [...REAL_PHOTOS].sort(
+/**
+ * The wall, in hanging order — every real photo, nothing else.
+ *
+ * This used to be topped up to a floor of 12 tiles with generated SVG placeholders, from
+ * back when the collection was 7 photos and a two-row wall read as a broken page. The
+ * branch has been unreachable since the collection passed 12, so it is gone rather than
+ * left here making a claim about the wall that stopped being true a long time ago.
+ *
+ * Nothing downstream wants a floor put back. `.photo-grid` is justified flexbox with no
+ * minimum — it is correct with one photo — and `gallery-crawl` in src/data/achievements.ts
+ * clamps its target with `Math.min(HOBBY_PHOTOS.length, …)`, so it can never ask for more
+ * photos than exist no matter how far the collection is trimmed.
+ */
+export const HOBBY_PHOTOS: HobbyPhoto[] = [...REAL_PHOTOS].sort(
   (a, b) => (ORDER_RANK.get(a.id) ?? UNRANKED) - (ORDER_RANK.get(b.id) ?? UNRANKED),
 );
-
-export const HOBBY_PHOTOS: HobbyPhoto[] = [
-  ...ORDERED_PHOTOS,
-  ...(ORDERED_PHOTOS.length < MIN_TILES
-    ? makePlaceholders(MIN_TILES - ORDERED_PHOTOS.length, ORDERED_PHOTOS.length)
-    : []),
-];

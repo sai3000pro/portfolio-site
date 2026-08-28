@@ -192,8 +192,7 @@ const COMPANIES = [...new Set(EXPERIENCES.map((e) => e.company))];
  * Safe to change downward at any time: a `set` rule is re-evaluated against stored members,
  * so lowering a target only ever unlocks retroactively. It never revokes. (Note it is a
  * `target`, not a `members` list, precisely because a members list WOULD revoke — adding a
- * photo would un-earn the badge for everyone who had it, and placeholder ids shift as real
- * photos land.)
+ * photo would un-earn the badge for everyone who had it.)
  */
 const GALLERY_CRAWL_TARGET = Math.min(
   HOBBY_PHOTOS.length,
