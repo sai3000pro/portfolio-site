@@ -34,6 +34,34 @@ export const ROLES: string[] = [
   "ML Researcher.",
 ];
 
+/**
+ * An employer's or institution's own logo, shown on a plate in the "learn more" overlay.
+ *
+ * NOT MINE, and deliberately not edited. Each file under public/assets/logos/ is the
+ * organisation's current official lockup, trimmed of surrounding whitespace and otherwise
+ * untouched -- no recolouring, no redrawing, no forcing them all into one shape. Using a
+ * company's mark to say "this is where I worked" is nominative use, the same thing a CV or
+ * a LinkedIn profile does; `owner` records who it belongs to and the overlay puts that in
+ * the alt text and the image title. If an owner ever objects the fix is to delete the
+ * entry, which costs nothing: `logos` is optional, and an experience without one renders
+ * exactly as it did before these existed.
+ */
+export interface ExperienceLogo {
+  src: string;
+  id?: GeneratedImageId;
+  /** Rights holder, verbatim. Goes into the alt text. */
+  owner: string;
+  /**
+   * Which plate the mark needs behind it.
+   *
+   * The one thing a logo cannot tell us at render time. Cambridge's and Waterloo's
+   * wordmarks are black ink and disappear on a dark panel; the Alt Protein Project only
+   * publishes a white-ink version, which disappears on a light one. So each mark names the
+   * background it was drawn for and the plate follows the artwork, not the page theme.
+   */
+  plate: "light" | "dark";
+}
+
 export interface Experience {
   title: string;
   company: string;
@@ -44,6 +72,11 @@ export interface Experience {
   coords: { lat: number; lon: number } | null;
   // Extra content shown in the "learn more" overlay.
   details?: string;
+  /**
+   * The organisation's mark(s). Usually one; the Cambridge/Waterloo research post is a
+   * genuine joint appointment, so it carries both rather than picking a side.
+   */
+  logos?: ExperienceLogo[];
   photos?: string[];
 }
 
@@ -56,6 +89,14 @@ export const EXPERIENCES: Experience[] = [
       "Engineering an end-to-end interview-scheduling system using Next.js, Go, PostgreSQL, and AWS, bridging candidate and recruiter workflows through dynamic availability mapping, SSO integration, and centralized job-round management.",
     location: "Toronto, ON",
     coords: { lat: 43.6532, lon: -79.3832 },
+    logos: [
+      {
+        src: "assets/logos/capital-one.png",
+        id: "capital-one",
+        owner: "Capital One Financial Corporation",
+        plate: "light",
+      },
+    ],
     photos: [],
   },
   {
@@ -66,6 +107,20 @@ export const EXPERIENCES: Experience[] = [
       "Engineered active-learning pipelines for GEDI biomass estimation, demonstrating that spatial sampling mitigates the cold-start problem by outperforming random baseline strategies by 27% under extreme data starvation (N=25). Built a 2D landscape generator using Gaussian Random Fields to simulate 3,000+ data points, modelling both smooth and chaotic environments to evaluate the situational superiority of different learning strategies. Architected a Python/SciPy evaluation suite to benchmark ML strategies, showing that Attentive Neural Processes (ANPs) outperformed Random Forests by more than 3× accuracy (R²) in chaotic environments under data starvation (<1% sample size).",
     location: "Cambridge, England",
     coords: { lat: 52.2053, lon: 0.1218 },
+    logos: [
+      {
+        src: "assets/logos/cambridge.png",
+        id: "cambridge",
+        owner: "University of Cambridge",
+        plate: "light",
+      },
+      {
+        src: "assets/logos/waterloo.png",
+        id: "waterloo",
+        owner: "University of Waterloo",
+        plate: "light",
+      },
+    ],
     photos: [],
   },
   {
@@ -76,16 +131,32 @@ export const EXPERIENCES: Experience[] = [
       "Automated case-handling by building an email classifier with RAG-based semantic search and a RESTful Node.js API. Resolved 1,000+ exposed secrets by engineering a GitGuardian/JWT remediation pipeline that won an org-wide tournament. Saved 100+ hr/wk by automating 300+-instance database deployments in GitHub Actions with rollback and secret handling. Bolstered preemptive security and development velocity by piloting a GitHub bot for OWASP vulnerability auditing and building a natural-language-to-workflow app via Mastra AI. Optimized reliability for 30+ apps by refining and documenting multi-cloud designs (OCI, AWS, Azure, GCP) alongside dev teams.",
     location: "Toronto, ON",
     coords: { lat: 43.6532, lon: -79.3832 },
+    logos: [
+      {
+        src: "assets/logos/marsh-mclennan.png",
+        id: "marsh-mclennan",
+        owner: "Marsh & McLennan Companies",
+        plate: "light",
+      },
+    ],
     photos: [],
   },
   {
     title: "Machine Learning Researcher",
-    company: "Alternative Protein Project",
+    company: "The Waterloo Alt Protein Project",
     duration: "Jul 2024 — Aug 2025",
     description:
       "Extracted genomic insights for cultivated meat by architecting an end-to-end RNA-seq workflow to analyze public datasets. Optimized analysis of large-scale public single-cell datasets by engineering a reproducible Python pipeline (Scanpy, anndata, pandas, scikit-learn, rpy2) that enables efficient QC, clustering, and visualization of large datasets.",
     location: "Waterloo, ON",
     coords: { lat: 43.4643, lon: -80.5204 },
+    logos: [
+      {
+        src: "assets/logos/alt-protein-project.png",
+        id: "alt-protein-project",
+        owner: "The Waterloo Alt Protein Project / The Good Food Institute",
+        plate: "dark",
+      },
+    ],
     photos: [],
   },
   {
@@ -96,6 +167,14 @@ export const EXPERIENCES: Experience[] = [
       "Eliminated unreliable API dependencies for term lookups, stabilizing the interface via memoized utility functions. Streamlined admin workflows by engineering a multi-select UI and RESTful backend endpoints for bulk exam management.",
     location: "Waterloo, ON",
     coords: { lat: 43.4643, lon: -80.5204 },
+    logos: [
+      {
+        src: "assets/logos/mathsoc.png",
+        id: "mathsoc",
+        owner: "Mathematics Society, University of Waterloo",
+        plate: "light",
+      },
+    ],
     photos: [],
   },
   {
@@ -106,6 +185,14 @@ export const EXPERIENCES: Experience[] = [
       "Increased organic traffic to core financial pages by reducing load times by 15% and refining technical SEO — through API optimizations, front-end lazy loading, and metadata enhancements to maximize indexing and retention. Drove a 32.4% email open rate and scaled web presence by deploying 80+ pages and email blasts to support product launches. Saved 100+ hr/yr by automating EN/FR content synchronization and internal linking via custom Python and PHP scripts.",
     location: "Toronto, ON",
     coords: { lat: 43.6532, lon: -79.3832 },
+    logos: [
+      {
+        src: "assets/logos/global-x.png",
+        id: "global-x",
+        owner: "Global X Investments Canada Inc. / Mirae Asset",
+        plate: "dark",
+      },
+    ],
     photos: [],
   },
   {
@@ -118,6 +205,14 @@ export const EXPERIENCES: Experience[] = [
     coords: { lat: 43.4643, lon: -80.5204 },
     details:
       "Within the University of Waterloo's LEARN LMS, I built and tested accessible web pages and internal tools, focusing on WCAG-compliant markup and repeatable QA. I also wrote custom VBA utilities that automated tedious manual steps, improving the team's day-to-day productivity.",
+    logos: [
+      {
+        src: "assets/logos/waterloo.png",
+        id: "waterloo",
+        owner: "University of Waterloo",
+        plate: "light",
+      },
+    ],
     photos: [],
   },
   {
@@ -130,6 +225,14 @@ export const EXPERIENCES: Experience[] = [
     coords: null,
     details:
       "At SlimeScholars, an early-stage gamified learning platform, I engineered modular front-end features with React and Tailwind, introduced smart caching to cut latency, and helped harden the product for its alpha launch. Working remotely, I collaborated closely with a small founding team across design and product.",
+    logos: [
+      {
+        src: "assets/logos/slimescholars.png",
+        id: "slimescholars",
+        owner: "SlimeScholars",
+        plate: "light",
+      },
+    ],
     photos: [],
   },
 ];

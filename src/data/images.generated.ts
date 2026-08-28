@@ -92,7 +92,15 @@ export type GeneratedImageId =
   | "minecraft"
   | "clash-royale"
   | "frostpunk"
-  | "cities-skylines-2";
+  | "cities-skylines-2"
+  | "capital-one"
+  | "cambridge"
+  | "waterloo"
+  | "marsh-mclennan"
+  | "alt-protein-project"
+  | "mathsoc"
+  | "global-x"
+  | "slimescholars";
 
 export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
   logo: {
@@ -698,6 +706,80 @@ export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
       { src: "assets/derived/cities-skylines-2-200w.webp", width: 200, height: 300 },
       { src: "assets/derived/cities-skylines-2-400w.webp", width: 400, height: 600 },
     ],
+  },
+  "capital-one": {
+    id: "capital-one",
+    original: "assets/logos/capital-one.png",
+    cropped: false,
+    aspect: 2.7778,
+    sources: [
+      { src: "assets/derived/capital-one-400w.webp", width: 400, height: 144 },
+      { src: "assets/derived/capital-one-800w.webp", width: 800, height: 288 },
+    ],
+  },
+  cambridge: {
+    id: "cambridge",
+    original: "assets/logos/cambridge.png",
+    cropped: false,
+    aspect: 4.9689,
+    sources: [
+      { src: "assets/derived/cambridge-400w.webp", width: 400, height: 81 },
+      { src: "assets/derived/cambridge-800w.webp", width: 800, height: 161 },
+    ],
+  },
+  waterloo: {
+    id: "waterloo",
+    original: "assets/logos/waterloo.png",
+    cropped: false,
+    aspect: 3.3484,
+    sources: [
+      { src: "assets/derived/waterloo-400w.webp", width: 400, height: 119 },
+      { src: "assets/derived/waterloo-519w.webp", width: 519, height: 155 },
+    ],
+  },
+  "marsh-mclennan": {
+    id: "marsh-mclennan",
+    original: "assets/logos/marsh-mclennan.png",
+    cropped: false,
+    aspect: 11.9403,
+    sources: [
+      { src: "assets/derived/marsh-mclennan-400w.webp", width: 400, height: 34 },
+      { src: "assets/derived/marsh-mclennan-800w.webp", width: 800, height: 67 },
+    ],
+  },
+  "alt-protein-project": {
+    id: "alt-protein-project",
+    original: "assets/logos/alt-protein-project.png",
+    cropped: false,
+    aspect: 3.9801,
+    sources: [
+      { src: "assets/derived/alt-protein-project-400w.webp", width: 400, height: 101 },
+      { src: "assets/derived/alt-protein-project-800w.webp", width: 800, height: 201 },
+    ],
+  },
+  mathsoc: {
+    id: "mathsoc",
+    original: "assets/logos/mathsoc.png",
+    cropped: false,
+    aspect: 1,
+    sources: [{ src: "assets/derived/mathsoc-287w.webp", width: 287, height: 287 }],
+  },
+  "global-x": {
+    id: "global-x",
+    original: "assets/logos/global-x.png",
+    cropped: false,
+    aspect: 2.9545,
+    sources: [
+      { src: "assets/derived/global-x-400w.webp", width: 400, height: 135 },
+      { src: "assets/derived/global-x-650w.webp", width: 650, height: 220 },
+    ],
+  },
+  slimescholars: {
+    id: "slimescholars",
+    original: "assets/logos/slimescholars.png",
+    cropped: false,
+    aspect: 1,
+    sources: [{ src: "assets/derived/slimescholars-180w.webp", width: 180, height: 180 }],
   },
 };
 

@@ -221,6 +221,26 @@ const DERIVATIVE_TARGETS = [
   { file: "games/clash-royale.jpg", widths: [200, 400], quality: 82 },
   { file: "games/frostpunk.jpg", widths: [200, 400], quality: 82 },
   { file: "games/cities-skylines-2.jpg", widths: [200, 400], quality: 82 },
+
+  // Employer and institution logos for the experience overlays. Every one of these is
+  // somebody else's registered mark, used here to identify where the work happened —
+  // nominative use, the same thing a CV does. Each is the owner's current official
+  // lockup, taken from Wikimedia Commons where the file is public domain or CC-BY-SA and
+  // from the organisation's own site otherwise, and each is credited in EXPERIENCE_LOGOS.
+  // They are stored untouched apart from a whitespace trim, so the plate behind them does
+  // the visual evening-up rather than any edit to the artwork.
+  //
+  // 400 is the widest a plate ever paints (the overlay column tops out near 406 CSS px),
+  // so 800 is the 2x. Quality is higher than the photographs because these are flat art
+  // with hard edges, where WebP's ringing shows up on thin letterforms first.
+  { file: "logos/capital-one.png", widths: [400, 800], quality: 88 },
+  { file: "logos/cambridge.png", widths: [400, 800], quality: 88 },
+  { file: "logos/waterloo.png", widths: [400, 800], quality: 88 },
+  { file: "logos/marsh-mclennan.png", widths: [400, 800], quality: 88 },
+  { file: "logos/alt-protein-project.png", widths: [400, 800], quality: 88 },
+  { file: "logos/mathsoc.png", widths: [400, 800], quality: 88 },
+  { file: "logos/global-x.png", widths: [400, 800], quality: 88 },
+  { file: "logos/slimescholars.png", widths: [400, 800], quality: 88 },
 ];
 
 /**
