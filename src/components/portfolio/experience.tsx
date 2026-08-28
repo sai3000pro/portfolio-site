@@ -254,6 +254,7 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
 
   const photos = (exp.photos ?? []).slice(0, 2);
   const logos = exp.logos ?? [];
+  const logoOnly = logos.length > 0 && photos.length === 0;
 
   return (
     <motion.div
@@ -311,8 +312,19 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
           style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}
         >
           <div className="grid grid-cols-1 md:grid-cols-2">
-            {/* logos and photos — left */}
-            <div className="flex flex-col gap-3 p-3">
+            {/*
+              logos and photos — left
+
+              Three states, not two. A logo with no photographs is a finished column, not a
+              half-empty one: the "coming soon" tile only earns its space when the column
+              would otherwise be blank, and promising photographs for a role that may never
+              have any just dates the page. So the tile appears for an experience with
+              neither, the logo centres itself when it is the only thing here, and both
+              stack from the top once photographs do arrive.
+            */}
+            <div
+              className={`flex flex-col gap-3 p-3 ${logoOnly ? "justify-center" : ""}`.trimEnd()}
+            >
               {logos.length > 0 && (
                 <div className="flex gap-3">
                   {logos.map((logo) => (
@@ -320,18 +332,17 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
                   ))}
                 </div>
               )}
-              {photos.length > 0 ? (
-                photos.map((src, i) => (
-                  <img
-                    key={i}
-                    src={assetUrl(src)}
-                    alt={`${exp.title} — ${i + 1}`}
-                    loading="lazy"
-                    className="w-full rounded-xl object-cover"
-                    style={{ aspectRatio: photos.length === 2 ? "4 / 3" : "3 / 4" }}
-                  />
-                ))
-              ) : (
+              {photos.map((src, i) => (
+                <img
+                  key={i}
+                  src={assetUrl(src)}
+                  alt={`${exp.title} — ${i + 1}`}
+                  loading="lazy"
+                  className="w-full rounded-xl object-cover"
+                  style={{ aspectRatio: photos.length === 2 ? "4 / 3" : "3 / 4" }}
+                />
+              ))}
+              {photos.length === 0 && logos.length === 0 && (
                 <div
                   className="flex-1 rounded-xl grid place-items-center text-muted-portfolio"
                   style={{
