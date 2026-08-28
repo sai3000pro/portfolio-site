@@ -1,16 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { absoluteUrl, ogImageUrl } from "@/lib/site-url";
+import { totalTrackedHoursLabel } from "@/data/gaming";
 import { PageShell } from "@/components/portfolio/hobby-hub";
+import { GameShelf } from "@/components/portfolio/game-shelf";
 import { Reveal, Section, SectionHeading } from "@/components/portfolio/section";
 
-// New route, split out alongside /gallery, /blog and /volunteering when /hobbies became
-// a hub. The content does not exist yet, so this page says exactly that rather than
-// inventing a list of games — the same honesty the empty states in blog-list.tsx and
-// volunteering.tsx already use. The route ships now so the hub has four real links and
-// the URL, canonical and social card are settled before the writing lands.
+// Split out alongside /gallery, /blog and /volunteering when /hobbies became a hub. It
+// shipped as an honest empty state and now holds the shelf; the URL, canonical and social
+// card were settled first precisely so filling it in changed nothing but the body.
 const TITLE = "Gaming — Saivenkat Jilla";
-const DESCRIPTION = "A page about gaming — still being put together.";
+const DESCRIPTION =
+  "The games I keep coming back to, shelved by hours played — Civilization VI at the centre.";
 
 /**
  * This page's own canonical and social card. Both are required, not optional polish:
@@ -44,17 +45,32 @@ function Gaming() {
       <Section id="gaming">
         <SectionHeading as="h1" immediate eyebrow="Downtime" title="Gaming" />
 
-        <Reveal immediate delay={0.14}>
+        <Reveal immediate delay={0.1}>
           <p
             className="mx-auto text-center text-muted-portfolio"
             style={{
-              marginTop: "clamp(28px,4vh,44px)",
-              maxWidth: 560,
+              marginTop: "clamp(24px,3.5vh,38px)",
+              maxWidth: 620,
               fontSize: 16,
               lineHeight: 1.7,
+              textWrap: "pretty",
             }}
           >
-            Nothing here yet — this page is still being put together.
+            Mostly strategy, and mostly the kind you lose an evening to by accident. Each book below
+            is a game and its thickness is the hours on the clock, so the shelf is roughly honest
+            about where the time went.
+          </p>
+        </Reveal>
+
+        <GameShelf />
+
+        <Reveal delay={0.1}>
+          <p
+            className="mx-auto text-center text-muted-portfolio"
+            style={{ marginTop: "clamp(26px,3.5vh,40px)", maxWidth: 620, fontSize: 14 }}
+          >
+            {totalTrackedHoursLabel()} tracked hours, and Cities: Skylines II leaning at the end
+            waiting its turn.
           </p>
         </Reveal>
       </Section>

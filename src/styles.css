@@ -765,3 +765,46 @@ body {
     transition: none;
   }
 }
+
+/* ── Games shelf ───────────────────────────────────────────────────────────────
+ *
+ * Books lift slightly off the shelf on hover, the way you tilt one out to read the
+ * spine. The transform is on the anchor rather than the <li> so the shelf row's
+ * `align-items: flex-end` keeps every book seated on the plank while it moves.
+ *
+ * `will-change` is deliberately absent: there are only nine of these and promoting
+ * every one to its own layer for an interaction most visitors never trigger costs
+ * more than the animation saves.
+ */
+.game-spine {
+  transition:
+    transform 0.22s ease,
+    filter 0.22s ease;
+}
+
+.game-spine:hover,
+.game-spine:focus-visible {
+  transform: translateY(-9px);
+  filter: brightness(1.08);
+}
+
+/* The leaning book keeps its tilt while it lifts — without this the hover rule's
+   transform would replace the rotation and stand it upright mid-animation. */
+.game-spine[style*="rotate"]:hover,
+.game-spine[style*="rotate"]:focus-visible {
+  transform: translateY(-9px) rotate(5.5deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game-spine {
+    transition: none;
+  }
+  .game-spine:hover,
+  .game-spine:focus-visible {
+    transform: none;
+  }
+  .game-spine[style*="rotate"]:hover,
+  .game-spine[style*="rotate"]:focus-visible {
+    transform: rotate(5.5deg);
+  }
+}

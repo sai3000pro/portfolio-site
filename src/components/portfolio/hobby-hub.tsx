@@ -88,7 +88,7 @@ const HUB_CARDS = [
     icon: Gamepad2,
     label: "Downtime",
     title: "Gaming",
-    description: "Nothing here yet — this page is still being put together.",
+    description: "A shelf of the games I keep coming back to, sized by hours played.",
   },
   {
     to: "/volunteering",
