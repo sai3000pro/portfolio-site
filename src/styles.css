@@ -766,45 +766,70 @@ body {
   }
 }
 
-/* ── Games shelf ───────────────────────────────────────────────────────────────
+/* ── Games display stand ──────────────────────────────────────────────────────
  *
- * Books lift slightly off the shelf on hover, the way you tilt one out to read the
- * spine. The transform is on the anchor rather than the <li> so the shelf row's
- * `align-items: flex-end` keeps every book seated on the plank while it moves.
+ * Two transitions, on two elements, for two different jobs.
  *
- * `will-change` is deliberately absent: there are only nine of these and promoting
+ * `.game-slot` is the turntable position — where a book sits on the ring, how big
+ * it is at that depth, and how it fades toward the back. That is what animates
+ * when a tier is turned.
+ *
+ * `.game-book` is the book itself, tipped back the way an easel holds it, lifting
+ * when you reach for one. The tilt lives here rather than inline because the hover
+ * rule has to restate the whole transform — a second `transform` in CSS replaces
+ * the first rather than adding to it, so an inline rotation would be discarded the
+ * moment the pointer arrived.
+ *
+ * Keeping them on separate elements is what lets a book be hovered mid-spin
+ * without the two transforms fighting over the same property.
+ *
+ * `will-change` is deliberately absent: there are eight of these and promoting
  * every one to its own layer for an interaction most visitors never trigger costs
  * more than the animation saves.
  */
-.game-spine {
+.game-slot {
   transition:
-    transform 0.22s ease,
-    filter 0.22s ease;
+    transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.42s ease;
 }
 
-.game-spine:hover,
-.game-spine:focus-visible {
-  transform: translateY(-9px);
-  filter: brightness(1.08);
+.game-book {
+  transform: perspective(700px) rotateX(7deg);
+  transform-origin: bottom center;
+  transition:
+    transform 0.24s ease,
+    filter 0.24s ease;
 }
 
-/* The leaning book keeps its tilt while it lifts — without this the hover rule's
-   transform would replace the rotation and stand it upright mid-animation. */
-.game-spine[style*="rotate"]:hover,
-.game-spine[style*="rotate"]:focus-visible {
-  transform: translateY(-9px) rotate(5.5deg);
+.game-book:hover,
+.game-book:focus-visible {
+  transform: perspective(700px) rotateX(2deg) translateY(-8px) scale(1.03);
+  filter: brightness(1.06);
+}
+
+.game-spin {
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.game-spin:hover {
+  background: var(--portfolio-surface) !important;
+}
+
+.game-spin:active {
+  transform: translateY(-50%) scale(0.92);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .game-spine {
+  .game-slot,
+  .game-book,
+  .game-spin {
     transition: none;
   }
-  .game-spine:hover,
-  .game-spine:focus-visible {
-    transform: none;
-  }
-  .game-spine[style*="rotate"]:hover,
-  .game-spine[style*="rotate"]:focus-visible {
-    transform: rotate(5.5deg);
+  .game-book:hover,
+  .game-book:focus-visible {
+    transform: perspective(700px) rotateX(7deg);
   }
 }

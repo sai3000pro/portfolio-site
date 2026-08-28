@@ -1,9 +1,15 @@
 /**
  * The games shelf.
  *
- * A bookshelf, because a shelf has a dimension a grid of covers does not: thickness. Each
- * book's spine width is the hours on the clock, so the fat books are the ones actually
- * lived in, and the shelf says something a list of titles cannot.
+ * Laid out as a tiered library display stand — the round, stepped table a library puts by
+ * the door with everything turned cover-forward on little easels. Three tiers, widest at
+ * the bottom, with the favourite alone on the top step.
+ *
+ * This replaced a row of CSS spines whose width encoded hours played. The spines were a
+ * nice trick and the wrong shape once there was real cover art to show: a spine hides the
+ * artwork by definition, and the point of having the publishers' covers is that people
+ * recognise them. Hours moved to a caption under each book, which says the same thing in
+ * fewer inferences.
  *
  * ON THE COVER ART. Every image under public/assets/games/ is the publisher's, not ours.
  * They are the official current images — Steam's own library art for the five Steam
@@ -26,20 +32,13 @@ import type { GeneratedImageId } from "./images.generated";
 export interface Game {
   title: string;
   /**
-   * Shorter label for the spine, when the real title does not fit down the side of a book.
-   * Real spines abbreviate for exactly this reason. `title` stays canonical and is what
-   * the link's tooltip and accessible name use.
-   */
-  shelfTitle?: string;
-  /**
    * What the small text at the foot of the spine says when there is no playtime. Defaults
    * to "untracked", which is the truthful answer for a game that keeps no counter.
    */
   status?: string;
   /**
-   * Hours played, used for spine thickness. `null` means the platform does not report a
-   * figure — Minecraft is not on Steam and keeps no counter worth quoting — and gets a
-   * median spine rather than a guess.
+   * Hours played. `null` means the platform reports no figure — Minecraft is not on Steam
+   * and keeps no counter worth quoting — and the caption says so rather than inventing one.
    */
   hours: number | null;
   /** Shown verbatim when the platform is more precise than a round number of hours. */
@@ -54,7 +53,10 @@ export interface Game {
   coverId?: GeneratedImageId;
   /** Rights holder, named in the alt text and the notice under the shelf. */
   publisher?: string;
-  /** Spine gradient (top → bottom) and its text colour. Also the backdrop behind a cover. */
+  /**
+   * Gradient standing in for the cover when there is none, so a book with no art is still
+   * a book on the stand rather than an empty rectangle.
+   */
   spine: { from: string; to: string; ink: string };
   /** One line on why it earns the shelf space. */
   note?: string;
@@ -107,7 +109,6 @@ export const SHELF: Game[] = [
     cover: "assets/games/mtg-arena.jpg",
     coverId: "mtg-arena",
     publisher: "Wizards of the Coast",
-    shelfTitle: "MTG Arena",
     hours: 200,
     url: "https://magic.wizards.com/en/mtgarena",
     spine: { from: "#8a4bb0", to: "#2d1040", ink: "#f7effc" },
@@ -157,29 +158,6 @@ export const NEXT_UP: Game = {
   status: "wishlist",
   note: "Next on the shelf.",
 };
-
-/** Thinnest and thickest a spine is allowed to get, in px. */
-const MIN_THICKNESS = 34;
-const MAX_THICKNESS = 76;
-/** Hours mapped to the full range. Anything at or above the top is equally thick. */
-const HOURS_CEILING = 400;
-
-/**
- * Spine thickness for a playtime.
- *
- * Square-rooted rather than linear: 400 hours is ten times 40, and a spine ten times wider
- * than its neighbour stops reading as a book and starts reading as a wall. The curve keeps
- * the ordering honest while compressing the top end, which is exactly what a real shelf
- * does — a 900-page novel is not ten times the width of a 90-page one.
- *
- * An unknown playtime lands in the middle of the range rather than at either end, so the
- * shelf never implies a number nobody has.
- */
-export function spineThickness(hours: number | null): number {
-  if (hours === null) return Math.round((MIN_THICKNESS + MAX_THICKNESS) / 2);
-  const ratio = Math.sqrt(Math.min(hours, HOURS_CEILING) / HOURS_CEILING);
-  return Math.round(MIN_THICKNESS + ratio * (MAX_THICKNESS - MIN_THICKNESS));
-}
 
 /** "399h 56m", "150 hours", or null when nothing is tracked. */
 export function playtimeLabel(game: Game): string | null {

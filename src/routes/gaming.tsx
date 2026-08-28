@@ -56,9 +56,9 @@ function Gaming() {
               textWrap: "pretty",
             }}
           >
-            Mostly strategy, and mostly the kind you lose an evening to by accident. Each book below
-            is a game and its thickness is the hours on the clock, so the shelf is roughly honest
-            about where the time went.
+            Mostly strategy, and mostly the kind you lose an evening to by accident. Laid out the
+            way a library does its display table — everything face-out, hours on the sticker, and
+            Civilization VI on the top step where they put the one they are pushing.
           </p>
         </Reveal>
 
