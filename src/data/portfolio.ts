@@ -145,6 +145,13 @@ export interface Project {
    * filename would silently break the moment a new original is added with a different case.
    */
   imageId?: GeneratedImageId;
+  /**
+   * What `image` actually depicts, for the hero tile the case-study gallery adds when a
+   * project has both a video and an image. Optional: without it the alt text names the
+   * tile's role instead of its contents, which is correct-but-vague rather than wrong.
+   * Worth writing whenever the hero shows something a reader would otherwise miss.
+   */
+  imageAlt?: string;
   link: string;
   winner?: boolean;
   // Hover call-to-action label (defaults to "View on Devpost →").
@@ -188,6 +195,7 @@ export const PROJECTS: Project[] = [
     ],
     image: "assets/spark/sai-at-work.png",
     imageId: "sai-at-work",
+    imageAlt: "Spark — interactive Gaussian-splat memory capture",
     video: "s5GVI3ibZUA",
     link: "https://devpost.com/software/spark-350yoq",
     winner: true,
@@ -237,6 +245,62 @@ export const PROJECTS: Project[] = [
     ],
   },
   {
+    title: "ScaleUp",
+    description:
+      "An AI music tutor that listens while you play, watches how you hold the instrument, and coaches you out loud between phrases. Skills sit on an RPG-style tree and decay on a spaced-repetition schedule, so the technique you stop practising comes back as tomorrow's quest. Built at Ignition Hacks.",
+    tagline: "An AI music tutor that hears the flat note while it is still in the air.",
+    details:
+      "ScaleUp is an AI music tutor built at Ignition Hacks. Pick an instrument, open a node on its skill tree, and play the exercise behind it: the browser captures the take with the Web Audio API and turns it into note events, aligns them against the written score with dynamic time warping, and reads your posture from MediaPipe hand and body landmarks. The result is a grade in the terms a teacher actually uses — intonation in cents, rhythm by elastic alignment, dynamics as rank agreement — plus spoken feedback in an examiner's voice. Every attempt feeds an SM-2 spaced-repetition schedule, so skills fade when you stop practising them and resurface as daily quests. Six instruments ship with published curricula, and naming an unsupported one has Gemini generate a valid prerequisite graph for it.",
+    summary: [
+      "The expensive half of learning an instrument is not the scales — those are in every book. It is having a second pair of ears in the room: someone who hears the flat third while it is still in the air, and who remembers that your left hand collapsed the same way two months ago. ScaleUp is an attempt to build that ear, and to be honest about the parts it cannot hear.",
+      'Everything measurable happens in the browser. The Web Audio API captures a take and a pitch tracker turns it into note events with onset, duration and cents deviation; dynamic time warping aligns those against the MusicXML score, so the feedback is "you rushed bars 5–8", not one opaque percentage. MediaPipe reads 33 body and 21 hand landmarks against 16 posture rules — and only the landmarks ever leave the page, never video. The measurements are deliberately chosen to match what a teacher listens for: intonation in cents rather than nearest-note, so a quarter-tone-flat string is a number instead of a pass; rhythm by elastic alignment, so playing slowly to get it right stops being scored as an error; dynamics as rank agreement, so the question is whether the crescendo happened rather than how loud the room was.',
+      "The hard part of a live coach turned out to be knowing when not to speak. A tutor who comments on every mistake is talking over the thing you are trying to fix, so the coach holds a WebSocket open for the length of a take, follows the notes at about 10 Hz with no model involved, and speaks at most a few times — only at phrase boundaries, after at least 0.6 s of silence. The examiner's voice streams from ElevenLabs sentence by sentence so audio starts before the sentence ends, and with no API key configured every response still carries its text for the OS voice to speak. Audio is the upgrade; the words are the guarantee.",
+      "Underneath the tutor is a skill tree with spaced repetition — Anki's retention mechanics pointed at an instrument. Proficiency decays on a half-life tied to your own review interval, so the quest board always knows what is fading, and nothing time-derived is stored as a number that could drift. Six instruments ship with versioned, published curricula, but skills are defined once in a shared catalogue and each instrument selects and specialises from it: banjo is the proof, with five of its seven concepts taken from the catalogue and scored through the guitar evaluator with no banjo-specific code at all.",
+      "Two rules hold everywhere. The deterministic path is the floor and never a mock — scoring, examiner feedback and score generation all work with no keys and no network, so a model can improve the wording but can never change the numbers. And an unreliable measurement never becomes a confident grade: silence, a low-confidence alignment or a hand the camera cannot see is reported as missing rather than scored zero, and withholds EXP instead of inventing a number.",
+    ],
+    image: "assets/scaleup/landing.jpg",
+    imageId: "landing",
+    imageAlt: "ScaleUp’s landing page — the pitch, and Quartz the mascot",
+    video: "pG5L6LhzR7Y",
+    link: "https://scaleup-ashen.vercel.app/",
+    cta: "Try the live app →",
+    repo: "https://github.com/sai3000pro/ScaleUp",
+    // Derived WebP rather than the originals: this grid renders a plain <img> with no
+    // srcSet, so whatever is listed here is what ships. Same rule as CORnet-Mouse below.
+    photos: [
+      "assets/derived/skill-tree-800w.webp",
+      "assets/derived/skill-detail-800w.webp",
+      "assets/derived/courses-800w.webp",
+      "assets/derived/quests-800w.webp",
+      "assets/derived/world-800w.webp",
+      "assets/derived/video-analysis-800w.webp",
+      "assets/derived/character-800w.webp",
+    ],
+    photoCaptions: [
+      "The piano skill tree — eleven skills wired into a prerequisite graph, with the two currently unlocked shown in green.",
+      "Opening a node shows its level, EXP, mastery and next review date, alongside the drill formats available for it.",
+      "The course list. Each campaign is a skill tree, and naming an instrument ScaleUp does not know has Gemini generate one.",
+      "Daily quests are the decay system surfacing: skills fade over time, and rescuing a decayed one pays up to 1.5× EXP.",
+      "Each skill node opens into a 3D world where the lessons behind it are laid out in order.",
+      "Video technique analysis runs hand and body landmarks over a local MP4 — the file and its audio never leave the browser.",
+      "Character setup. The archetype shapes your style, never your ability to learn.",
+    ],
+    tech: [
+      "Next.js",
+      "React",
+      "TypeScript",
+      "Python",
+      "FastAPI",
+      "PostgreSQL",
+      "Neo4j",
+      "Three.js",
+      "MediaPipe",
+      "Web Audio",
+      "ElevenLabs",
+      "Gemini",
+    ],
+  },
+  {
     title: "CORnet-Mouse",
     description:
       "A biologically-constrained neural network modelling the mouse visual and muscular system with reinforcement learning. In a custom Unity world, the mouse forages while fleeing a looming hawk and ignoring harmless clouds — guided by a reward function that balances survival, foraging, and energy. SYDE 552 final project.",
@@ -268,8 +332,23 @@ export const PROJECTS: Project[] = [
       "Verbalyst is an AI speech-coaching web app built at a hackathon. Users upload an MP4 recording and the platform runs it through AssemblyAI to produce an accurate transcript, then feeds that transcript into Google Vertex AI for a detailed breakdown covering pacing, filler-word frequency, clarity, and overall confidence. A Flask + Python backend ties the two APIs together, while a Tailwind-styled vanilla JS frontend keeps the experience fast and focused. Won Best Overall at the hackathon.",
     image: "assets/verbalyst.png",
     imageId: "verbalyst",
+    imageAlt: "Verbalyst’s home page — record, stop and upload a speech for analysis",
+    video: "DQIi4ZNcR2M",
     link: "https://devpost.com/software/verbalyst",
     winner: true,
+    repo: "https://github.com/sai3000pro/Verbalyst",
+    photos: [
+      "assets/derived/recorder-800w.webp",
+      "assets/derived/analysis-800w.webp",
+      "assets/derived/progress-800w.webp",
+      "assets/derived/tongue-twisters-800w.webp",
+    ],
+    photoCaptions: [
+      "Record a speech in the browser or upload an MP4, and Verbalyst transcribes it.",
+      "The AI response counts stutters and filler words back at you, with advice on pacing and pausing.",
+      "The stats page charts speech impediments over successive recordings, so progress is visible.",
+      "A tongue-twister generator for anyone already confident, to catch habits under pressure.",
+    ],
     tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind", "AI/ML"],
   },
   {
@@ -280,20 +359,24 @@ export const PROJECTS: Project[] = [
       "Healthut is a two-part mental health companion. The website surfaces curated resources organised by topic — crisis lines, self-help tools, community forums — with a clean HTML/CSS/JS interface designed to reduce friction when someone needs help fast. Alongside it, a Python-powered Discord bot brings the same resources directly into the servers where people already spend time, letting users search and browse without ever leaving their community. The Healthut logo was hand-drawn in Procreate.",
     image: "assets/Healthut.png",
     imageId: "healthut",
+    imageAlt: "Healthut’s home page — a central hub of mental health resources for students",
+    video: "EatnwitU4UQ",
     link: "https://devpost.com/software/healthub",
     winner: true,
+    repo: "https://github.com/sai3000pro/Wellness-App",
+    photos: [
+      "assets/derived/resources-800w.webp",
+      "assets/derived/sparkers-800w.webp",
+      "assets/derived/notes-800w.webp",
+      "assets/derived/discord-bot-800w.webp",
+    ],
+    photoCaptions: [
+      "Level 0 collects the resources someone needs fast — crisis lines, helplines and area-specific services.",
+      "Conversation Sparkers deals randomly generated prompts across three levels, from first impressions to reflection.",
+      "A notes page for writing down and keeping anything useful found along the way.",
+      "The Discord bot brings the same prompts into the servers people already spend time in.",
+    ],
     tech: ["Python", "JavaScript", "HTML", "CSS"],
-  },
-  {
-    title: "PatronPal",
-    description: "Support your favorite creators, your way.",
-    tagline: "A Chrome extension that makes tipping creators effortless.",
-    details:
-      "PatronPal lowers the barrier between fans and the creators they love. A Chrome extension built on Google Manifest V3 detects creator content as you browse and surfaces a one-click support panel without interrupting your flow. The extension talks to a Flask + Python backend that handles transactions and creator profiles, while the web dashboard — built with Tailwind and Flowbite components — gives creators a clean home to manage their page and track support.",
-    image: "assets/patronPal.png",
-    imageId: "patronpal",
-    link: "https://devpost.com/software/patronpal",
-    tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind"],
   },
   {
     title: "devDucky",
@@ -303,8 +386,158 @@ export const PROJECTS: Project[] = [
       "devDucky is a local-first AI debugging companion that runs entirely on your machine — no cloud, no data leaks. Describe your bug or paste in your code and a locally hosted LLM (served via Ollama with Unsloth-optimised models) walks you through the problem Socratically, asking questions rather than just handing you the answer. Session history is stored with Mongoose so you can revisit past debugging threads. The stack is a Vite + Node/Express frontend paired with a Flask + Python backend.",
     image: "assets/devDucky.jpg",
     imageId: "devducky",
+    imageAlt: "The devDucky rubber duck on the desk, wired up beside the laptop",
+    video: "ThH3bY5l78c",
     link: "https://devpost.com/software/devducky",
+    repo: "https://github.com/yukui5401/devDucky2024",
+    photos: [
+      "assets/derived/mic-rig-800w.webp",
+      "assets/derived/ide-800w.webp",
+      "assets/derived/observability-800w.webp",
+    ],
+    photoCaptions: [
+      "The duck wired up beside the laptop. The plan was an RP2040 for ears; the hardware that finally worked was a USB mic.",
+      "The IDE homepage — an editor that does more than hold your code.",
+      "The observability dashboard graphs CPU time per instance while the model watches the codebase.",
+    ],
     tech: ["Python", "Flask", "JavaScript", "Node.js", "Express", "Vite", "AI/ML"],
+  },
+  {
+    title: "HydroHomies",
+    description:
+      "A gamified hydration tracker built at DeltaHacks 12. A custom TensorFlow Lite model runs on-device to check you are actually drinking, a virtual pet lives or wilts on your daily goal, and the leaderboard ranks friends by percentage of goal met rather than raw volume.",
+    tagline: "Drink water, beat your friends, don't let the pet die.",
+    details:
+      "HydroHomies is a gamified hydration tracker built at DeltaHacks 12, aimed at the fact that existing hydration apps feel like chores. Onboarding calculates your actual daily requirement from height, weight, age and activity level using the Mifflin-St Jeor equation. Instead of manual entry you point the camera at your bottle: a custom object-detection model, trained in Teachable Machine and exported to TensorFlow Lite, runs on-device to distinguish a full bottle from an empty one and verify you are drinking. A virtual pet evolves as you hit goals and visibly wilts when you do not, and a leaderboard ranks friends by percentage of their own goal met, so a 5'2\" user competes fairly with a 6'5\" one. Built with React Native and Expo on Firebase, with a 'Thirst Limit' algorithm capping XP per hour so the game cannot be farmed.",
+    image: "assets/hydrohomies/title-card.png",
+    imageId: "title-card",
+    imageAlt: "The HydroHomies title card and its pixel-art turtle-in-a-glass mascot",
+    link: "https://devpost.com/software/hydrohomies",
+    cta: "View on Devpost →",
+    repo: "https://github.com/sai3000pro/HydroHomies",
+    photos: [
+      "assets/derived/detection-764w.webp",
+      "assets/derived/hydropet-800w.webp",
+      "assets/derived/fair-play-800w.webp",
+    ],
+    photoCaptions: [
+      "Scan-to-track: the on-device model detects the bottle and estimates volume, with its confidence shown before you confirm.",
+      "The HydroPet ecosystem and the fair-play leaderboard, which ranks by percentage of goal rather than litres.",
+      "The anti-cheating rules — a 'Thirst Limit' caps XP per hour, and daily logging stops at a realistic ceiling.",
+    ],
+    tech: ["React Native", "Expo", "TypeScript", "TensorFlow Lite", "Firebase", "AI/ML"],
+  },
+];
+
+/**
+ * The second shelf: everything that is a real project but not a headline.
+ *
+ * Same `Project` shape on purpose — the cards reuse the constellation's fields rather than
+ * inventing a parallel type — but these deliberately do NOT get a /projects/<slug> page.
+ * scripts/routes.mjs derives those routes by slicing portfolio.ts from `export const
+ * PROJECTS` to the next top-level `export`, so this array sits outside that window and is
+ * invisible to the prerenderer, the sitemap and the OG-card generator. That is the whole
+ * reason it is a separate export instead of a `featured: false` flag: a flag would need
+ * routes.mjs, prerender.mjs and seo.mjs each taught to filter on it, and a miss in any one
+ * of them ships an empty case-study page with a real canonical pointing at it.
+ *
+ * The consequence to keep in mind: `link` is the only way out of one of these cards, so
+ * every entry needs one that goes somewhere useful.
+ *
+ * The five games at the end have no screenshots and no Devpost page — they are older
+ * standalone builds, two of them school projects — so they carry no `image` and the
+ * gallery renders them as text cards. That is intentional: inventing a screenshot for a
+ * Java game nobody has a capture of would be worse than the card admitting it has none.
+ */
+export const MORE_PROJECTS: Project[] = [
+  {
+    title: "PatronPal",
+    description:
+      "A Chrome extension that splits one small monthly budget across the creators you actually watch, weighted by how much you watch them.",
+    tagline: "A Chrome extension that makes tipping creators effortless.",
+    details:
+      "PatronPal lowers the barrier between fans and the creators they love. Supporting fifteen creators at $10 each is $150 a month that nobody wants to spend, so PatronPal inverts it: you set aside one small amount and it allocates the slices. A Manifest V3 Chrome extension reads watch history and pages viewed from supported platforms, then weights each creator by how often they upload against how much of them you consume — a minute of someone posting daily is worth less than a minute of someone posting monthly. A Flask backend handles the split and a Tailwind + Flowbite dashboard lets you override any of it. Built at Hack the 6ix 2023.",
+    image: "assets/patronPal.png",
+    imageId: "patronpal",
+    link: "https://devpost.com/software/patronpal",
+    cta: "View on Devpost →",
+    photos: ["assets/derived/extension-800w.webp", "assets/derived/creators-800w.webp"],
+    photoCaptions: [
+      "The extension surfaces a support panel over the video you are already watching.",
+      "The dashboard ranks creators by time watched and shows what each one is being paid.",
+    ],
+    tech: ["Python", "Flask", "JavaScript", "HTML", "CSS", "Tailwind"],
+  },
+  {
+    title: "SmartSkin",
+    description:
+      "A wearable that tracks humidity and temperature and warns people with eczema before a flare-up, grading local conditions 0–9. Built at GeeseHacks.",
+    tagline: "A wearable that sees an eczema flare-up coming.",
+    details:
+      "SmartSkin started because one of the team has eczema and was tired of checking several separate pages for the temperature and humidity that predict a flare-up. An Arduino-based wearable reads humidity and temperature and grades the environment on a 0–9 scale, sending the data to a Python backend that feeds both a React dashboard and a Chrome extension, so the number is one click away. It can also be stuck to a wall or a car rather than worn. Built at GeeseHacks.",
+    image: "assets/smartskin/bench.jpg",
+    imageId: "bench",
+    link: "https://devpost.com/software/smartskin-sqmony",
+    cta: "View on Devpost →",
+    repo: "https://github.com/sai3000pro/EczemaMitigator",
+    photos: [
+      "assets/derived/wearable-800w.webp",
+      "assets/derived/flareups-800w.webp",
+      "assets/derived/readout-800w.webp",
+      "assets/derived/whiteboard-800w.webp",
+    ],
+    photoCaptions: [
+      "The prototype in hand — sensor board, battery and lead, small enough to clip on.",
+      "The landing page, built around the 15–20% of Canadians diagnosed with some form of eczema.",
+      "The dashboard reads current temperature and humidity straight off the wearable.",
+      "The architecture worked out on a whiteboard: Arduino to Python, then out to the extension and the front end.",
+    ],
+    tech: ["Python", "React", "TypeScript", "Express", "Arduino", "Tailwind"],
+  },
+  {
+    title: "Pong",
+    description:
+      "The 1972 arcade original rebuilt in Java — two paddles, one ball, first to five points wins.",
+    link: "https://github.com/sai3000pro/Pong",
+    cta: "View the source →",
+    repo: "https://github.com/sai3000pro/Pong",
+    tech: ["Java"],
+  },
+  {
+    title: "Jump Whale",
+    description:
+      "A parody of Jump King written in Java: one whale, one jump arc, and a very long way back down.",
+    link: "https://github.com/sai3000pro/Jump-Whale",
+    cta: "View the source →",
+    repo: "https://github.com/sai3000pro/Jump-Whale",
+    tech: ["Java"],
+  },
+  {
+    title: "Townia and the Tyrant",
+    description:
+      "A text-based adventure in Java — save the town of Townia from a firedrake tyrant. Written as an ICS4U project.",
+    link: "https://github.com/sai3000pro/TowniaAndTheTyrant",
+    cta: "View the source →",
+    repo: "https://github.com/sai3000pro/TowniaAndTheTyrant",
+    tech: ["Java"],
+  },
+  {
+    title: "TicTacToe Remastered",
+    description:
+      "Tic-tac-toe in C++ with the board size left up to you, so the win condition has to be worked out rather than hard-coded.",
+    link: "https://github.com/sai3000pro/TicTacToeRemastered",
+    cta: "View the source →",
+    repo: "https://github.com/sai3000pro/TicTacToeRemastered",
+    tech: ["C++"],
+  },
+  {
+    title: "The Simon Game",
+    description:
+      "The colour-and-sound memory game of the '70s, rebuilt as a web game in vanilla JavaScript.",
+    link: "https://github.com/sai3000pro/TheSimonGame",
+    cta: "View the source →",
+    repo: "https://github.com/sai3000pro/TheSimonGame",
+    tech: ["JavaScript", "HTML", "CSS"],
   },
 ];
 

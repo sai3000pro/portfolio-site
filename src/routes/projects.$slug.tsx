@@ -276,12 +276,19 @@ function CaseStudy() {
   const closeGallery = useCallback(() => setOpenIndex(null), []);
   if (!project) return <NotFound />;
   const photos = project.photos ?? [];
+  // Alt text for the hero tile the gallery gains when a project has BOTH a video and an
+  // image. This used to be the literal string "— interactive Gaussian-splat memory
+  // capture", which was true of the only project that had a video at the time and became
+  // wrong for every one that has since gained one. `imageAlt` lets a project say what its
+  // hero actually shows; the fallback describes the tile's role rather than its contents,
+  // which is the honest thing to say when nobody has written it down.
+  const heroAlt = project.imageAlt ?? `${project.title} — project hero image`;
   const galleryPhotos = [
     ...(project.video && project.image
       ? [
           {
             src: project.image,
-            alt: `${project.title} — interactive Gaussian-splat memory capture`,
+            alt: heroAlt,
           },
         ]
       : []),
@@ -438,7 +445,7 @@ function CaseStudy() {
                 >
                   <img
                     src={assetUrl(project.image)}
-                    alt={`${project.title} — interactive Gaussian-splat memory capture`}
+                    alt={heroAlt}
                     loading="lazy"
                     className="w-full rounded-xl object-cover"
                     style={{

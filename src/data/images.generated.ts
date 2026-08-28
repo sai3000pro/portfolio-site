@@ -54,7 +54,37 @@ export type GeneratedImageId =
   | "winners"
   | "cornet-environment"
   | "cornet-predator"
-  | "cornet-agent";
+  | "cornet-agent"
+  | "landing"
+  | "skill-tree"
+  | "courses"
+  | "skill-detail"
+  | "quests"
+  | "character"
+  | "video-analysis"
+  | "world"
+  | "recorder"
+  | "analysis"
+  | "progress"
+  | "tongue-twisters"
+  | "resources"
+  | "sparkers"
+  | "notes"
+  | "discord-bot"
+  | "mic-rig"
+  | "ide"
+  | "observability"
+  | "extension"
+  | "creators"
+  | "bench"
+  | "flareups"
+  | "whiteboard"
+  | "wearable"
+  | "readout"
+  | "title-card"
+  | "detection"
+  | "hydropet"
+  | "fair-play";
 
 export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
   logo: {
@@ -279,6 +309,306 @@ export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
     sources: [
       { src: "assets/derived/cornet-agent-400w.webp", width: 400, height: 287 },
       { src: "assets/derived/cornet-agent-800w.webp", width: 800, height: 574 },
+    ],
+  },
+  landing: {
+    id: "landing",
+    original: "assets/scaleup/landing.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/landing-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/landing-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  "skill-tree": {
+    id: "skill-tree",
+    original: "assets/scaleup/skill-tree.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/skill-tree-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/skill-tree-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  courses: {
+    id: "courses",
+    original: "assets/scaleup/courses.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/courses-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/courses-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  "skill-detail": {
+    id: "skill-detail",
+    original: "assets/scaleup/skill-detail.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/skill-detail-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/skill-detail-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  quests: {
+    id: "quests",
+    original: "assets/scaleup/quests.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/quests-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/quests-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  character: {
+    id: "character",
+    original: "assets/scaleup/character.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/character-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/character-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  "video-analysis": {
+    id: "video-analysis",
+    original: "assets/scaleup/video-analysis.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/video-analysis-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/video-analysis-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  world: {
+    id: "world",
+    original: "assets/scaleup/world.jpg",
+    cropped: false,
+    aspect: 2.0305,
+    sources: [
+      { src: "assets/derived/world-400w.webp", width: 400, height: 197 },
+      { src: "assets/derived/world-800w.webp", width: 800, height: 394 },
+    ],
+  },
+  recorder: {
+    id: "recorder",
+    original: "assets/verbalyst/recorder.png",
+    cropped: false,
+    aspect: 2.139,
+    sources: [
+      { src: "assets/derived/recorder-400w.webp", width: 400, height: 187 },
+      { src: "assets/derived/recorder-800w.webp", width: 800, height: 374 },
+    ],
+  },
+  analysis: {
+    id: "analysis",
+    original: "assets/verbalyst/analysis.png",
+    cropped: false,
+    aspect: 2.1505,
+    sources: [
+      { src: "assets/derived/analysis-400w.webp", width: 400, height: 186 },
+      { src: "assets/derived/analysis-800w.webp", width: 800, height: 372 },
+    ],
+  },
+  progress: {
+    id: "progress",
+    original: "assets/verbalyst/progress.png",
+    cropped: false,
+    aspect: 3.2129,
+    sources: [
+      { src: "assets/derived/progress-400w.webp", width: 400, height: 125 },
+      { src: "assets/derived/progress-800w.webp", width: 800, height: 249 },
+    ],
+  },
+  "tongue-twisters": {
+    id: "tongue-twisters",
+    original: "assets/verbalyst/tongue-twisters.png",
+    cropped: false,
+    aspect: 2.3055,
+    sources: [
+      { src: "assets/derived/tongue-twisters-400w.webp", width: 400, height: 174 },
+      { src: "assets/derived/tongue-twisters-800w.webp", width: 800, height: 347 },
+    ],
+  },
+  resources: {
+    id: "resources",
+    original: "assets/healthut/resources.png",
+    cropped: false,
+    aspect: 1.7021,
+    sources: [
+      { src: "assets/derived/resources-400w.webp", width: 400, height: 235 },
+      { src: "assets/derived/resources-800w.webp", width: 800, height: 470 },
+    ],
+  },
+  sparkers: {
+    id: "sparkers",
+    original: "assets/healthut/sparkers.png",
+    cropped: false,
+    aspect: 1.6985,
+    sources: [
+      { src: "assets/derived/sparkers-400w.webp", width: 400, height: 235 },
+      { src: "assets/derived/sparkers-800w.webp", width: 800, height: 471 },
+    ],
+  },
+  notes: {
+    id: "notes",
+    original: "assets/healthut/notes.png",
+    cropped: false,
+    aspect: 1.6878,
+    sources: [
+      { src: "assets/derived/notes-400w.webp", width: 400, height: 237 },
+      { src: "assets/derived/notes-800w.webp", width: 800, height: 474 },
+    ],
+  },
+  "discord-bot": {
+    id: "discord-bot",
+    original: "assets/healthut/discord-bot.png",
+    cropped: false,
+    aspect: 1.6807,
+    sources: [
+      { src: "assets/derived/discord-bot-400w.webp", width: 400, height: 238 },
+      { src: "assets/derived/discord-bot-800w.webp", width: 800, height: 476 },
+    ],
+  },
+  "mic-rig": {
+    id: "mic-rig",
+    original: "assets/devducky/mic-rig.jpg",
+    cropped: false,
+    aspect: 0.7498,
+    sources: [
+      { src: "assets/derived/mic-rig-400w.webp", width: 400, height: 533 },
+      { src: "assets/derived/mic-rig-800w.webp", width: 800, height: 1067 },
+    ],
+  },
+  ide: {
+    id: "ide",
+    original: "assets/devducky/ide.png",
+    cropped: false,
+    aspect: 1.9048,
+    sources: [
+      { src: "assets/derived/ide-400w.webp", width: 400, height: 210 },
+      { src: "assets/derived/ide-800w.webp", width: 800, height: 420 },
+    ],
+  },
+  observability: {
+    id: "observability",
+    original: "assets/devducky/observability.png",
+    cropped: false,
+    aspect: 1.9324,
+    sources: [
+      { src: "assets/derived/observability-400w.webp", width: 400, height: 207 },
+      { src: "assets/derived/observability-800w.webp", width: 800, height: 414 },
+    ],
+  },
+  extension: {
+    id: "extension",
+    original: "assets/patronpal/extension.png",
+    cropped: false,
+    aspect: 1.8913,
+    sources: [
+      { src: "assets/derived/extension-400w.webp", width: 400, height: 211 },
+      { src: "assets/derived/extension-800w.webp", width: 800, height: 423 },
+    ],
+  },
+  creators: {
+    id: "creators",
+    original: "assets/patronpal/creators.png",
+    cropped: false,
+    aspect: 1.7738,
+    sources: [
+      { src: "assets/derived/creators-400w.webp", width: 400, height: 225 },
+      { src: "assets/derived/creators-800w.webp", width: 800, height: 451 },
+    ],
+  },
+  bench: {
+    id: "bench",
+    original: "assets/smartskin/bench.jpg",
+    cropped: false,
+    aspect: 1.3333,
+    sources: [
+      { src: "assets/derived/bench-400w.webp", width: 400, height: 300 },
+      { src: "assets/derived/bench-800w.webp", width: 800, height: 600 },
+    ],
+  },
+  flareups: {
+    id: "flareups",
+    original: "assets/smartskin/flareups.png",
+    cropped: false,
+    aspect: 2.0833,
+    sources: [
+      { src: "assets/derived/flareups-400w.webp", width: 400, height: 192 },
+      { src: "assets/derived/flareups-800w.webp", width: 800, height: 384 },
+    ],
+  },
+  whiteboard: {
+    id: "whiteboard",
+    original: "assets/smartskin/whiteboard.jpg",
+    cropped: false,
+    aspect: 1.3333,
+    sources: [
+      { src: "assets/derived/whiteboard-400w.webp", width: 400, height: 300 },
+      { src: "assets/derived/whiteboard-800w.webp", width: 800, height: 600 },
+    ],
+  },
+  wearable: {
+    id: "wearable",
+    original: "assets/smartskin/wearable.jpg",
+    cropped: false,
+    aspect: 1.3333,
+    sources: [
+      { src: "assets/derived/wearable-400w.webp", width: 400, height: 300 },
+      { src: "assets/derived/wearable-800w.webp", width: 800, height: 600 },
+    ],
+  },
+  readout: {
+    id: "readout",
+    original: "assets/smartskin/readout.png",
+    cropped: false,
+    aspect: 4.908,
+    sources: [
+      { src: "assets/derived/readout-400w.webp", width: 400, height: 82 },
+      { src: "assets/derived/readout-800w.webp", width: 800, height: 163 },
+    ],
+  },
+  "title-card": {
+    id: "title-card",
+    original: "assets/hydrohomies/title-card.png",
+    cropped: false,
+    aspect: 1.7897,
+    sources: [
+      { src: "assets/derived/title-card-400w.webp", width: 400, height: 224 },
+      { src: "assets/derived/title-card-800w.webp", width: 800, height: 447 },
+    ],
+  },
+  detection: {
+    id: "detection",
+    original: "assets/hydrohomies/detection.png",
+    cropped: false,
+    aspect: 1.0914,
+    sources: [
+      { src: "assets/derived/detection-400w.webp", width: 400, height: 366 },
+      { src: "assets/derived/detection-764w.webp", width: 764, height: 700 },
+    ],
+  },
+  hydropet: {
+    id: "hydropet",
+    original: "assets/hydrohomies/hydropet.png",
+    cropped: false,
+    aspect: 1.7738,
+    sources: [
+      { src: "assets/derived/hydropet-400w.webp", width: 400, height: 226 },
+      { src: "assets/derived/hydropet-800w.webp", width: 800, height: 451 },
+    ],
+  },
+  "fair-play": {
+    id: "fair-play",
+    original: "assets/hydrohomies/fair-play.png",
+    cropped: false,
+    aspect: 1.7817,
+    sources: [
+      { src: "assets/derived/fair-play-400w.webp", width: 400, height: 224 },
+      { src: "assets/derived/fair-play-800w.webp", width: 800, height: 449 },
     ],
   },
 };

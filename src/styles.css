@@ -738,3 +738,30 @@ body {
     word-break: break-all;
   }
 }
+
+/* ── More-projects disclosure ──────────────────────────────────────────────────
+ *
+ * The open/closed state belongs to the browser (see more-projects.tsx for why that
+ * is deliberate rather than a shortcut), so the affordance has to be styled here —
+ * there is no React state to drive it from.
+ *
+ * `list-none` on the summary covers Chrome and Firefox; Safari still paints the
+ * disclosure triangle unless the -webkit pseudo-element is hidden too.
+ */
+.more-projects > summary::-webkit-details-marker {
+  display: none;
+}
+
+.more-projects__chevron {
+  transition: transform 0.18s ease;
+}
+
+.more-projects[open] > summary .more-projects__chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .more-projects__chevron {
+    transition: none;
+  }
+}

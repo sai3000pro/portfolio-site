@@ -5,9 +5,8 @@ import { X, Camera, ArrowLeft, ArrowRight } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { Project } from "@/data/portfolio";
 import { KEYS } from "@/data/achievements";
-import { GENERATED_IMAGES, type GeneratedImageId } from "@/data/images.generated";
 import { trackMember, unlock } from "@/lib/achievements";
-import { assetUrl } from "@/lib/assets";
+import { assetUrl, responsiveImageProps } from "@/lib/assets";
 import { slugify } from "@/lib/slug";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
 
@@ -102,27 +101,11 @@ function seedGrid(
 /**
  * `<img>` attributes for a project screenshot, at the given CSS display width.
  *
- * `imageId` is set explicitly on each project in portfolio.ts and keys into the generated
- * derivatives; when it is absent (a project with an `image` but no encoded sizes yet) this
- * degrades to the committed original, so nothing disappears.
- *
- * Both call sites below used to pass `project.image` straight to `src`. Those paths are
- * bare and document-relative, so they 404 under the GitHub Pages base path — everything
- * that reaches the DOM goes through `assetUrl()`.
+ * The implementation moved to ~/lib/assets when the More-projects gallery needed the same
+ * thing — see the docblock there for why it cannot live in a component module. Kept as a
+ * local alias so the two call sites below read unchanged.
  */
-function projectImageProps(image: string, imageId: GeneratedImageId | undefined, sizes: string) {
-  const generated = imageId ? GENERATED_IMAGES[imageId] : undefined;
-  // Smallest source doubles as the `src` fallback; `width`/`height` come from it so the
-  // browser reserves the right aspect box before the bytes land (CLS).
-  const smallest = generated?.sources[0];
-  return {
-    src: assetUrl(smallest?.src ?? image),
-    srcSet: generated?.sources.map((s) => `${assetUrl(s.src)} ${s.width}w`).join(", "),
-    sizes: generated ? sizes : undefined,
-    width: smallest?.width,
-    height: smallest?.height,
-  };
-}
+const projectImageProps = responsiveImageProps;
 
 // Returns the point where a ray from the card's centre toward (tx, ty) exits the card border.
 function cardBorderPoint(cardX: number, cardY: number, tx: number, ty: number) {

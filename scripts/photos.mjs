@@ -160,6 +160,50 @@ const DERIVATIVE_TARGETS = [
   { file: "cornet-environment.png", widths: [400, 800], quality: 80 },
   { file: "cornet-predator.png", widths: [400, 800], quality: 80 },
   { file: "cornet-agent.png", widths: [400, 800], quality: 80 },
+
+  // ScaleUp. Captures of the running app, so they are already screen-resolution rather
+  // than retina — effectiveWidths() drops the 800 for anything narrower than ~960 native,
+  // which is why these ask for both and several will only emit one. `landing` is the card
+  // thumbnail and case-study hero; the rest are the gallery.
+  { file: "scaleup/landing.jpg", widths: [400, 800], quality: 80 },
+  { file: "scaleup/skill-tree.jpg", widths: [400, 800], quality: 80 },
+  { file: "scaleup/courses.jpg", widths: [400, 800], quality: 80 },
+  { file: "scaleup/skill-detail.jpg", widths: [400, 800], quality: 80 },
+  { file: "scaleup/quests.jpg", widths: [400, 800], quality: 80 },
+  { file: "scaleup/character.jpg", widths: [400, 800], quality: 80 },
+  { file: "scaleup/video-analysis.jpg", widths: [400, 800], quality: 80 },
+  { file: "scaleup/world.jpg", widths: [400, 800], quality: 80 },
+
+  // The Devpost galleries for the older hackathon projects. Each project's card thumbnail
+  // is still the top-level original it always was (verbalyst.png, Healthut.png, ...); these
+  // are the remaining frames, which only ever render in the case-study grid at ~400px.
+  { file: "verbalyst/recorder.png", widths: [400, 800], quality: 80 },
+  { file: "verbalyst/analysis.png", widths: [400, 800], quality: 80 },
+  { file: "verbalyst/progress.png", widths: [400, 800], quality: 80 },
+  { file: "verbalyst/tongue-twisters.png", widths: [400, 800], quality: 80 },
+  { file: "healthut/resources.png", widths: [400, 800], quality: 80 },
+  { file: "healthut/sparkers.png", widths: [400, 800], quality: 80 },
+  { file: "healthut/notes.png", widths: [400, 800], quality: 80 },
+  { file: "healthut/discord-bot.png", widths: [400, 800], quality: 80 },
+  { file: "devducky/mic-rig.jpg", widths: [400, 800], quality: 80 },
+  { file: "devducky/ide.png", widths: [400, 800], quality: 80 },
+  { file: "devducky/observability.png", widths: [400, 800], quality: 80 },
+  { file: "patronpal/extension.png", widths: [400, 800], quality: 80 },
+  { file: "patronpal/creators.png", widths: [400, 800], quality: 80 },
+
+  // SmartSkin and HydroHomies are new to the site, so their thumbnails live in these
+  // folders too rather than at the top level: `bench` and `title-card` respectively.
+  // The three SmartSkin photographs are phone-camera originals at 4-5K wide, which is
+  // why they are the only new entries that will actually emit both widths.
+  { file: "smartskin/bench.jpg", widths: [400, 800], quality: 80 },
+  { file: "smartskin/flareups.png", widths: [400, 800], quality: 80 },
+  { file: "smartskin/whiteboard.jpg", widths: [400, 800], quality: 80 },
+  { file: "smartskin/wearable.jpg", widths: [400, 800], quality: 80 },
+  { file: "smartskin/readout.png", widths: [400, 800], quality: 80 },
+  { file: "hydrohomies/title-card.png", widths: [400, 800], quality: 80 },
+  { file: "hydrohomies/detection.png", widths: [400, 800], quality: 80 },
+  { file: "hydrohomies/hydropet.png", widths: [400, 800], quality: 80 },
+  { file: "hydrohomies/fair-play.png", widths: [400, 800], quality: 80 },
 ];
 
 /**
@@ -1019,6 +1063,26 @@ async function runHobbies() {
 
 async function runAssets() {
   await mkdir(DERIVED_DIR, { recursive: true });
+
+  // The derivative id is the slugified BASENAME, so the folder is not part of it:
+  // spark/stats.png and verbalyst/stats.png would both be "stats". Nothing downstream
+  // would complain — they would overwrite each other's .webp files, and the later entry
+  // would win the manifest key while the earlier one silently vanished from the site.
+  // Hobbies mode has always checked for this; assets mode did not, and it only stayed
+  // safe while every original sat in one flat folder. Now that projects have their own
+  // directories, two of them naming a screenshot the same obvious thing is a matter of
+  // time, so fail loudly here instead.
+  const byId = new Map();
+  for (const target of DERIVATIVE_TARGETS) {
+    const id = slugify(basename(target.file, extname(target.file)));
+    const clash = byId.get(id);
+    if (clash) {
+      console.error(`Name collision: "${target.file}" and "${clash}" both become "${id}" and`);
+      console.error("would overwrite each other's derivatives. Rename one and re-run.");
+      process.exit(1);
+    }
+    byId.set(id, target.file);
+  }
 
   console.log(
     `${DERIVATIVE_TARGETS.length} original(s) in ${rel(ASSET_DIR)}/${DRY ? "   (dry run)" : ""}`,
