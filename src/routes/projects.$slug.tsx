@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, ExternalLink, Github, GitFork, Star } from "luci
 
 import { PROJECTS, type Project } from "@/data/portfolio";
 import { GENERATED_IMAGES } from "@/data/images.generated";
-import { assetUrl } from "@/lib/assets";
+import { assetUrl, responsiveImageProps } from "@/lib/assets";
 import { absoluteUrl, ogImageUrl } from "@/lib/site-url";
 import { slugify } from "@/lib/slug";
 import { formatLastCommit, getRepoStats } from "@/lib/github-stats";
@@ -221,6 +221,12 @@ function GitHubStats({ repo }: { repo: string }) {
  * for the 800w file either way; quoting 800px keeps the hint honest without a third breakpoint.
  */
 const HERO_SIZES = "(min-width: 900px) 800px, 90vw";
+
+/**
+ * The gallery grid is `repeat(auto-fit, minmax(240px, 1fr))` inside a 900px article, so a
+ * tile lands between 240px and roughly 300px on desktop and goes full-bleed on a phone.
+ */
+const GALLERY_TILE_SIZES = "(min-width: 700px) 300px, 90vw";
 
 /**
  * The case-study hero. Renders nothing at all when the project has no image, so a project
@@ -443,8 +449,12 @@ function CaseStudy() {
                   className="block w-full cursor-zoom-in rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
                   aria-label={`Open ${project.title} hero image`}
                 >
+                  {/* Responsive, unlike the lightbox this opens: the tile is a ~300px
+                      thumbnail and was shipping the untouched original — 6.8MB of PNG for
+                      Spark, 1.3MB for Verbalyst. The lightbox still gets `project.image`
+                      itself, because that one IS the zoomed view and wants full pixels. */}
                   <img
-                    src={assetUrl(project.image)}
+                    {...responsiveImageProps(project.image, project.imageId, GALLERY_TILE_SIZES)}
                     alt={heroAlt}
                     loading="lazy"
                     className="w-full rounded-xl object-cover"

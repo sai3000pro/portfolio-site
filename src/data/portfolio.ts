@@ -201,20 +201,25 @@ export const PROJECTS: Project[] = [
     winner: true,
     cta: "View on Devpost →",
     repo: "https://github.com/sai3000pro/spark",
+    // Derived WebP, not the originals in public/assets/spark/. This gallery renders a
+    // plain <img> with no srcSet, so a listed path is shipped at full size into a tile
+    // that is never drawn above ~430px — these thirteen were 25.2MB of PNG and JPEG for
+    // roughly 700KB of actual pixels. The originals stay on disk and remain the right
+    // file for og:image and anything print-bound.
     photos: [
-      "assets/spark/homepage.png",
-      "assets/spark/album.png",
-      "assets/spark/generated-walk.jpg",
-      "assets/spark/world-map.png",
-      "assets/spark/stats.png",
-      "assets/spark/architecture.png",
-      "assets/spark/gallery.png",
-      "assets/spark/capture.png",
-      "assets/spark/aerial-view-via-splat.jpg",
-      "assets/spark/rover.jpg",
-      "assets/spark/rover-top-view.jpg",
-      "assets/spark/vietnamese-dinner.jpg",
-      "assets/spark/winners.jpg",
+      "assets/derived/homepage-800w.webp",
+      "assets/derived/album-800w.webp",
+      "assets/derived/generated-walk-800w.webp",
+      "assets/derived/world-map-800w.webp",
+      "assets/derived/stats-800w.webp",
+      "assets/derived/architecture-800w.webp",
+      "assets/derived/gallery-800w.webp",
+      "assets/derived/capture-800w.webp",
+      "assets/derived/aerial-view-via-splat-800w.webp",
+      "assets/derived/rover-800w.webp",
+      "assets/derived/rover-top-view-800w.webp",
+      "assets/derived/vietnamese-dinner-800w.webp",
+      "assets/derived/winners-800w.webp",
     ],
     photoCaptions: [
       "Spark’s landing page introduces the idea of stepping back into a captured memory.",
@@ -319,6 +324,10 @@ export const PROJECTS: Project[] = [
     // whatever is listed here is what ships. The widest derivative of each is still under
     // 20KB and the grid never draws these above ~430px.
     photos: ["assets/derived/cornet-predator-790w.webp", "assets/derived/cornet-agent-800w.webp"],
+    photoCaptions: [
+      "The looming stimulus from the agent's own point of view — a dark ellipse swelling overhead, with the shelter wedge a short run away across the ground plane.",
+      "The agent in the Unity editor. It is a plain rigid body, so the network's outputs have to move a mass under real inertia and turning limits rather than teleporting it.",
+    ],
     link: "assets/CORnet-Mouse.pdf",
     cta: "Read paper →",
     repo: "https://github.com/Kriti1400/Syde552-Project",
@@ -329,7 +338,13 @@ export const PROJECTS: Project[] = [
     description: "Empowering speech, unleashing confidence.",
     tagline: "Upload a recording. Get AI feedback on your speech in seconds.",
     details:
-      "Verbalyst is an AI speech-coaching web app built at a hackathon. Users upload an MP4 recording and the platform runs it through AssemblyAI to produce an accurate transcript, then feeds that transcript into Google Vertex AI for a detailed breakdown covering pacing, filler-word frequency, clarity, and overall confidence. A Flask + Python backend ties the two APIs together, while a Tailwind-styled vanilla JS frontend keeps the experience fast and focused. Won Best Overall at the hackathon.",
+      "Verbalyst is an AI speech-coaching web app built at a hackathon. Users upload an MP4 recording and the platform runs it through AssemblyAI to produce an accurate transcript, then feeds that transcript into Google Vertex AI for a detailed breakdown covering pacing, filler-word frequency, clarity, and overall confidence. A Flask + Python backend ties the two APIs together, while a Tailwind-styled vanilla JS frontend keeps the experience fast and focused. Won Best Web at Ignition Hacks 2023.",
+    summary: [
+      "Coming out of lockdown, holding a conversation was one thing; standing up in front of a room was another entirely. Verbalyst started from that gap — the observation that speaking to a group is a skill people are expected to have and almost never get to rehearse with feedback. It was built at Ignition Hacks 2023, where it won Best Web.",
+      "The app records you through the browser with both microphone and camera, as many takes as you want, and then tells you what you actually did. AssemblyAI transcribes the recording; Google Vertex AI reads the transcript back for stutters, filler words, pacing and clarity. A stats page charts those counts across successive recordings, which is the part that matters — a single take tells you very little, and the value is in watching the filler-word count fall over a fortnight. For anyone already confident there is a tongue-twister generator, which is less a game than a way to catch habits that only surface under pressure.",
+      "It was built under an unusual constraint: scheduling conflicts meant the team started roughly 26 hours into the event. The honest version of what that cost is that both AI components worked — transcription and analysis each ran end to end — but wiring them together behind the Flask backend into one seamless flow did not fully land inside the remaining time. The recording front end, the analysis, and the transcription all shipped and demoed; the seam between them was the casualty.",
+      "My own share was the front end — the pages in HTML, Tailwind and vanilla JavaScript, the Chart.js progress views — along with the research into which speech impediments were realistically detectable from a transcript, and the pitch video.",
+    ],
     image: "assets/verbalyst.png",
     imageId: "verbalyst",
     imageAlt: "Verbalyst’s home page — record, stop and upload a speech for analysis",
@@ -356,7 +371,13 @@ export const PROJECTS: Project[] = [
     description: "Making mental health resources simple and accessible.",
     tagline: "Mental health support on the web and straight into Discord.",
     details:
-      "Healthut is a two-part mental health companion. The website surfaces curated resources organised by topic — crisis lines, self-help tools, community forums — with a clean HTML/CSS/JS interface designed to reduce friction when someone needs help fast. Alongside it, a Python-powered Discord bot brings the same resources directly into the servers where people already spend time, letting users search and browse without ever leaving their community. The Healthut logo was hand-drawn in Procreate.",
+      "Healthut is a two-part mental health companion. The website surfaces curated resources organised by topic — crisis lines, self-help tools, community forums — with a clean HTML/CSS/JS interface designed to reduce friction when someone needs help fast. Alongside it, a Python-powered Discord bot brings the same resources directly into the servers where people already spend time, letting users search and browse without ever leaving their community. The Healthut logo was hand-drawn in Procreate. Won the Popular Vote at Recess Hacks 3.0.",
+    summary: [
+      "Good social contact is load-bearing for mental health — it tracks with memory, cognitive function, self-esteem, even physical health. The trouble is that the fear of rejection or judgement is exactly what stops people reaching for it, and that loop tightens into social anxiety. Healthut was built at Recess Hacks 3.0, for students on the wrong side of that loop, and won the Popular Vote.",
+      "It is a hub rather than an app with one trick. Level 0 is the page you want when things are bad right now: crisis lines, helplines, youth mental-health organisations, and area-specific services, with nothing between you and the phone number. Everything else is for the ordinary days.",
+      "The centrepiece is Conversation Sparkers — three escalating decks of prompts, Perception, Connection and Reflection, that get more searching as you go up. You can refresh a batch, keep the ones you like, or level up when you are ready for something more personal; the shuffle is random per visit, so no two people get the same set. Alongside it is a notes page for holding on to anything useful.",
+      "The original plan was live chat, and abandoning it turned out to be the best decision of the weekend. Building a chat platform properly was out of reach in the time available, so the team put the same prompts into a Discord bot instead — which meant the tool arrived where students already were rather than asking them to come to a new site. It answers /prompt with a set of three questions at your chosen level, and /wildcard for something further out. Group leaders and coordinators can run it as an icebreaker, which was never the plan and is arguably the more useful outcome.",
+    ],
     image: "assets/Healthut.png",
     imageId: "healthut",
     imageAlt: "Healthut’s home page — a central hub of mental health resources for students",
@@ -383,7 +404,13 @@ export const PROJECTS: Project[] = [
     description: "Ever needed a rubber ducky timeout?",
     tagline: "An AI rubber duck that runs locally and never judges you.",
     details:
-      "devDucky is a local-first AI debugging companion that runs entirely on your machine — no cloud, no data leaks. Describe your bug or paste in your code and a locally hosted LLM (served via Ollama with Unsloth-optimised models) walks you through the problem Socratically, asking questions rather than just handing you the answer. Session history is stored with Mongoose so you can revisit past debugging threads. The stack is a Vite + Node/Express frontend paired with a Flask + Python backend.",
+      "devDucky is a local-first AI debugging companion that runs entirely on your machine — no cloud, no data leaks. Describe your bug or paste in your code and a locally hosted LLM (served via Ollama with Unsloth-optimised models) walks you through the problem Socratically, asking questions rather than just handing you the answer. Session history is stored with Mongoose so you can revisit past debugging threads. The stack is a Vite + Node/Express frontend paired with a Flask + Python backend. Built at Hack the 6ix 2024.",
+    summary: [
+      "Rubber duck debugging works because explaining a problem out loud forces you to state it precisely, at which point you often hear the answer yourself. devDucky, built at Hack the 6ix 2024, asks the obvious follow-up question: what if the duck answered back? Not a chat window in a browser tab — an actual duck on the desk, listening, with an IDE behind it watching the codebase.",
+      "The model runs entirely on your machine, and that is the design constraint everything else follows from. Three candidates were fine-tuned with Unsloth on Yahma's alpaca-cleaned 52k dataset — llama3.1 at 375 steps, tinyllama for one epoch, phi3 at 375 steps — and all quantised to Q4_K_M. phi3 won, not on quality but on hardware: the team's laptops could not keep the larger fine-tunes fed, and that was discovered late enough to count as a real scare. Ollama serves the model, Flask runs as a dedicated microservice around it, Express and Node handle the audio capture and analysis, Vite carries the front end, and Mongoose keeps transcripts and responses so a debugging thread can be picked back up later.",
+      "Giving the duck ears was the part that ate the weekend. The plan was an RP2040, which turned out to have no compatible microphone hardware. An Arduino Nano with a built-in mic worked after about eight hours of troubleshooting, and then produced so much static interference that it was unusable. The answer in the end was a USB microphone, which worked immediately. The lesson the team wrote down afterwards was to test hardware before designing around it.",
+      "What they were proudest of was the privacy story — nothing leaves the machine, no third party sees your code — and their own benchmarking, which put the base model roughly 15% ahead of Copilot on efficiency and closer to 35% once fine-tuning and retrieval were in play. Those are the team's own figures against their own measure, and are quoted here as such.",
+    ],
     image: "assets/devDucky.jpg",
     imageId: "devducky",
     imageAlt: "The devDucky rubber duck on the desk, wired up beside the laptop",
@@ -409,6 +436,12 @@ export const PROJECTS: Project[] = [
     tagline: "Drink water, beat your friends, don't let the pet die.",
     details:
       "HydroHomies is a gamified hydration tracker built at DeltaHacks 12, aimed at the fact that existing hydration apps feel like chores. Onboarding calculates your actual daily requirement from height, weight, age and activity level using the Mifflin-St Jeor equation. Instead of manual entry you point the camera at your bottle: a custom object-detection model, trained in Teachable Machine and exported to TensorFlow Lite, runs on-device to distinguish a full bottle from an empty one and verify you are drinking. A virtual pet evolves as you hit goals and visibly wilts when you do not, and a leaderboard ranks friends by percentage of their own goal met, so a 5'2\" user competes fairly with a 6'5\" one. Built with React Native and Expo on Firebase, with a 'Thirst Limit' algorithm capping XP per hour so the game cannot be farmed.",
+    summary: [
+      "It is four in the afternoon, your head hurts, and you have not had water since breakfast. Every hydration app already knows this about you and none of them help, because they are chores with a progress bar. HydroHomies, built at DeltaHacks 12, went after the two things that actually move behaviour — social pressure and nostalgia — and borrowed its shape from Tamagotchi and Duolingo rather than from a health tracker.",
+      "It starts by working out what you actually need. Onboarding takes height, weight, age and activity level and runs the Mifflin-St Jeor equation, which is a real answer rather than the folk wisdom of eight cups a day. From there the loop is a virtual pet: hit your goal and it evolves, miss it and it visibly wilts. The leaderboard ranks friends by percentage of their own target met, not by volume, so a 5'2\" user and a 6'5\" one are competing on the same terms.",
+      "Logging is a camera problem rather than a form. A custom object-detection model trained in Teachable Machine and exported to TensorFlow Lite runs on-device, classifying full bottle, empty bottle and no bottle, and verifying that you drank rather than taking your word for it. Clear plastic turned out to be genuinely hard — it is reflective and changes appearance under every light — so the model was retrained repeatedly against varied backgrounds, and bridging TFLite to Expo's camera without crashing the scan meant a fight with native dependencies.",
+      "The two things the team had to tune by feel were the pet's health decay, which is discouraging if it dies too fast and boring if it never does, and the anti-cheating rules — a Thirst Limit capping XP per hour, and a realistic daily ceiling on how much water can earn anything. Their conclusion afterwards was that gamification only works when the feedback is instant: the pet smiling is doing more work than any number on the screen.",
+    ],
     image: "assets/hydrohomies/title-card.png",
     imageId: "title-card",
     imageAlt: "The HydroHomies title card and its pixel-art turtle-in-a-glass mascot",

@@ -218,8 +218,13 @@ const DERIVATIVE_TARGETS = [
  *
  * A hand-kept list, deliberately: a rule like "anything above 1.6x the median" moves its
  * own goalposts every time it fires and would eventually come for photos worth their size.
+ *
+ * Currently empty. It held img-0105-full.webp until that photo left the collection, after
+ * which every run printed a "not in public/assets/hobbies — nothing to re-encode" notice
+ * about a file nobody was looking for. The machinery below is kept because the next
+ * oversized photo is a matter of time, and an empty list costs one skipped loop.
  */
-const OVERSIZED_FULL = [{ name: "img-0105-full.webp", quality: 58 }];
+const OVERSIZED_FULL = [];
 
 /**
  * Formats sharp can decode from a file. Anything else in the drop folder is ignored with a
