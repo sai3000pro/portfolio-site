@@ -42,3 +42,20 @@ export function responsiveImageProps(
     height: smallest?.height,
   };
 }
+
+/**
+ * Width-to-height ratio of a generated image, or `undefined` when it is not one.
+ *
+ * Exists so a logo plate can be sized to the shape of the mark it holds instead of
+ * imposing one shape on all of them. Every mark in a fixed 5:2 letterbox meant the
+ * wordmarks fitted and the square ones — MathSoc's diamond — sat as a small badge
+ * marooned in the middle of a wide white field. Reading the real aspect lets the plate
+ * hug its contents, so a square logo gets a square plate and a 12:1 wordmark gets a
+ * long one, and neither is padded out to match the other.
+ *
+ * Read from the generated manifest rather than the file, so it costs nothing at runtime
+ * and cannot disagree with the derivative that is actually served.
+ */
+export function imageAspect(id: GeneratedImageId | undefined): number | undefined {
+  return id ? GENERATED_IMAGES[id]?.aspect : undefined;
+}

@@ -56,21 +56,29 @@ function Gaming() {
               textWrap: "pretty",
             }}
           >
-            Mostly strategy, and mostly the kind you lose an evening to by accident. Laid out the
-            way a library does its display table — everything face-out, hours on the sticker, and
-            Civilization VI on the top step where they put the one they are pushing.
+            Mostly strategy, and mostly the kind you lose an evening to by accident. Turn the stand
+            to bring one to the front — Civilization VI is facing you first, because it has earned
+            it.
           </p>
         </Reveal>
 
         <GameShelf />
 
+        {/* The closing line of the page, and deliberately the last thing on it: it is the
+            sum of everything above, so it only makes sense once the ring has been seen. */}
         <Reveal delay={0.1}>
           <p
-            className="mx-auto text-center text-muted-portfolio"
-            style={{ marginTop: "clamp(26px,3.5vh,40px)", maxWidth: 620, fontSize: 14 }}
+            className="font-display text-ink mx-auto text-center"
+            style={{
+              marginTop: "clamp(28px,4vh,44px)",
+              maxWidth: 620,
+              fontSize: "clamp(15px,1.7vw,18px)",
+              lineHeight: 1.6,
+              textWrap: "balance",
+            }}
           >
-            {totalTrackedHoursLabel()} tracked hours, and Cities: Skylines II leaning at the end
-            waiting its turn.
+            <span className="text-accent-bright">{totalTrackedHoursLabel()} tracked hours</span>,
+            and Cities: Skylines II is next up.
           </p>
         </Reveal>
       </Section>

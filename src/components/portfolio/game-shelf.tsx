@@ -1,71 +1,15 @@
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import {
-  FAVOURITE,
-  NEXT_UP,
-  SHELF,
-  coverArtHolders,
-  playtimeLabel,
-  type Game,
-} from "@/data/gaming";
+import { FAVOURITE, RING, coverArtHolders, playtimeLabel, type Game } from "@/data/gaming";
 import { responsiveImageProps } from "@/lib/assets";
 import { Reveal } from "./section";
 
-const TAU = Math.PI * 2;
+/** Degrees between neighbouring covers on the ring. */
+const STEP = 360 / RING.length;
 
-/**
- * How far a book at the back of a turntable rises above one at the front, in px.
- *
- * This number is what makes a round display stand legible on a flat screen. Space books
- * evenly around a circle and the one opposite the front sits at the same x — directly
- * behind it, completely hidden. Lifting the far side turns the ring into a shallow bowl,
- * so the back book clears the front one's shoulder and every cover stays visible at every
- * angle. It is also just true of a real tiered stand: you see the back row over the front.
- */
-const BACK_RISE = 44;
-
-/**
- * Quarter-slot rotation applied to tiers with an even number of books.
- *
- * An odd count never puts a book at 180°, so the far ones always fall to one side or the
- * other of the front book and every cover is visible. An even count needs help, and the
- * amount of help is not obvious — horizontal position is `sin(angle)`, so it is the
- * absolute angle that decides whether two books share an x.
- *
- * For four books, measured as multiples of a slot:
- *
- *   phase 0     x/R = 0, 1, 0, -1          two books at dead centre, one hidden behind
- *   phase 0.5   x/R = .707, .707, -.707, -.707   sin(45°) = sin(135°), so they pair up
- *   phase 0.25  x/R = .383, .924, -.383, -.924   four distinct positions, evenly spread
- *
- * A quarter slot is therefore the one that works, and it is stable under rotation: turning
- * by a whole slot permutes the same four positions rather than producing new ones.
- */
-const EVEN_PHASE = 0.25;
-
-/**
- * The three steps of the stand, bottom of the file to top of the display.
- *
- * `radius` is the turntable's half-width in px; `board` is the shelf's width as a share of
- * the stand, so the steps tuck inward the way a round display table does. `height` is the
- * cover height — books on the top step are bigger because they are nearer the eye.
- *
- * Covers keep their own aspect ratio (`width: auto` against a fixed height), so the five
- * 2:3 box arts stay tall and the three square app icons stay square. Real shelves hold
- * books of different shapes; forcing one ratio would mean cropping somebody's artwork.
- */
-const TIERS = [
-  {
-    label: "bottom shelf",
-    games: [...SHELF.slice(3), NEXT_UP],
-    radius: 250,
-    height: 116,
-    board: "100%",
-  },
-  { label: "middle shelf", games: SHELF.slice(0, 3), radius: 176, height: 132, board: "78%" },
-  { label: "top shelf", games: [FAVOURITE], radius: 0, height: 176, board: "48%" },
-];
+/** How far a swipe has to travel before it counts as one turn. */
+const SWIPE_PX = 48;
 
 /** Alt text that carries the credit with the image, so it travels wherever the image does. */
 function coverAlt(game: Game): string {
@@ -75,44 +19,163 @@ function coverAlt(game: Game): string {
 }
 
 /**
- * The games, on a tiered display stand with every cover turned face-out.
+ * Shortest signed distance from a ring slot to the front, in slots.
  *
- * Rendered top tier first in the DOM so reading order matches viewing order — the eye goes
- * to the favourite on the top step, then works down. The TIERS array is written bottom-up
- * because that is how a stand is built, so it is reversed here rather than stored backwards.
+ * `index` counts up forever (see below), so `i - index` can be any integer; this folds it
+ * back into -n/2..n/2 so that slot 7 of 8 is "one step anticlockwise" rather than "seven
+ * steps clockwise". Every depth cue is derived from it, which is what keeps them agreeing.
+ */
+function slotDelta(i: number, index: number, n: number): number {
+  const raw = (((i - index) % n) + n) % n;
+  return raw > n / 2 ? raw - n : raw;
+}
+
+/**
+ * The games, on a single spinning turntable.
  *
- * Every book links to the game's own store or site. That is the honest affordance — there
- * is nothing to expand in place — and it doubles as the attribution's teeth: each credit
- * is a route back to the source, not just a line of text.
+ * Real 3D, not a drawing of it: the stage carries a `perspective`, the ring is
+ * `transform-style: preserve-3d`, and each cover is placed with `rotateY(θ) translateZ(R)`
+ * — an actual circle in the page's 3D space. The browser does the projection, so the far
+ * covers are smaller and the ellipse of the platter is a genuine circle seen at an angle,
+ * rather than numbers picked to look like one.
+ *
+ * WHY NOT THREE.JS. It was the obvious suggestion and it is the wrong tool here. This is
+ * eight flat images standing in a circle — there is no mesh, no lighting, no material.
+ * WebGL would add roughly 600KB to a page whose entire image payload is 250KB, replace
+ * prerenderable DOM with a canvas that renders nothing until JavaScript runs (this site is
+ * static HTML on Pages, and the covers are real <img> tags with srcset that the browser
+ * fetches without help), and put every cover behind a texture upload rather than the
+ * responsive image pipeline. CSS 3D gets the same geometry, composited on the GPU, in a
+ * component that still works as markup. If this ever grows real geometry — a shelf you can
+ * orbit, actual lighting — that is the moment to reach for a renderer, not before.
+ *
+ * The whole stand is sized from two custom properties, both `clamp()`ed, so it scales from
+ * a 390px phone to a desktop without a media query or a horizontal scrollbar. The previous
+ * version pinned its widest tier to `min-width: 640px` inside an `overflow-x: auto` box,
+ * which on a phone showed about half a shelf and asked you to drag for the rest.
  */
 export function GameShelf() {
+  // Unbounded on purpose. Wrapping into 0..n is what would break the animation: stepping
+  // from the last slot back to the first would be a jump from 315° to 0°, and every cover
+  // would take the long way round to reach a place it was already standing. Counting up
+  // forever makes every press the same 45° in the same direction.
+  const [index, setIndex] = useState(0);
+  const dragX = useRef<number | null>(null);
+
+  const turn = useCallback((by: number) => setIndex((i) => i + by), []);
+
+  const focused = RING[((index % RING.length) + RING.length) % RING.length];
   const holders = coverArtHolders();
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    dragX.current = e.clientX;
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (dragX.current === null) return;
+    const dx = e.clientX - dragX.current;
+    if (Math.abs(dx) < SWIPE_PX) return;
+    turn(dx < 0 ? 1 : -1);
+    dragX.current = e.clientX;
+  };
+  const endDrag = () => {
+    dragX.current = null;
+  };
 
   return (
     <Reveal immediate delay={0.14}>
-      <div style={{ marginTop: "clamp(26px,3.5vh,42px)" }}>
-        <div style={{ overflowX: "auto", overflowY: "hidden", paddingBottom: 6 }}>
+      <div style={{ marginTop: "clamp(20px,3vh,34px)" }}>
+        {/*
+          The clip lives out here, one level above the `perspective` element. `overflow`
+          on a `preserve-3d` element flattens its children back into the plane and the
+          whole effect collapses, so the two can never be the same node.
+        */}
+        <div className="game-clip">
           <div
-            className="mx-auto"
-            style={{ minWidth: 640, maxWidth: 940, paddingInline: "clamp(4px,2vw,20px)" }}
+            className="game-stage"
+            role="group"
+            aria-roledescription="carousel"
+            aria-label="Games, on a turntable"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            onPointerLeave={endDrag}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") {
+                e.preventDefault();
+                turn(-1);
+              }
+              if (e.key === "ArrowRight") {
+                e.preventDefault();
+                turn(1);
+              }
+            }}
           >
-            {[...TIERS].reverse().map((tier) => (
-              <Tier key={tier.label} {...tier} />
-            ))}
+            <div className="game-space">
+              {/* A real disc lying flat in the same 3D space as the covers, so the
+                  perspective draws it as an ellipse for us and the covers stand on it
+                  instead of hovering above a painted line. */}
+              <div className="game-platter" aria-hidden="true" />
+
+              <div className="game-ring" style={{ transform: `rotateY(${-index * STEP}deg)` }}>
+                {RING.map((game, i) => {
+                  const delta = slotDelta(i, index, RING.length);
+                  // 1 at the front of the ring, -1 at the back.
+                  const near = Math.cos((delta * STEP * Math.PI) / 180);
+                  const isFront = Math.abs(delta) < 0.5;
+
+                  return (
+                    <div
+                      key={game.title}
+                      className="game-seat"
+                      style={{ transform: `rotateY(${i * STEP}deg) translateZ(var(--game-r))` }}
+                    >
+                      <Cover
+                        game={game}
+                        front={isFront}
+                        // Perspective already shrinks the far side; this is the haze that
+                        // tells you the back of a lit room is the back of a lit room.
+                        style={{
+                          opacity: 0.34 + 0.66 * ((near + 1) / 2),
+                          filter: `brightness(${(0.62 + 0.38 * ((near + 1) / 2)).toFixed(3)})`,
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <SpinButton direction="left" onClick={() => turn(-1)} />
+            <SpinButton direction="right" onClick={() => turn(1)} />
           </div>
         </div>
 
+        {/* The caption is the reason the covers carry no stickers any more: at the front a
+            cover is big enough to read, and everywhere else a label was just something to
+            collide with. Fixed height so turning the ring never nudges the page. */}
+        <div className="game-caption" aria-live="polite">
+          <p className="font-display text-ink game-caption-title">{focused.title}</p>
+          <p className="text-muted-portfolio game-caption-meta">
+            <span className="text-accent-bright">
+              {playtimeLabel(focused) ?? focused.status ?? "untracked"}
+            </span>
+            {focused === FAVOURITE && <span> · most played</span>}
+            {focused.note && <span className="game-caption-note"> — {focused.note}</span>}
+          </p>
+        </div>
+
         {/* The notice sits with the shelf rather than in the page copy, so it travels with
-            the component if the stand is ever used anywhere else. */}
+            the component if the turntable is ever used anywhere else. */}
         <p
           className="text-muted-portfolio mx-auto text-center"
           style={{
-            marginTop: 26,
+            marginTop: 22,
             maxWidth: 660,
             fontSize: 12,
             lineHeight: 1.6,
             textWrap: "pretty",
-            opacity: 0.8,
+            opacity: 0.75,
           }}
         >
           Cover art remains the property of its respective publishers — {holders.join(", ")} — and
@@ -124,171 +187,38 @@ export function GameShelf() {
   );
 }
 
-/**
- * One step of the stand: a turntable of face-out books sitting on a shelf.
- *
- * Each tier spins independently, one book per press, and the offset is an unbounded integer
- * rather than one wrapped into 0..n. Wrapping is what would break the animation: stepping
- * from the last slot back to the first would be a jump from 359° to 0°, and every book
- * would take the long way round the circle to reach a place it was already standing.
- * Counting up forever makes every press the same small step in the same direction.
- *
- * The shelf under them is two stacked ellipses rather than a rectangle. A round display
- * table seen from the front is an ellipse, and the second one behind it — offset down and
- * darker — is the thickness of the board. Without that pair the books look like they are
- * floating on a painted line.
- */
-function Tier({
-  label,
-  games,
-  radius,
-  height,
-  board,
-}: {
-  label: string;
-  games: Game[];
-  radius: number;
-  height: number;
-  board: string;
-}) {
-  const [offset, setOffset] = useState(0);
-  // A single book has nothing to rotate past, so the top step gets no controls rather than
-  // a pair of buttons that visibly do nothing.
-  const rotatable = games.length > 1;
-
-  return (
-    <div className="relative mx-auto" style={{ width: "100%" }}>
-      <div style={{ position: "relative", height: height + BACK_RISE }}>
-        {games.map((game, i) => {
-          const phase = games.length % 2 === 0 ? EVEN_PHASE : 0;
-          const angle = ((i + offset + phase) / games.length) * TAU;
-          // 1 at the front of the turntable, -1 at the back. Every depth cue below is a
-          // function of it, which is what keeps them agreeing with each other.
-          const depth = Math.cos(angle);
-          const near = (depth + 1) / 2;
-
-          return (
-            <div
-              key={game.title}
-              className="game-slot"
-              style={{
-                position: "absolute",
-                left: "50%",
-                bottom: 0,
-                zIndex: Math.round(near * 100),
-                opacity: 0.5 + 0.5 * near,
-                transform:
-                  `translateX(calc(-50% + ${(Math.sin(angle) * radius).toFixed(2)}px)) ` +
-                  `translateY(${(-(1 - near) * BACK_RISE).toFixed(2)}px) ` +
-                  `scale(${(0.78 + 0.22 * near).toFixed(3)})`,
-              }}
-            >
-              <Book game={game} height={height} />
-            </div>
-          );
-        })}
-
-        {rotatable && (
-          <>
-            <SpinButton
-              direction="left"
-              label={label}
-              onClick={() => setOffset((o) => o - 1)}
-              style={{ left: 0 }}
-            />
-            <SpinButton
-              direction="right"
-              label={label}
-              onClick={() => setOffset((o) => o + 1)}
-              style={{ right: 0 }}
-            />
-          </>
-        )}
-      </div>
-
-      {/* The board. `border-radius: 50%` on a squat box gives the ellipse; the two are
-          nudged together so the front arc of the top face reads as the shelf edge. */}
-      <div className="relative mx-auto" style={{ width: board, marginTop: -12, marginBottom: 16 }}>
-        <div
-          aria-hidden="true"
-          style={{
-            height: 20,
-            borderRadius: "50%",
-            background: "var(--portfolio-surface-2)",
-            border: "1px solid var(--portfolio-border-strong)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          style={{
-            height: 18,
-            marginTop: -11,
-            borderRadius: "50%",
-            background: "var(--portfolio-surface)",
-            borderBottom: "1px solid var(--portfolio-border)",
-            boxShadow: "0 12px 26px -14px rgba(0,0,0,0.8)",
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/** One of the two arrows that spin a tier. Sits clear of the books, above every slot. */
-function SpinButton({
-  direction,
-  label,
-  onClick,
-  style,
-}: {
-  direction: "left" | "right";
-  label: string;
-  onClick: () => void;
-  style: React.CSSProperties;
-}) {
+/** One of the two arrows that turn the ring. Sits outside the covers, above every seat. */
+function SpinButton({ direction, onClick }: { direction: "left" | "right"; onClick: () => void }) {
   const Icon = direction === "left" ? ChevronLeft : ChevronRight;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Turn the ${label} ${direction}`}
-      className="game-spin text-muted-portfolio focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-      style={{
-        position: "absolute",
-        top: "50%",
-        transform: "translateY(-50%)",
-        // Above the nearest book, which tops out at zIndex 100.
-        zIndex: 120,
-        display: "grid",
-        placeItems: "center",
-        width: 32,
-        height: 32,
-        borderRadius: "9999px",
-        background: "var(--portfolio-surface-2)",
-        border: "1px solid var(--portfolio-border-strong)",
-        ...style,
-      }}
+      aria-label={direction === "left" ? "Turn to the previous game" : "Turn to the next game"}
+      className="game-spin text-muted-portfolio focus-visible:ring-accent-bright focus-visible:ring-2 focus-visible:outline-none"
+      style={{ [direction]: 0 }}
     >
-      <Icon size={16} aria-hidden="true" />
+      <Icon size={17} aria-hidden="true" />
     </button>
   );
 }
 
 /**
- * A single game, cover-forward on a stand.
+ * One game, cover-forward on the turntable.
  *
- * Tipped back a few degrees on the X axis, which is what an easel does to a book and what
- * separates "propped up on a shelf" from "pasted onto the page". The little translucent
- * bar at the foot is the acrylic stand itself.
+ * Every cover is a link to the game's own store or site, whichever slot it is standing in.
+ * That is the honest affordance — there is nothing to expand in place — and it doubles as
+ * the attribution's teeth: each credit is a route back to the source, not just a line of
+ * text. Keeping the back ones reachable too means the tab order is the ring's order and
+ * never reshuffles as it turns.
  *
  * A game with no `cover` falls back to its gradient, so pulling an image leaves a plain
  * coloured book rather than a hole.
  */
-function Book({ game, height }: { game: Game; height: number }) {
+function Cover({ game, front, style }: { game: Game; front: boolean; style: React.CSSProperties }) {
   const playtime = playtimeLabel(game);
-  const caption = playtime ?? game.status ?? "untracked";
-  // The wishlist book is dimmed rather than labelled twice — the sticker already says it.
+  // The wishlist copy is dimmed rather than labelled twice — the caption already says it.
   const pending = !playtime;
 
   return (
@@ -297,82 +227,34 @@ function Book({ game, height }: { game: Game; height: number }) {
       target="_blank"
       rel="noreferrer"
       title={playtime ? `${game.title} — ${playtime}` : game.title}
-      className="game-book block no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-      style={{ position: "relative", borderRadius: 4 }}
+      tabIndex={front ? 0 : -1}
+      className="game-book focus-visible:ring-accent-bright block no-underline focus-visible:ring-2 focus-visible:outline-none"
+      style={style}
     >
       {game.cover ? (
         <img
-          {...responsiveImageProps(game.cover, game.coverId, `${Math.round(height * 0.8)}px`)}
+          {...responsiveImageProps(game.cover, game.coverId, "168px")}
           alt={coverAlt(game)}
           // All eight are eager. Lazy loading is for images below a long page; this page IS
-          // the stand, every cover is within a screenful or two, and the whole set is about
-          // 250KB of WebP. Deferring them only produced a stand of empty easels that filled
+          // the turntable, every cover is within a screenful, and the whole set is about
+          // 250KB of WebP. Deferring them only produced a ring of empty frames that filled
           // in a beat later, which reads as broken rather than as fast.
           loading="eager"
           decoding="async"
-          style={{
-            height,
-            width: "auto",
-            display: "block",
-            borderRadius: 4,
-            border: "1px solid rgba(0,0,0,0.45)",
-            boxShadow: "0 12px 22px -12px rgba(0,0,0,0.9)",
-            opacity: pending ? 0.72 : 1,
-          }}
+          className="game-cover"
+          style={{ opacity: pending ? 0.8 : 1 }}
         />
       ) : (
         <span
           aria-label={game.title}
+          className="game-cover"
           style={{
             display: "block",
-            height,
-            width: Math.round(height * 0.68),
-            borderRadius: 4,
+            aspectRatio: "2 / 3",
             background: `linear-gradient(165deg, ${game.spine.from}, ${game.spine.to})`,
-            border: "1px solid rgba(0,0,0,0.45)",
           }}
         />
       )}
-
-      {/* The hours, as the library sticker on the corner of the jacket. On the cover rather
-          than under it because the books stand directly on the board and there is no room
-          beneath them — and because a real display copy is labelled exactly this way. */}
-      <span
-        className="font-display"
-        style={{
-          position: "absolute",
-          left: 5,
-          bottom: 5,
-          fontSize: 9.5,
-          fontWeight: 600,
-          letterSpacing: 0.3,
-          padding: "2.5px 6px",
-          borderRadius: 3,
-          whiteSpace: "nowrap",
-          color: pending ? "#1a2230" : "#101720",
-          background: pending ? "rgba(228,234,240,0.86)" : "rgba(255,246,222,0.92)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.5)",
-        }}
-      >
-        {caption}
-      </span>
-
-      {/* The acrylic easel. Sits under the book's front edge, catching a little light. */}
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          left: "50%",
-          bottom: -5,
-          transform: "translateX(-50%)",
-          width: "62%",
-          height: 7,
-          borderRadius: "0 0 3px 3px",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.06))",
-          border: "1px solid rgba(255,255,255,0.14)",
-          borderTop: "none",
-        }}
-      />
     </a>
   );
 }

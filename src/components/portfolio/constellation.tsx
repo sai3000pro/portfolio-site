@@ -1,9 +1,9 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useCallback } from "react";
 import { AnimatePresence, motion, motionValue, useReducedMotion } from "framer-motion";
 import type { MotionValue } from "framer-motion";
 import { X, Camera, ArrowLeft, ArrowRight } from "lucide-react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import type { Project } from "@/data/portfolio";
+import type { Project, ShelfProject } from "@/data/portfolio";
 import { KEYS } from "@/data/achievements";
 import { trackMember, unlock } from "@/lib/achievements";
 import { assetUrl, responsiveImageProps } from "@/lib/assets";
@@ -588,16 +588,31 @@ function StaticProjectGrid({
 
 // ─── ProjectModal ─────────────────────────────────────────────────────────────
 
+/**
+ * What the modal can show.
+ *
+ * Wide enough for both shelves. `Project` (the seven in the constellation) and
+ * `ShelfProject` (everything under "More of my projects") differ in exactly two ways:
+ * the shelf's `link` is optional, and it carries a `linkNote` for the entries with
+ * nowhere public to send anyone. Everything the modal renders is either shared or
+ * optional here, so a `Project` is assignable as-is and the arrows can walk from one
+ * list straight into the other.
+ */
+type ModalProject = ShelfProject & Pick<Partial<Project>, "winner" | "details">;
+
 function ProjectModal({
   project,
   projectIndex,
   projectCount,
+  hasCaseStudy,
   onClose,
   onNavigate,
 }: {
-  project: Project | null;
+  project: ModalProject | null;
   projectIndex: number;
   projectCount: number;
+  /** Only the constellation seven have a /projects/$slug page to link to. */
+  hasCaseStudy: boolean;
   onClose: () => void;
   onNavigate: (delta: number) => void;
 }) {
@@ -642,269 +657,323 @@ function ProjectModal({
           aria-modal="true"
           aria-labelledby="project-modal-title"
         >
-          <motion.div
-            ref={panelRef}
-            className="relative w-full rounded-2xl overflow-hidden"
-            style={{
-              maxWidth: 860,
-              maxHeight: "calc(100dvh - clamp(100px, 12vh, 140px))",
-              background: "var(--portfolio-panel)",
-              border: "1px solid var(--portfolio-border-strong)",
-              boxShadow: "0 30px 80px var(--portfolio-shadow)",
-            }}
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+          {/* The shell is what holds the arrows clear of the panel. It stops click
+              propagation for the whole group, so pressing an arrow navigates instead of
+              falling through to the backdrop's close handler — which is exactly what
+              happened the first time these moved out of the panel. */}
+          <div
+            className="modal-shell"
+            style={{ maxWidth: 1000 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-opacity hover:opacity-80"
-              style={{
-                width: 36,
-                height: 36,
-                background: "var(--portfolio-panel-deep)",
-                border: "1px solid var(--portfolio-border)",
-                color: "var(--portfolio-muted)",
-              }}
-            >
-              <X size={18} />
-            </button>
+            <ModalNav
+              direction="prev"
+              label={`Previous project: ${projectIndex > 0 ? "go to previous" : "wrap to last"}`}
+              onClick={() => onNavigate(-1)}
+            />
 
-            {/* Focusable so a keyboard-only visitor can scroll the overflow with the arrow
+            <motion.div
+              ref={panelRef}
+              className="modal-shell__panel relative rounded-2xl overflow-hidden"
+              style={{
+                maxWidth: 860,
+                maxHeight: "calc(100dvh - clamp(140px, 18vh, 200px))",
+                background: "var(--portfolio-panel)",
+                border: "1px solid var(--portfolio-border-strong)",
+                boxShadow: "0 30px 80px var(--portfolio-shadow)",
+              }}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-opacity hover:opacity-80"
+                style={{
+                  width: 36,
+                  height: 36,
+                  background: "var(--portfolio-panel-deep)",
+                  border: "1px solid var(--portfolio-border)",
+                  color: "var(--portfolio-muted)",
+                }}
+              >
+                <X size={18} />
+              </button>
+
+              {/* Focusable so a keyboard-only visitor can scroll the overflow with the arrow
                 keys; a scrollable region that only a pointer can reach is a WCAG 2.1.1
                 failure. Focusable means it needs a name, hence the role + label pairing. */}
-            <div
-              tabIndex={0}
-              role="group"
-              aria-labelledby="project-modal-title"
-              style={{
-                maxHeight: "calc(100dvh - clamp(100px, 12vh, 140px))",
-                overflowY: "auto",
-                overflowX: "hidden",
-                overscrollBehavior: "contain",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => onNavigate(-1)}
-                aria-label={`Previous project: ${projectIndex > 0 ? "go to previous" : "wrap to last"}`}
-                className="absolute left-2 top-1/2 z-10 grid -translate-y-1/2 place-items-center rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
+              <div
+                tabIndex={0}
+                role="group"
+                aria-labelledby="project-modal-title"
                 style={{
-                  width: 40,
-                  height: 40,
-                  background: "var(--portfolio-panel-deep)",
-                  border: "1px solid var(--portfolio-border-strong)",
-                  color: "var(--portfolio-muted)",
+                  maxHeight: "calc(100dvh - clamp(140px, 18vh, 200px))",
+                  overflowY: "auto",
+                  overflowX: "hidden",
+                  overscrollBehavior: "contain",
                 }}
               >
-                <ArrowLeft size={19} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate(1)}
-                aria-label={`Next project: ${projectIndex + 1 < projectCount ? "go to next" : "wrap to first"}`}
-                className="absolute right-2 top-1/2 z-10 grid -translate-y-1/2 place-items-center rounded-full transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-                style={{
-                  width: 40,
-                  height: 40,
-                  background: "var(--portfolio-panel-deep)",
-                  border: "1px solid var(--portfolio-border-strong)",
-                  color: "var(--portfolio-muted)",
-                }}
-              >
-                <ArrowRight size={19} aria-hidden="true" />
-              </button>
-
-              <div className="grid grid-cols-1 md:grid-cols-2">
-                {/* Left — media */}
-                <div className="flex flex-col gap-3 p-3">
-                  {project.image ? (
-                    <img
-                      {...projectImageProps(project.image, project.imageId, `${MODAL_IMG_W}px`)}
-                      alt={project.title}
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full rounded-xl object-cover object-top"
-                      style={{ aspectRatio: "4 / 3" }}
-                    />
-                  ) : photos.length > 0 ? (
-                    photos.map((src, i) => (
+                <div className="grid grid-cols-1 md:grid-cols-2">
+                  {/* Left — media */}
+                  <div className="flex flex-col gap-3 p-3">
+                    {project.image ? (
                       <img
-                        key={src}
-                        // Same rule as projectImageProps above: `photos` entries are bare,
-                        // document-relative paths and 404 under the Pages base path unless
-                        // they go through assetUrl(). This branch only renders for a project
-                        // with photos and no `image`, so the miss went unseen — every project
-                        // has an `image` today.
-                        src={assetUrl(src)}
-                        alt={`${project.title} — ${i + 1}`}
+                        {...projectImageProps(project.image, project.imageId, `${MODAL_IMG_W}px`)}
+                        alt={project.title}
                         loading="lazy"
-                        className="w-full rounded-xl object-cover"
-                        style={{ aspectRatio: photos.length === 2 ? "4 / 3" : "3 / 4" }}
+                        decoding="async"
+                        className="w-full rounded-xl object-cover object-top"
+                        style={{ aspectRatio: "4 / 3" }}
                       />
-                    ))
-                  ) : (
-                    <div
-                      className="flex-1 rounded-xl grid place-items-center"
-                      style={{
-                        aspectRatio: "3 / 4",
-                        background: "linear-gradient(135deg, #0a4f99, #05213f)",
-                      }}
+                    ) : photos.length > 0 ? (
+                      photos.map((src, i) => (
+                        <img
+                          key={src}
+                          // Same rule as projectImageProps above: `photos` entries are bare,
+                          // document-relative paths and 404 under the Pages base path unless
+                          // they go through assetUrl(). This branch only renders for a project
+                          // with photos and no `image`, so the miss went unseen — every project
+                          // has an `image` today.
+                          src={assetUrl(src)}
+                          alt={`${project.title} — ${i + 1}`}
+                          loading="lazy"
+                          className="w-full rounded-xl object-cover"
+                          style={{ aspectRatio: photos.length === 2 ? "4 / 3" : "3 / 4" }}
+                        />
+                      ))
+                    ) : (
+                      <div
+                        className="flex-1 rounded-xl grid place-items-center"
+                        style={{
+                          aspectRatio: "3 / 4",
+                          background: "linear-gradient(135deg, #0a4f99, #05213f)",
+                        }}
+                      >
+                        {project.winner ? (
+                          <span
+                            className="font-display font-bold rounded-full"
+                            style={{
+                              fontSize: 11,
+                              letterSpacing: 1,
+                              padding: "5px 11px",
+                              color: "#021024",
+                              background: "linear-gradient(180deg,#ffe27a,#f5c542)",
+                              boxShadow: "0 0 16px rgba(245,197,66,0.5)",
+                            }}
+                          >
+                            ★ Winner
+                          </span>
+                        ) : (
+                          <div
+                            className="flex flex-col items-center gap-2 text-muted-portfolio on-dark"
+                            style={{ fontSize: 13 }}
+                          >
+                            <Camera size={22} />
+                            Photos coming soon
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right — info */}
+                  <div
+                    className="flex flex-col justify-center"
+                    style={{ padding: "clamp(22px,3vw,34px)" }}
+                  >
+                    {project.winner && (
+                      <span
+                        className="font-display font-bold"
+                        style={{
+                          // Sits directly on the panel ground, so it has to clear AA in both
+                          // themes; the literal #f5c518 measured 1.63:1 on the light theme.
+                          // (The winner pill below keeps its bright gradient — it carries its
+                          // own dark-on-gold fill and is not on the page ground.)
+                          color: "var(--portfolio-gold)",
+                          fontSize: 12,
+                          letterSpacing: 0.5,
+                          marginBottom: 6,
+                        }}
+                      >
+                        ★ Hackathon Winner
+                      </span>
+                    )}
+                    <h3
+                      id="project-modal-title"
+                      className="font-display font-extrabold text-ink"
+                      style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1, margin: 0 }}
                     >
-                      {project.winner ? (
-                        <span
-                          className="font-display font-bold rounded-full"
+                      {project.title}
+                    </h3>
+                    <p
+                      className="text-muted-portfolio mt-4"
+                      style={{ fontSize: 15.5, lineHeight: 1.75 }}
+                    >
+                      {project.details ?? project.description}
+                    </p>
+
+                    {project.tech && project.tech.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-4">
+                        {project.tech.map((t) => (
+                          <span
+                            key={t}
+                            className="font-display text-accent-bright"
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 500,
+                              padding: "2px 9px",
+                              borderRadius: 6,
+                              background: "var(--portfolio-surface-2)",
+                              border: "1px solid var(--portfolio-border)",
+                            }}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-3 mt-6 items-center">
+                      {/* Only the constellation seven have a case-study route. A shelf
+                        project reached with the arrows has no /projects/<slug> page, and
+                        linking to one would be a 404 dressed as a primary action. */}
+                      {hasCaseStudy && (
+                        <Link
+                          to="/projects/$slug"
+                          params={{ slug: slugify(project.title) }}
+                          className="font-display font-semibold no-underline inline-flex items-center gap-1.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
                           style={{
-                            fontSize: 11,
-                            letterSpacing: 1,
-                            padding: "5px 11px",
+                            fontSize: 13,
+                            padding: "8px 18px",
+                            borderRadius: 8,
                             color: "#021024",
-                            background: "linear-gradient(180deg,#ffe27a,#f5c542)",
-                            boxShadow: "0 0 16px rgba(245,197,66,0.5)",
+                            background: "linear-gradient(180deg,#5db6ff,#2f9bff)",
+                            boxShadow: "0 6px 20px rgba(47,155,255,0.35)",
                           }}
                         >
-                          ★ Winner
-                        </span>
-                      ) : (
-                        <div
-                          className="flex flex-col items-center gap-2 text-muted-portfolio on-dark"
-                          style={{ fontSize: 13 }}
-                        >
-                          <Camera size={22} />
-                          Photos coming soon
-                        </div>
+                          Read case study <ArrowRight size={15} aria-hidden="true" />
+                        </Link>
                       )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right — info */}
-                <div
-                  className="flex flex-col justify-center"
-                  style={{ padding: "clamp(22px,3vw,34px)" }}
-                >
-                  {project.winner && (
-                    <span
-                      className="font-display font-bold"
-                      style={{
-                        // Sits directly on the panel ground, so it has to clear AA in both
-                        // themes; the literal #f5c518 measured 1.63:1 on the light theme.
-                        // (The winner pill below keeps its bright gradient — it carries its
-                        // own dark-on-gold fill and is not on the page ground.)
-                        color: "var(--portfolio-gold)",
-                        fontSize: 12,
-                        letterSpacing: 0.5,
-                        marginBottom: 6,
-                      }}
-                    >
-                      ★ Hackathon Winner
-                    </span>
-                  )}
-                  <h3
-                    id="project-modal-title"
-                    className="font-display font-extrabold text-ink"
-                    style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1, margin: 0 }}
-                  >
-                    {project.title}
-                  </h3>
-                  <p
-                    className="text-muted-portfolio mt-4"
-                    style={{ fontSize: 15.5, lineHeight: 1.75 }}
-                  >
-                    {project.details ?? project.description}
-                  </p>
-
-                  {project.tech && project.tech.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-4">
-                      {project.tech.map((t) => (
-                        <span
-                          key={t}
-                          className="font-display text-accent-bright"
+                      {project.link ? (
+                        <a
+                          href={assetUrl(project.link)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-display font-semibold no-underline text-accent-bright transition-opacity hover:opacity-80"
                           style={{
-                            fontSize: 11,
-                            fontWeight: 500,
-                            padding: "2px 9px",
-                            borderRadius: 6,
+                            fontSize: 13,
+                            padding: "8px 18px",
+                            borderRadius: 8,
                             background: "var(--portfolio-surface-2)",
+                            border: "1px solid var(--portfolio-border-strong)",
+                          }}
+                        >
+                          {project.cta ?? "View on Devpost →"}
+                        </a>
+                      ) : project.linkNote ? (
+                        // Not a link and deliberately not styled as one: it explains why
+                        // there is nowhere to go, and looking clickable would be a promise
+                        // the modal cannot keep. Same wording as the shelf card.
+                        <span
+                          className="text-muted-portfolio"
+                          style={{ fontSize: 13, fontStyle: "italic" }}
+                        >
+                          {project.linkNote}
+                        </span>
+                      ) : null}
+                      {project.repo && (
+                        <a
+                          href={project.repo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-display font-semibold no-underline text-muted-portfolio transition-opacity hover:opacity-80"
+                          style={{
+                            fontSize: 13,
+                            padding: "8px 18px",
+                            borderRadius: 8,
+                            background: "var(--portfolio-surface)",
                             border: "1px solid var(--portfolio-border)",
                           }}
                         >
-                          {t}
-                        </span>
-                      ))}
+                          GitHub →
+                        </a>
+                      )}
                     </div>
-                  )}
-
-                  <div className="flex flex-wrap gap-3 mt-6">
-                    <Link
-                      to="/projects/$slug"
-                      params={{ slug: slugify(project.title) }}
-                      className="font-display font-semibold no-underline inline-flex items-center gap-1.5 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-bright"
-                      style={{
-                        fontSize: 13,
-                        padding: "8px 18px",
-                        borderRadius: 8,
-                        color: "#021024",
-                        background: "linear-gradient(180deg,#5db6ff,#2f9bff)",
-                        boxShadow: "0 6px 20px rgba(47,155,255,0.35)",
-                      }}
-                    >
-                      Read case study <ArrowRight size={15} aria-hidden="true" />
-                    </Link>
-                    <a
-                      href={assetUrl(project.link)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-display font-semibold no-underline text-accent-bright transition-opacity hover:opacity-80"
-                      style={{
-                        fontSize: 13,
-                        padding: "8px 18px",
-                        borderRadius: 8,
-                        background: "var(--portfolio-surface-2)",
-                        border: "1px solid var(--portfolio-border-strong)",
-                      }}
-                    >
-                      {project.cta ?? "View on Devpost →"}
-                    </a>
-                    {project.repo && (
-                      <a
-                        href={project.repo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-display font-semibold no-underline text-muted-portfolio transition-opacity hover:opacity-80"
-                        style={{
-                          fontSize: 13,
-                          padding: "8px 18px",
-                          borderRadius: 8,
-                          background: "var(--portfolio-surface)",
-                          border: "1px solid var(--portfolio-border)",
-                        }}
-                      >
-                        GitHub →
-                      </a>
-                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+
+            <ModalNav
+              direction="next"
+              label={`Next project: ${projectIndex + 1 < projectCount ? "go to next" : "wrap to first"}`}
+              onClick={() => onNavigate(1)}
+            />
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
+/** One of the two arrows flanking an overlay. Shared by the project and experience modals. */
+export function ModalNav({
+  direction,
+  label,
+  onClick,
+}: {
+  direction: "prev" | "next";
+  label: string;
+  onClick: () => void;
+}) {
+  const Icon = direction === "prev" ? ArrowLeft : ArrowRight;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className={`modal-nav modal-shell__${direction} focus-visible:ring-accent-bright focus-visible:ring-2 focus-visible:outline-none`}
+    >
+      <Icon size={19} aria-hidden="true" />
+    </button>
+  );
+}
+
 // ─── ConstellationCanvas ──────────────────────────────────────────────────────
 
-export function ConstellationCanvas({ projects }: { projects: Project[] }) {
+export function ConstellationCanvas({
+  projects,
+  extra = [],
+}: {
+  projects: Project[];
+  /**
+   * Projects that have no node in the constellation but should still be reachable by
+   * the modal's arrows — the "More of my projects" shelf. They are a separate prop
+   * rather than more entries in `projects` because the constellation is a physics
+   * canvas: every node is another body in the collision loop and another card
+   * competing for the same space, which is why it stays at seven.
+   */
+  extra?: ShelfProject[];
+}) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [openProject, setOpenProject] = useState<Project | null>(null);
+  const [openProject, setOpenProject] = useState<ModalProject | null>(null);
   const [activeNode, setActiveNode] = useState<number | null>(null);
+
+  /**
+   * The arrows' running order: the seven in the constellation, then the shelf.
+   *
+   * Featured first so that pressing next from the last node walks on into the extra
+   * work instead of wrapping straight back to the start — which is the whole point of
+   * the arrows reaching the shelf at all. It stays one cycle, so holding next still
+   * returns you to where you began.
+   */
+  const order = useMemo<ModalProject[]>(() => [...projects, ...extra], [projects, extra]);
 
   // ── Deep-linking: mirror the open modal in the URL (?p=<slug>) ────────────────
   // The URL is the single source of truth for "which modal is open". Node clicks
@@ -931,9 +1000,9 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
   const handleNavigate = useCallback(
     (delta: number) => {
       if (!pParam) return;
-      const currentIndex = projects.findIndex((project) => slugify(project.title) === pParam);
-      const nextIndex = (currentIndex + delta + projects.length) % projects.length;
-      const nextProject = projects[nextIndex];
+      const currentIndex = order.findIndex((project) => slugify(project.title) === pParam);
+      const nextIndex = (currentIndex + delta + order.length) % order.length;
+      const nextProject = order[nextIndex];
       if (!nextProject) return;
       trackMember(KEYS.projectModals, slugify(nextProject.title));
       navigate({
@@ -942,7 +1011,7 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
         resetScroll: false,
       });
     },
-    [navigate, pParam, projects],
+    [navigate, pParam, order],
   );
 
   const handleClose = useCallback(() => {
@@ -958,9 +1027,9 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
       setOpenProject((cur) => (cur === null ? cur : null));
       return;
     }
-    const match = projects.find((p) => slugify(p.title) === pParam) ?? null;
+    const match = order.find((p) => slugify(p.title) === pParam) ?? null;
     setOpenProject((cur) => (cur === match ? cur : match));
-  }, [pParam, projects]);
+  }, [pParam, order]);
 
   // Framer's own hook: SSR-safe (null before mount) and it re-renders when the OS
   // preference changes, which a one-shot `matchMedia(...).matches` read never did.
@@ -1236,8 +1305,9 @@ export function ConstellationCanvas({ projects }: { projects: Project[] }) {
 
       <ProjectModal
         project={openProject}
-        projectIndex={openProject ? projects.findIndex((p) => p.title === openProject.title) : 0}
-        projectCount={projects.length}
+        projectIndex={openProject ? order.findIndex((p) => p.title === openProject.title) : 0}
+        projectCount={order.length}
+        hasCaseStudy={openProject ? projects.some((p) => p.title === openProject.title) : false}
         onClose={handleClose}
         onNavigate={handleNavigate}
       />

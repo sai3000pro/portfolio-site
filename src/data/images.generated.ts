@@ -100,7 +100,10 @@ export type GeneratedImageId =
   | "alt-protein-project"
   | "mathsoc"
   | "global-x"
-  | "slimescholars";
+  | "slimescholars"
+  | "holland-bloorview"
+  | "toronto-public-library"
+  | "jamhacks";
 
 export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
   logo: {
@@ -780,6 +783,33 @@ export const GENERATED_IMAGES: Record<GeneratedImageId, GeneratedImage> = {
     cropped: false,
     aspect: 1,
     sources: [{ src: "assets/derived/slimescholars-180w.webp", width: 180, height: 180 }],
+  },
+  "holland-bloorview": {
+    id: "holland-bloorview",
+    original: "assets/logos/holland-bloorview.png",
+    cropped: false,
+    aspect: 4.5198,
+    sources: [
+      { src: "assets/derived/holland-bloorview-400w.webp", width: 400, height: 89 },
+      { src: "assets/derived/holland-bloorview-800w.webp", width: 800, height: 177 },
+    ],
+  },
+  "toronto-public-library": {
+    id: "toronto-public-library",
+    original: "assets/logos/toronto-public-library.png",
+    cropped: false,
+    aspect: 3.6697,
+    sources: [{ src: "assets/derived/toronto-public-library-400w.webp", width: 400, height: 109 }],
+  },
+  jamhacks: {
+    id: "jamhacks",
+    original: "assets/logos/jamhacks.png",
+    cropped: false,
+    aspect: 0.6045,
+    sources: [
+      { src: "assets/derived/jamhacks-400w.webp", width: 400, height: 662 },
+      { src: "assets/derived/jamhacks-752w.webp", width: 752, height: 1244 },
+    ],
   },
 };
 

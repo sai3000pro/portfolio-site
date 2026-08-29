@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Camera } from "lucide-react";
 import { KEYS } from "@/data/achievements";
 import { EXPERIENCES, type Experience, type ExperienceLogo } from "@/data/portfolio";
 import { trackMember } from "@/lib/achievements";
-import { assetUrl, responsiveImageProps } from "@/lib/assets";
+import { assetUrl, imageAspect, responsiveImageProps } from "@/lib/assets";
 import { useFocusTrap } from "@/hooks/use-focus-trap";
+import { ModalNav } from "./constellation";
 import { Section, SectionHeading } from "./section";
 
 // Globe geometry. The texture is equirectangular (lon -180..180, lat 90..-90).
@@ -21,6 +22,16 @@ const DEFAULT_VIEW = { lat: 38, lon: -95 }; // North America, used for "Remote"
 // The overlay is 860px wide at most and the logos sit in its left half, one or two to a
 // row, so a plate never paints wider than ~400 CSS px and half that when there are two.
 const LOGO_SIZES = "(max-width: 767px) 45vw, 400px";
+/**
+ * Logo plate height, and the mark's height inside it once padding is paid.
+ *
+ * Pixels, on purpose, and defined together so the padding stays the difference between
+ * them. See the note on the plate itself for why a percentage cannot do this job.
+ */
+const LOGO_PLATE_H = 92;
+const LOGO_PAD_Y = 14;
+const LOGO_PAD_X = 18;
+const LOGO_MARK_H = LOGO_PLATE_H - LOGO_PAD_Y * 2;
 
 function earthView(coords: { lat: number; lon: number }) {
   const fx = (coords.lon + 180) / 360;
@@ -212,12 +223,26 @@ function EarthNode({
  */
 function LogoPlate({ logo, company }: { logo: ExperienceLogo; company: string }) {
   const light = logo.plate === "light";
+  // The plate is as wide as the mark needs and no wider. Falls back to a moderate
+  // landscape box for a logo with no generated derivative, which is the only case where
+  // the true shape is not known here.
+  const aspect = imageAspect(logo.id) ?? 3;
+  const plateWidth = Math.round(LOGO_MARK_H * aspect) + LOGO_PAD_X * 2;
+
   return (
     <div
-      className="grid flex-1 place-items-center rounded-xl overflow-hidden"
+      className="grid place-items-center overflow-hidden rounded-xl"
       style={{
-        aspectRatio: "5 / 2",
-        padding: "clamp(12px,3%,22px)",
+        width: plateWidth,
+        maxWidth: "100%",
+        flexShrink: 1,
+        // A definite height, not `aspect-ratio`. A height derived from aspect-ratio is not
+        // a definite size in Chromium, so percentage heights on the child resolve to auto
+        // and the mark is laid out at its intrinsic size — which for a square logo means
+        // it renders as wide as the plate, as tall as it is wide, and gets sliced off by
+        // the overflow. Wide wordmarks hid this for weeks because width bound them first.
+        height: LOGO_PLATE_H,
+        padding: `${LOGO_PAD_Y}px ${LOGO_PAD_X}px`,
         background: light ? "#ffffff" : "#11171c",
         // The plate's fill is fixed by the artwork, so its edge is the only thing that can
         // adapt — and it has to, because in the light theme a white plate sits on a white
@@ -233,14 +258,29 @@ function LogoPlate({ logo, company }: { logo: ExperienceLogo; company: string })
         alt={`${logo.owner} logo`}
         title={`${logo.owner} — logo reproduced to identify ${company}`}
         loading="lazy"
-        className="max-h-full w-auto max-w-full object-contain"
-        style={{ height: "auto" }}
+        className="object-contain"
+        // Height is the pixel figure the plate is built from, for the reason above.
+        // object-fit still letterboxes, which now only matters when maxWidth has had to
+        // squeeze the plate on a narrow screen.
+        style={{ width: "100%", height: LOGO_MARK_H }}
       />
     </div>
   );
 }
 
-function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => void }) {
+function ExperienceModal({
+  exp,
+  position,
+  count,
+  onClose,
+  onNavigate,
+}: {
+  exp: Experience;
+  position: number;
+  count: number;
+  onClose: () => void;
+  onNavigate: (delta: number) => void;
+}) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useFocusTrap(panelRef, true);
@@ -248,6 +288,10 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
+      // Matches the project modal. An overlay that can be stepped through with a
+      // button should be steppable from the keyboard without hunting for that button.
+      else if (e.key === "ArrowLeft") onNavigate(-1);
+      else if (e.key === "ArrowRight") onNavigate(1);
     };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
@@ -256,7 +300,7 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
     };
-  }, [onClose]);
+  }, [onClose, onNavigate]);
 
   const photos = (exp.photos ?? []).slice(0, 2);
   const logos = exp.logos ?? [];
@@ -279,46 +323,56 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
       aria-labelledby="experience-modal-title"
       aria-describedby="experience-modal-desc"
     >
-      <motion.div
-        ref={panelRef}
-        className="relative w-full rounded-2xl overflow-hidden"
-        style={{
-          maxWidth: 860,
-          maxHeight: "88vh",
-          background: "var(--portfolio-panel)",
-          border: "1px solid var(--portfolio-border-strong)",
-          boxShadow: "0 30px 80px var(--portfolio-shadow)",
-        }}
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-colors hover:text-ink"
-          style={{
-            width: 36,
-            height: 36,
-            background: "var(--portfolio-surface)",
-            border: "1px solid var(--portfolio-border)",
-            color: "var(--portfolio-ink)",
-          }}
-        >
-          <X size={18} />
-        </button>
+      {/* Same shell as the project modal, so the two overlays step through their lists
+          with the same control in the same place. stopPropagation covers the arrows as
+          well as the panel — without it a press would bubble to the backdrop and close
+          the thing it was trying to page through. */}
+      <div className="modal-shell" style={{ maxWidth: 1000 }} onClick={(e) => e.stopPropagation()}>
+        <ModalNav
+          direction="prev"
+          label={`Previous role: ${position > 1 ? "go to previous" : "wrap to last"}`}
+          onClick={() => onNavigate(-1)}
+        />
 
-        <div
-          tabIndex={0}
-          role="group"
-          aria-labelledby="experience-modal-title"
-          style={{ maxHeight: "88vh", overflowY: "auto", overflowX: "hidden" }}
+        <motion.div
+          ref={panelRef}
+          className="modal-shell__panel relative rounded-2xl overflow-hidden"
+          style={{
+            maxWidth: 860,
+            maxHeight: "82vh",
+            background: "var(--portfolio-panel)",
+            border: "1px solid var(--portfolio-border-strong)",
+            boxShadow: "0 30px 80px var(--portfolio-shadow)",
+          }}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            {/*
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute right-3 top-3 z-10 grid place-items-center rounded-full transition-colors hover:text-ink"
+            style={{
+              width: 36,
+              height: 36,
+              background: "var(--portfolio-surface)",
+              border: "1px solid var(--portfolio-border)",
+              color: "var(--portfolio-ink)",
+            }}
+          >
+            <X size={18} />
+          </button>
+
+          <div
+            tabIndex={0}
+            role="group"
+            aria-labelledby="experience-modal-title"
+            style={{ maxHeight: "82vh", overflowY: "auto", overflowX: "hidden" }}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              {/*
               logos and photos — left
 
               Three states, not two. A logo with no photographs is a finished column, not a
@@ -328,89 +382,96 @@ function ExperienceModal({ exp, onClose }: { exp: Experience; onClose: () => voi
               neither, the logo centres itself when it is the only thing here, and both
               stack from the top once photographs do arrive.
             */}
-            <div
-              className={`flex flex-col gap-3 p-3 ${logoOnly ? "justify-center" : ""}`.trimEnd()}
-            >
-              {logos.length > 0 && (
-                <div className="flex gap-3">
-                  {logos.map((logo) => (
-                    <LogoPlate key={logo.src} logo={logo} company={exp.company} />
-                  ))}
-                </div>
-              )}
-              {photos.map((src, i) => (
-                <img
-                  key={i}
-                  src={assetUrl(src)}
-                  alt={`${exp.title} — ${i + 1}`}
-                  loading="lazy"
-                  className="w-full rounded-xl object-cover"
-                  style={{ aspectRatio: photos.length === 2 ? "4 / 3" : "3 / 4" }}
-                />
-              ))}
-              {photos.length === 0 && logos.length === 0 && (
-                <div
-                  className="flex-1 rounded-xl grid place-items-center text-muted-portfolio"
-                  style={{
-                    aspectRatio: "3 / 4",
-                    background: "var(--portfolio-surface)",
-                    border: "1px dashed var(--portfolio-border)",
-                  }}
-                >
-                  <div className="flex flex-col items-center gap-2" style={{ fontSize: 13 }}>
-                    <Camera size={22} />
-                    Photos coming soon
+              <div
+                className={`flex flex-col gap-3 p-3 ${logoOnly ? "justify-center" : ""}`.trimEnd()}
+              >
+                {logos.length > 0 && (
+                  <div className="flex gap-3">
+                    {logos.map((logo) => (
+                      <LogoPlate key={logo.src} logo={logo} company={exp.company} />
+                    ))}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+                {photos.map((src, i) => (
+                  <img
+                    key={i}
+                    src={assetUrl(src)}
+                    alt={`${exp.title} — ${i + 1}`}
+                    loading="lazy"
+                    className="w-full rounded-xl object-cover"
+                    style={{ aspectRatio: photos.length === 2 ? "4 / 3" : "3 / 4" }}
+                  />
+                ))}
+                {photos.length === 0 && logos.length === 0 && (
+                  <div
+                    className="flex-1 rounded-xl grid place-items-center text-muted-portfolio"
+                    style={{
+                      aspectRatio: "3 / 4",
+                      background: "var(--portfolio-surface)",
+                      border: "1px dashed var(--portfolio-border)",
+                    }}
+                  >
+                    <div className="flex flex-col items-center gap-2" style={{ fontSize: 13 }}>
+                      <Camera size={22} />
+                      Photos coming soon
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            {/* info — right */}
-            <div
-              className="flex flex-col justify-center"
-              style={{ padding: "clamp(22px,3vw,34px)" }}
-            >
-              <span
-                className="font-display text-accent-bright"
-                style={{ fontSize: 13, letterSpacing: 0.4 }}
+              {/* info — right */}
+              <div
+                className="flex flex-col justify-center"
+                style={{ padding: "clamp(22px,3vw,34px)" }}
               >
-                {exp.duration}
-              </span>
-              <h3
-                id="experience-modal-title"
-                className="font-display font-extrabold text-ink mt-1"
-                style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1 }}
-              >
-                {exp.title}
-              </h3>
-              <p className="font-display text-muted-portfolio mt-1" style={{ fontSize: 15 }}>
-                {exp.company}
-              </p>
-              <p className="flex items-center gap-1.5 mt-1.5">
                 <span
-                  className="rounded-full"
-                  style={{
-                    width: 6,
-                    height: 6,
-                    background: "#ff3b3b",
-                    boxShadow: "0 0 6px rgba(255,59,59,0.85)",
-                  }}
-                />
-                <span className="font-display text-muted-portfolio" style={{ fontSize: 13 }}>
-                  {exp.location}
+                  className="font-display text-accent-bright"
+                  style={{ fontSize: 13, letterSpacing: 0.4 }}
+                >
+                  {exp.duration}
                 </span>
-              </p>
-              <p
-                id="experience-modal-desc"
-                className="text-muted-portfolio mt-4"
-                style={{ fontSize: 15.5, lineHeight: 1.75, textWrap: "pretty" }}
-              >
-                {exp.details ?? exp.description}
-              </p>
+                <h3
+                  id="experience-modal-title"
+                  className="font-display font-extrabold text-ink mt-1"
+                  style={{ fontSize: "clamp(22px,3vw,30px)", lineHeight: 1.1 }}
+                >
+                  {exp.title}
+                </h3>
+                <p className="font-display text-muted-portfolio mt-1" style={{ fontSize: 15 }}>
+                  {exp.company}
+                </p>
+                <p className="flex items-center gap-1.5 mt-1.5">
+                  <span
+                    className="rounded-full"
+                    style={{
+                      width: 6,
+                      height: 6,
+                      background: "#ff3b3b",
+                      boxShadow: "0 0 6px rgba(255,59,59,0.85)",
+                    }}
+                  />
+                  <span className="font-display text-muted-portfolio" style={{ fontSize: 13 }}>
+                    {exp.location}
+                  </span>
+                </p>
+                <p
+                  id="experience-modal-desc"
+                  className="text-muted-portfolio mt-4"
+                  style={{ fontSize: 15.5, lineHeight: 1.75, textWrap: "pretty" }}
+                >
+                  {exp.details ?? exp.description}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+
+        <ModalNav
+          direction="next"
+          label={`Next role: ${position < count ? "go to next" : "wrap to first"}`}
+          onClick={() => onNavigate(1)}
+        />
+      </div>
     </motion.div>
   );
 }
@@ -419,6 +480,23 @@ export function Experience() {
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [active, setActive] = useState(-1);
   const [selected, setSelected] = useState<Experience | null>(null);
+
+  /**
+   * Step the overlay through EXPERIENCES without closing it.
+   *
+   * Resolved from the open entry's position rather than held as a second piece of
+   * state, so there is no index that can drift out of step with the object it is
+   * supposed to be pointing at. The list is eight long and rendered on the same page,
+   * so the lookup costs nothing.
+   */
+  const navigateExperience = useCallback((delta: number) => {
+    setSelected((current) => {
+      if (!current) return current;
+      const at = EXPERIENCES.indexOf(current);
+      if (at < 0) return current;
+      return EXPERIENCES[(at + delta + EXPERIENCES.length) % EXPERIENCES.length];
+    });
+  }, []);
 
   useEffect(() => {
     let raf = 0;
@@ -570,7 +648,15 @@ export function Experience() {
         ? null
         : createPortal(
             <AnimatePresence>
-              {selected && <ExperienceModal exp={selected} onClose={() => setSelected(null)} />}
+              {selected && (
+                <ExperienceModal
+                  exp={selected}
+                  position={EXPERIENCES.indexOf(selected) + 1}
+                  count={EXPERIENCES.length}
+                  onClose={() => setSelected(null)}
+                  onNavigate={navigateExperience}
+                />
+              )}
             </AnimatePresence>,
             document.body,
           )}

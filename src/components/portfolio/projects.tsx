@@ -1,4 +1,4 @@
-import { PROJECTS } from "@/data/portfolio";
+import { MORE_PROJECTS, PROJECTS } from "@/data/portfolio";
 import { Section, SectionHeading } from "./section";
 import { ConstellationCanvas } from "./constellation";
 import { MoreProjects } from "./more-projects";
@@ -11,7 +11,7 @@ export function Projects() {
           canvas, and every extra card is another body in the collision loop and another
           node competing for the same space. Everything else lives in the disclosure
           below rather than being crammed into the orbit. */}
-      <ConstellationCanvas projects={PROJECTS} />
+      <ConstellationCanvas projects={PROJECTS} extra={MORE_PROJECTS} />
       <MoreProjects />
     </Section>
   );

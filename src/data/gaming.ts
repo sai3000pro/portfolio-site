@@ -1,15 +1,28 @@
 /**
  * The games shelf.
  *
- * Laid out as a tiered library display stand — the round, stepped table a library puts by
- * the door with everything turned cover-forward on little easels. Three tiers, widest at
- * the bottom, with the favourite alone on the top step.
+ * Laid out as one turntable: every cover stands on a single round platter that spins, with
+ * the game at the front full size and face-on and the rest receding around the circle.
  *
- * This replaced a row of CSS spines whose width encoded hours played. The spines were a
- * nice trick and the wrong shape once there was real cover art to show: a spine hides the
- * artwork by definition, and the point of having the publishers' covers is that people
- * recognise them. Hours moved to a caption under each book, which says the same thing in
- * fewer inferences.
+ * This is the third shape this data has taken, and the reasons are worth keeping because
+ * they are what the next change has to beat.
+ *
+ * A row of CSS spines came first, their width encoding hours played. Nice trick, wrong
+ * shape the moment there was real cover art: a spine hides the artwork by definition, and
+ * the whole point of the publishers' covers is that people recognise them.
+ *
+ * Then a three-tier display stand, modelled on the stepped round table a library puts by
+ * the door. It looked right in the sketch and wrong on the screen. Eight covers split
+ * across three rings meant one ring of four, one of three and one of one, and a circle
+ * with three things on it is mostly gaps — the stand read as scattered rather than
+ * stocked. Depth was faked with scale and opacity, so the rings never actually looked
+ * round. And the widest tier had a fixed 640px minimum, which on a phone became a
+ * sideways-scrolling box showing half a shelf.
+ *
+ * One ring fixes all three at once: eight covers on a single circle have no gaps to speak
+ * of, real CSS 3D (`perspective` + `preserve-3d`) makes the far side genuinely further
+ * away rather than merely smaller, and the radius is a `clamp()` so the whole thing scales
+ * down to a phone instead of overflowing it.
  *
  * ON THE COVER ART. Every image under public/assets/games/ is the publisher's, not ours.
  * They are the official current images — Steam's own library art for the five Steam
@@ -158,6 +171,19 @@ export const NEXT_UP: Game = {
   status: "wishlist",
   note: "Next on the shelf.",
 };
+
+/**
+ * Every game, in the order they stand on the turntable.
+ *
+ * The favourite leads because the ring opens with its first entry at the front, so this
+ * array's head is also the page's opening image. `NEXT_UP` trails it round to the back for
+ * the same reason in reverse: an unplayed game is the last thing the ring should offer.
+ *
+ * Derived rather than written out, so a game added to SHELF joins the ring automatically.
+ * The three groups stay separate above because they mean different things — exactly one
+ * favourite, some played, one wanted — and that is not a property an array can enforce.
+ */
+export const RING: Game[] = [FAVOURITE, ...SHELF, NEXT_UP];
 
 /** "399h 56m", "150 hours", or null when nothing is tracked. */
 export function playtimeLabel(game: Game): string | null {

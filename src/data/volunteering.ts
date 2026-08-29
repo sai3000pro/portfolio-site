@@ -20,6 +20,8 @@
  *   }
  */
 
+import type { GeneratedImageId } from "./images.generated";
+
 export interface Volunteering {
   organisation: string;
   role: string;
@@ -37,11 +39,23 @@ export interface Volunteering {
   description?: string;
   highlights?: string[];
   url?: string;
+  /**
+   * The organisation's own mark. Same posture as the experience logos: somebody else's
+   * registered mark, trimmed of whitespace and otherwise untouched, used to identify
+   * where the work happened. `organisation` above is the rights holder, so there is no
+   * separate owner field to keep in sync — the alt text is built from it.
+   *
+   * `plate` is the background the artwork was drawn for, not the page theme. Every mark
+   * here happens to be dark ink, but the field stays explicit so the first white-ink one
+   * added does not quietly disappear into a white card.
+   */
+  logo?: { src: string; id?: GeneratedImageId; plate: "light" | "dark" };
 }
 
 export const VOLUNTEERING: Volunteering[] = [
   {
     organisation: "Holland Bloorview Kids Rehabilitation Hospital",
+    logo: { src: "assets/logos/holland-bloorview.png", id: "holland-bloorview", plate: "light" },
     role: "Therapeutic Recreation Volunteer",
     start: "2023-06",
     end: null,
@@ -57,6 +71,7 @@ export const VOLUNTEERING: Volunteering[] = [
   },
   {
     organisation: "Mathematics Society, University of Waterloo",
+    logo: { src: "assets/logos/mathsoc.png", id: "mathsoc", plate: "light" },
     role: "Director",
     start: "2024-09",
     end: null,
@@ -65,6 +80,7 @@ export const VOLUNTEERING: Volunteering[] = [
   },
   {
     organisation: "Mathematics Society, University of Waterloo",
+    logo: { src: "assets/logos/mathsoc.png", id: "mathsoc", plate: "light" },
     role: "Computer Science Representative",
     start: "2024-09",
     end: null,
@@ -73,6 +89,7 @@ export const VOLUNTEERING: Volunteering[] = [
   },
   {
     organisation: "Mathematics Society, University of Waterloo",
+    logo: { src: "assets/logos/mathsoc.png", id: "mathsoc", plate: "light" },
     role: "At-Large Representative",
     start: "2024-05",
     end: "2024-08",
@@ -81,6 +98,7 @@ export const VOLUNTEERING: Volunteering[] = [
   },
   {
     organisation: "University of Waterloo",
+    logo: { src: "assets/logos/waterloo.png", id: "waterloo", plate: "light" },
     role: "Math Orientation Director",
     start: "2024-04",
     end: null,
@@ -91,6 +109,7 @@ export const VOLUNTEERING: Volunteering[] = [
   },
   {
     organisation: "Mathematics Endowment Fund, University of Waterloo",
+    logo: { src: "assets/logos/waterloo.png", id: "waterloo", plate: "light" },
     role: "First Year Representative",
     start: "2024-01",
     end: "2024-04",
@@ -99,6 +118,7 @@ export const VOLUNTEERING: Volunteering[] = [
   },
   {
     organisation: "JAMHacks",
+    logo: { src: "assets/logos/jamhacks.png", id: "jamhacks", plate: "light" },
     role: "JAMHacks 7 Volunteer",
     start: "2023-06",
     end: "2023-06",
@@ -107,6 +127,11 @@ export const VOLUNTEERING: Volunteering[] = [
   },
   {
     organisation: "Toronto Public Library",
+    logo: {
+      src: "assets/logos/toronto-public-library.png",
+      id: "toronto-public-library",
+      plate: "light",
+    },
     role: "Leading to Reading Program Mentor",
     start: "2021-02",
     end: "2022-06",
@@ -133,6 +158,7 @@ export interface VolunteeringGroup {
   organisation: string;
   url?: string;
   location?: string;
+  logo?: Volunteering["logo"];
   roles: Volunteering[];
 }
 
@@ -147,6 +173,7 @@ export function getVolunteeringGroups(): VolunteeringGroup[] {
         organisation: entry.organisation,
         url: entry.url,
         location: entry.location,
+        logo: entry.logo,
         roles: [entry],
       });
     }
@@ -188,4 +215,33 @@ function formatMonth(value: string): string {
 /** "May 2025 — Present" / "May 2024 — Aug 2024". */
 export function formatPeriod(entry: Volunteering): string {
   return `${formatMonth(entry.start)} — ${entry.end ? formatMonth(entry.end) : "Present"}`;
+}
+
+/**
+ * The four figures across the top of the page.
+ *
+ * Every one is counted from VOLUNTEERING rather than typed out, which is the only reason
+ * a summary like this is worth having: a hand-written "6 organisations" is a claim that
+ * silently goes stale the first time a seventh is added, and nobody ever remembers to
+ * update the number that is furthest from the data.
+ *
+ * `since` is the earliest start year, not a duration, so the line never has to be
+ * recomputed against today's date — which would also make it non-deterministic between
+ * the prerender and the browser.
+ */
+export interface VolunteeringStats {
+  organisations: number;
+  roles: number;
+  ongoing: number;
+  since: number;
+}
+
+export function getVolunteeringStats(): VolunteeringStats {
+  const years = VOLUNTEERING.map((entry) => Number(entry.start.slice(0, 4))).filter(Boolean);
+  return {
+    organisations: new Set(VOLUNTEERING.map((entry) => entry.organisation)).size,
+    roles: VOLUNTEERING.length,
+    ongoing: VOLUNTEERING.filter((entry) => entry.end === null).length,
+    since: years.length ? Math.min(...years) : new Date().getFullYear(),
+  };
 }

@@ -241,6 +241,10 @@ const DERIVATIVE_TARGETS = [
   { file: "logos/mathsoc.png", widths: [400, 800], quality: 88 },
   { file: "logos/global-x.png", widths: [400, 800], quality: 88 },
   { file: "logos/slimescholars.png", widths: [400, 800], quality: 88 },
+  // Volunteering organisations. Same rules as the employer marks above.
+  { file: "logos/holland-bloorview.png", widths: [400, 800], quality: 88 },
+  { file: "logos/toronto-public-library.png", widths: [400, 800], quality: 88 },
+  { file: "logos/jamhacks.png", widths: [400, 800], quality: 88 },
 ];
 
 /**

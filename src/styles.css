@@ -766,70 +766,301 @@ body {
   }
 }
 
-/* ── Games display stand ──────────────────────────────────────────────────────
+/* ── Volunteering cards ───────────────────────────────────────────────────────
  *
- * Two transitions, on two elements, for two different jobs.
+ * Multi-column rather than grid, because these cards differ wildly in height —
+ * only two of the eight roles carry a description — and a grid row is as tall as
+ * its tallest member. See the note in volunteering.tsx for the full reasoning.
  *
- * `.game-slot` is the turntable position — where a book sits on the ring, how big
- * it is at that depth, and how it fades toward the back. That is what animates
- * when a tier is turned.
- *
- * `.game-book` is the book itself, tipped back the way an easel holds it, lifting
- * when you reach for one. The tilt lives here rather than inline because the hover
- * rule has to restate the whole transform — a second `transform` in CSS replaces
- * the first rather than adding to it, so an inline rotation would be discarded the
- * moment the pointer arrived.
- *
- * Keeping them on separate elements is what lets a book be hovered mid-spin
- * without the two transforms fighting over the same property.
- *
- * `will-change` is deliberately absent: there are eight of these and promoting
- * every one to its own layer for an interaction most visitors never trigger costs
- * more than the animation saves.
+ * `column-width` rather than `column-count` so the number of columns follows the
+ * available width on its own: three on a desktop, two on a tablet, one on a phone,
+ * with no breakpoint to keep in sync. `break-inside: avoid` is what stops a card
+ * being sliced in half across a column boundary, and the belt-and-braces
+ * `page-break-inside` is for the older engines that never learned the new name.
  */
-.game-slot {
+.volunteering-columns {
+  column-width: 320px;
+  column-gap: clamp(14px, 1.8vw, 20px);
+}
+
+.volunteering-card {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  /* Multi-column has no `gap` on the block axis; the margin is the row gap. */
+  margin-bottom: clamp(14px, 1.8vw, 20px);
+  /* Without this the card can still be split in Firefox when it is the first in a
+     column and taller than the remaining space. */
+  display: inline-block;
+  width: 100%;
+}
+
+/* ── Modal navigation shell ───────────────────────────────────────────────────
+ *
+ * Puts the prev/next arrows OUTSIDE the panel rather than floating on top of it.
+ * Inside, they sat over the content — covering the left edge of a screenshot on
+ * every project, and on a narrow window overlapping the text itself. Outside, they
+ * are unambiguously chrome for the overlay rather than part of what it is showing.
+ *
+ * Grid with named areas rather than flex, because the arrangement has to change
+ * shape and not just wrap: beside the panel when there is room for it, and in a row
+ * underneath when there is not. Both layouts use the same two buttons in the same
+ * DOM order, so there is no duplicated markup and no duplicated accessible name.
+ *
+ * The breakpoint is arithmetic, not taste: the panel is 860px at most and each
+ * arrow column costs about 60px including the gap, so the side-by-side layout needs
+ * roughly 980px of content box, which is 1060px of viewport once the backdrop's own
+ * padding is paid for. Below that the arrows would squeeze the panel instead of
+ * flanking it.
+ */
+.modal-shell {
+  display: grid;
+  width: 100%;
+  align-items: center;
+  justify-items: center;
+  gap: clamp(8px, 1.5vw, 18px);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "prev panel next";
+}
+
+.modal-shell__panel {
+  grid-area: panel;
+  width: 100%;
+}
+
+.modal-shell__prev {
+  grid-area: prev;
+}
+
+.modal-shell__next {
+  grid-area: next;
+}
+
+@media (max-width: 1059px) {
+  .modal-shell {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "panel panel"
+      "prev next";
+  }
+  /* The stacked row needs air above it that the flanking layout does not. */
+  .modal-shell__prev,
+  .modal-shell__next {
+    margin-top: 14px;
+  }
+}
+
+.modal-nav {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 9999px;
+  cursor: pointer;
+  background: var(--portfolio-panel-deep);
+  border: 1px solid var(--portfolio-border-strong);
+  color: var(--portfolio-muted);
   transition:
-    transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1),
-    opacity 0.42s ease;
+    background-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.modal-nav:hover {
+  color: var(--portfolio-ink);
+  background: var(--portfolio-surface-2);
+}
+
+.modal-nav:active {
+  transform: scale(0.93);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-nav {
+    transition: none;
+  }
+}
+
+/* ── Games turntable ──────────────────────────────────────────────────────────
+ *
+ * A real circle in 3D space, not a drawing of one. The chain matters and each link
+ * is load-bearing:
+ *
+ *   .game-clip   clips the overflow. It has to be a separate node from .game-stage,
+ *                because `overflow` on an element that establishes a 3D context
+ *                flattens its children back into the plane. Put them together and
+ *                the whole effect silently collapses to a flat row.
+ *   .game-stage  holds the `perspective`. One shared perspective for every cover is
+ *                what makes them look like they are in the same room; a per-element
+ *                `transform: perspective(...)` gives each its own vanishing point.
+ *   .game-space  tips the scene forward a few degrees so we look slightly down on
+ *                the platter, and pushes the whole ring back by its own radius so
+ *                the front cover lands at z = 0 and renders at its natural size.
+ *                Without that shift the front cover is magnified by perspective and
+ *                its size depends on the radius, which is a clamp() — so it would
+ *                change size as the window resized.
+ *   .game-ring   the part that actually turns.
+ *   .game-seat   one position on the ring: `rotateY(θ) translateZ(R)`. Each seat is
+ *                inset to the full ring box so it rotates about the ring's centre.
+ *
+ * Sizes are two custom properties so the stand scales with the viewport instead of
+ * needing breakpoints. --game-r is the ring radius; --game-h the cover height. At
+ * 390px they resolve to 132px and 96px, giving a ring about 325px wide — it fits a
+ * phone with room to spare, which is the whole point.
+ */
+.game-clip {
+  --game-r: clamp(138px, 29vw, 336px);
+  --game-h: clamp(116px, 16.5vw, 206px);
+  overflow: hidden;
+  padding-inline: 4px;
+}
+
+/* Both numbers below are derived from the geometry rather than eyeballed, which is
+   why they are expressions and not round figures.
+   - The scene is tipped 9°, so the platter's front lip projects about R·sin(9°) —
+     call it 0.16R — below the covers' baseline. `bottom` has to clear that or the
+     disc is sliced off by the clip.
+   - The tallest thing in the stage is the front cover at its natural height, and
+     the back covers rise by roughly 0.2R as the tilt lifts the far side. Height is
+     the larger of the two plus the bottom offset. Generous padding here was the
+     old version's real problem: it reserved half a cover of empty sky. */
+.game-stage {
+  position: relative;
+  max-width: 840px;
+  margin-inline: auto;
+  height: calc(var(--game-h) * 1.06 + var(--game-r) * 0.24);
+  perspective: 1100px;
+  perspective-origin: 50% 42%;
+  touch-action: pan-y;
+}
+
+.game-space {
+  position: absolute;
+  inset: auto 0 calc(var(--game-r) * 0.2) 0;
+  height: var(--game-h);
+  transform-style: preserve-3d;
+  transform: rotateX(9deg) translateZ(calc(var(--game-r) * -1));
+}
+
+.game-ring {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.62s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.game-seat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transform-style: preserve-3d;
+}
+
+/* The platter: a 2R square turned into a circle by border-radius, laid flat with
+   rotateX(90deg). Its box bottom sits R below the covers' baseline so that its
+   centre — the point rotation pivots around — lands exactly on that baseline. Get
+   this wrong and the disc floats at R above the shelf. */
+.game-platter {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--game-r) * -1);
+  width: calc(var(--game-r) * 2);
+  height: calc(var(--game-r) * 2);
+  margin-left: calc(var(--game-r) * -1);
+  border-radius: 50%;
+  transform: rotateX(90deg);
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      color-mix(in srgb, var(--portfolio-accent-bright) 18%, transparent) 0%,
+      transparent 62%
+    ),
+    var(--portfolio-surface-2);
+  border: 1px solid var(--portfolio-border);
+  box-shadow: 0 0 60px -10px color-mix(in srgb, var(--portfolio-accent-bright) 30%, transparent);
 }
 
 .game-book {
-  transform: perspective(700px) rotateX(7deg);
-  transform-origin: bottom center;
   transition:
-    transform 0.24s ease,
-    filter 0.24s ease;
+    opacity 0.5s ease,
+    filter 0.5s ease,
+    transform 0.24s ease;
+  transform-origin: bottom center;
 }
 
 .game-book:hover,
 .game-book:focus-visible {
-  transform: perspective(700px) rotateX(2deg) translateY(-8px) scale(1.03);
-  filter: brightness(1.06);
+  transform: translateY(-7px) scale(1.04);
+}
+
+.game-cover {
+  height: var(--game-h);
+  width: auto;
+  display: block;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: 0 16px 26px -14px rgba(0, 0, 0, 0.95);
 }
 
 .game-spin {
+  position: absolute;
+  top: 46%;
+  transform: translateY(-50%);
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
   cursor: pointer;
+  background: var(--portfolio-surface-2);
+  border: 1px solid var(--portfolio-border-strong);
   transition:
     background-color 0.18s ease,
     transform 0.18s ease;
 }
 
 .game-spin:hover {
-  background: var(--portfolio-surface) !important;
+  background: var(--portfolio-surface);
 }
 
 .game-spin:active {
   transform: translateY(-50%) scale(0.92);
 }
 
+.game-caption {
+  margin-top: clamp(14px, 2vh, 22px);
+  min-height: 76px;
+  text-align: center;
+}
+
+.game-caption-title {
+  font-size: clamp(17px, 2.2vw, 22px);
+  font-weight: 700;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.game-caption-meta {
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.game-caption-note {
+  opacity: 0.85;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .game-slot,
+  .game-ring,
   .game-book,
   .game-spin {
     transition: none;
   }
   .game-book:hover,
   .game-book:focus-visible {
-    transform: perspective(700px) rotateX(7deg);
+    transform: none;
   }
 }
