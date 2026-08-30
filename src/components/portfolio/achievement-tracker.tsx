@@ -92,6 +92,11 @@ export function AchievementTracker() {
     // workers/achievement-stats/src/index.ts.
     if (pathname.includes("/hobbies") || pathname.includes("/gallery")) unlock("spacewalk");
     if (pathname.includes("/achievements")) unlock("trophy-hunter");
+    // Same shape as the two above: a route the visitor had to go looking for. Both are
+    // `includes` rather than `===` because the site is served from a base path on Pages,
+    // so the pathname carries a prefix in production that it does not carry locally.
+    if (pathname.includes("/gaming")) unlock("press-start");
+    if (pathname.includes("/volunteering")) unlock("giving-back");
 
     const caseStudy = /\/projects\/([^/]+)\/?$/.exec(pathname);
     if (caseStudy) trackMember(KEYS.caseStudies, caseStudy[1]);

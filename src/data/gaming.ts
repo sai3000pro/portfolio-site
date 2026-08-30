@@ -104,7 +104,7 @@ export const SHELF: Game[] = [
     cover: "assets/games/genshin.jpg",
     coverId: "genshin",
     publisher: "HoYoverse",
-    hours: 400,
+    hours: 350,
     url: "https://genshin.hoyoverse.com/en/",
     spine: { from: "#5ec8dd", to: "#17505f", ink: "#f0fbfd" },
   },
@@ -134,7 +134,6 @@ export const SHELF: Game[] = [
     hours: null,
     url: "https://www.minecraft.net/",
     spine: { from: "#72ad55", to: "#2b431f", ink: "#f2fbee" },
-    note: "No counter worth quoting — it predates caring about the number.",
   },
   {
     title: "Clash Royale",

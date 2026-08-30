@@ -1,7 +1,10 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { KEYS } from "@/data/achievements";
 import { FAVOURITE, RING, coverArtHolders, playtimeLabel, type Game } from "@/data/gaming";
+import { trackBurst, trackMember } from "@/lib/achievements";
 import { responsiveImageProps } from "@/lib/assets";
 import { Reveal } from "./section";
 
@@ -10,6 +13,14 @@ const STEP = 360 / RING.length;
 
 /** How far a swipe has to travel before it counts as one turn. */
 const SWIPE_PX = 48;
+
+/**
+ * How long a cover stands at the front before the stand moves on by itself.
+ *
+ * Long enough to read the caption under it — title, playtime and note — because a stand
+ * that turns before you have finished reading is worse than one that never turns at all.
+ */
+const AUTO_MS = 4200;
 
 /** Alt text that carries the credit with the image, so it travels wherever the image does. */
 function coverAlt(game: Game): string {
@@ -62,7 +73,52 @@ export function GameShelf() {
   const [index, setIndex] = useState(0);
   const dragX = useRef<number | null>(null);
 
-  const turn = useCallback((by: number) => setIndex((i) => i + by), []);
+  // The ref is the authority on where the ring is; `index` is that value mirrored into
+  // state so React re-renders. Two copies rather than one because the auto-rotation and
+  // the hand controls both need to read the current position OUTSIDE a render — and a
+  // setState updater is the wrong place to do the achievement tracking a hand turn owes,
+  // since React re-invokes updaters in development and would double-fire it.
+  const indexRef = useRef(0);
+  const advance = useCallback((by: number) => {
+    indexRef.current += by;
+    setIndex(indexRef.current);
+  }, []);
+
+  /**
+   * A turn the visitor asked for, by arrow, key or swipe.
+   *
+   * Only these count towards Full Rotation. The stand turning on its own must never earn
+   * it: a badge for "you looked at every game" that a page can complete while you read
+   * the paragraph above it is not a badge, it is a timer.
+   */
+  const turn = useCallback(
+    (by: number) => {
+      advance(by);
+      const at = indexRef.current;
+      trackMember(KEYS.gamesFronted, RING[((at % RING.length) + RING.length) % RING.length].title);
+      trackBurst(KEYS.gameTurns);
+    },
+    [advance],
+  );
+
+  // Auto-rotation, and every reason to stop it. `held` covers the two the visitor signals
+  // deliberately — a pointer over the stand, or focus inside it — which is what "stops
+  // when you hover" means for a keyboard as well as for a mouse.
+  const reduceMotion = useReducedMotion();
+  const [held, setHeld] = useState(false);
+  const autoRotating = !reduceMotion && !held;
+
+  useEffect(() => {
+    if (!autoRotating) return;
+    const timer = setInterval(() => {
+      // A backgrounded tab must not spin the whole shelf past nobody.
+      if (document.visibilityState !== "visible") return;
+      // Mid-swipe, the ring belongs to the finger on it.
+      if (dragX.current !== null) return;
+      advance(1);
+    }, AUTO_MS);
+    return () => clearInterval(timer);
+  }, [autoRotating, advance]);
 
   const focused = RING[((index % RING.length) + RING.length) % RING.length];
   const holders = coverArtHolders();
@@ -99,7 +155,23 @@ export function GameShelf() {
             onPointerMove={onPointerMove}
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
-            onPointerLeave={endDrag}
+            // Mouse only. A touch fires pointerenter on tap and never fires the matching
+            // leave until you tap somewhere else, so honouring it would freeze the stand
+            // for the rest of the visit on exactly the devices that cannot hover.
+            onPointerEnter={(e) => {
+              if (e.pointerType === "mouse") setHeld(true);
+            }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === "mouse") setHeld(false);
+              endDrag();
+            }}
+            // React's onFocus/onBlur are focusin/focusout, so they fire for the covers and
+            // arrows inside too. The relatedTarget check is what stops a move from the
+            // left arrow to a cover from reading as "focus left the stand".
+            onFocus={() => setHeld(true)}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHeld(false);
+            }}
             onKeyDown={(e) => {
               if (e.key === "ArrowLeft") {
                 e.preventDefault();
@@ -154,7 +226,11 @@ export function GameShelf() {
         {/* The caption is the reason the covers carry no stickers any more: at the front a
             cover is big enough to read, and everywhere else a label was just something to
             collide with. Fixed height so turning the ring never nudges the page. */}
-        <div className="game-caption" aria-live="polite">
+        {/* Silent while the stand turns itself: an aria-live region that announces a new
+            title every four seconds is a page a screen reader cannot be used on. It comes
+            back the moment the visitor takes hold of the ring, which is also the only
+            moment the announcement is answering a question they asked. */}
+        <div className="game-caption" aria-live={autoRotating ? "off" : "polite"}>
           <p className="font-display text-ink game-caption-title">{focused.title}</p>
           <p className="text-muted-portfolio game-caption-meta">
             <span className="text-accent-bright">

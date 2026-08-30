@@ -1,5 +1,6 @@
 import { ExternalLink, MapPin } from "lucide-react";
 
+import { KEYS } from "@/data/achievements";
 import {
   formatPeriod,
   getVolunteeringGroups,
@@ -7,6 +8,7 @@ import {
   type Volunteering,
   type VolunteeringGroup,
 } from "@/data/volunteering";
+import { trackMember } from "@/lib/achievements";
 import { imageAspect, responsiveImageProps } from "@/lib/assets";
 import { Reveal, SectionHeading } from "./section";
 
@@ -100,7 +102,6 @@ export function VolunteeringSection() {
             >
               <Stat value={stats.organisations} label="organisations" />
               <Stat value={stats.roles} label={stats.roles === 1 ? "role" : "roles"} />
-              <Stat value={stats.ongoing} label="ongoing today" />
               <Stat value={stats.since} label="since" />
             </dl>
           </Reveal>
@@ -198,6 +199,10 @@ function OrganisationCard({ group }: { group: VolunteeringGroup }) {
             href={group.url}
             target="_blank"
             rel="noopener noreferrer"
+            // Records the organisation, not the click: `trackMember` is idempotent, so
+            // opening the same one twice is a no-op and Reference Check still means three
+            // different organisations rather than three taps on the same link.
+            onClick={() => trackMember(KEYS.organisations, group.organisation)}
             className="font-display text-ink hover:text-accent-bright focus-visible:ring-accent-bright inline-flex items-baseline gap-1.5 font-bold no-underline transition-colors focus-visible:ring-2 focus-visible:outline-none"
             style={{ fontSize: 16.5, lineHeight: 1.3, textWrap: "balance" }}
           >

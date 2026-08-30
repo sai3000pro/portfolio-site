@@ -45,6 +45,10 @@ const VALID_IDS = new Set([
   "time-traveller",
   "globetrotter",
   "star-charter",
+  "press-start",
+  "giving-back",
+  "full-rotation",
+  "reference-check",
   "gravity-assist",
   "shutterbug",
   "gallery-crawl",
@@ -63,6 +67,7 @@ const VALID_IDS = new Set([
   "inspector-gadget",
   "spelling-bee",
   "percussive-maintenance",
+  "one-more-turn",
   "speedrun",
   "slow-burn",
   "midnight-oil",
@@ -72,7 +77,10 @@ const VALID_IDS = new Set([
 ]);
 
 /** Per-request caps. A well-behaved client never approaches either. */
-const MAX_IDS = 40;
+// Headroom over the registry on purpose. A client legitimately reports every badge it has
+// just earned, so a cap equal to the badge count is a cap the completionist hits exactly —
+// and one badge added on the site silently truncates their report until this is redeployed.
+const MAX_IDS = 80;
 const MAX_BODY_BYTES = 4096;
 
 function corsHeaders(request: Request, env: Env): Record<string, string> {

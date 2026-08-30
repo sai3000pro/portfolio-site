@@ -218,7 +218,7 @@ export function formatPeriod(entry: Volunteering): string {
 }
 
 /**
- * The four figures across the top of the page.
+ * The three figures across the top of the page.
  *
  * Every one is counted from VOLUNTEERING rather than typed out, which is the only reason
  * a summary like this is worth having: a hand-written "6 organisations" is a claim that
@@ -232,7 +232,6 @@ export function formatPeriod(entry: Volunteering): string {
 export interface VolunteeringStats {
   organisations: number;
   roles: number;
-  ongoing: number;
   since: number;
 }
 
@@ -241,7 +240,6 @@ export function getVolunteeringStats(): VolunteeringStats {
   return {
     organisations: new Set(VOLUNTEERING.map((entry) => entry.organisation)).size,
     roles: VOLUNTEERING.length,
-    ongoing: VOLUNTEERING.filter((entry) => entry.end === null).length,
     since: years.length ? Math.min(...years) : new Date().getFullYear(),
   };
 }

@@ -28,6 +28,7 @@ import {
   BookMarked,
   BookOpen,
   Bug,
+  Building2,
   CalendarCheck,
   Camera,
   Clock,
@@ -36,14 +37,17 @@ import {
   Contact,
   Copy,
   Crown,
+  Disc3,
   FileText,
   Footprints,
   Gamepad2,
   Ghost,
   Globe,
   Hand,
+  HeartHandshake,
   Hourglass,
   Images,
+  Joystick,
   Keyboard,
   Link2,
   MapPinOff,
@@ -51,6 +55,7 @@ import {
   Orbit,
   Printer,
   Rocket,
+  RotateCw,
   Send,
   Sparkles,
   SpellCheck,
@@ -63,6 +68,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { RING } from "@/data/gaming";
 import { HOBBY_PHOTOS } from "@/data/hobbies";
 import { EXPERIENCES, PROJECTS } from "@/data/portfolio";
 import { slugify } from "@/lib/slug";
@@ -144,6 +150,12 @@ export const KEYS = {
   themeFlips: "theme-flips",
   /** Nav logo clicks — burst-tracked, in memory only. */
   logoClicks: "logo-clicks",
+  /** Games the visitor has turned to the front of the gaming turntable. */
+  gamesFronted: "games-fronted",
+  /** Turntable turns — burst-tracked, in memory only. Feeds One More Turn. */
+  gameTurns: "game-turns",
+  /** Volunteering organisations whose own site has been opened. */
+  organisations: "organisations",
 } as const;
 
 /**
@@ -174,6 +186,23 @@ const PROJECT_SLUGS = PROJECTS.map((p) => slugify(p.title));
 
 /** Distinct company names, derived from the experience timeline. */
 const COMPANIES = [...new Set(EXPERIENCES.map((e) => e.company))];
+
+/**
+ * Every game on the turntable, derived so a game added to the ring widens the goal.
+ *
+ * Matched by title because that is what the shelf hands to `trackMember` — there is no
+ * slug or id on a Game, and inventing one purely for this would put the badge's spelling
+ * and the shelf's spelling in two places that can disagree.
+ */
+const GAME_TITLES = RING.map((game) => game.title);
+
+/**
+ * How many turns inside {@link GAME_TURN_BURST.windowMs} count as spinning the thing
+ * rather than reading it. Eight games on the ring, so this is one full rotation and a bit
+ * — fast enough that the page's own auto-rotation (one step every few seconds, and paused
+ * the moment a pointer is over it) can never reach it on its own.
+ */
+export const GAME_TURN_BURST = { target: 12, windowMs: 6_000 } as const;
 
 /**
  * How many distinct photos "Gallery Crawl" costs — DERIVED, never hardcoded.
@@ -284,7 +313,7 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     // literal that defines it. Bump it whenever you add a badge — it is TOTAL minus this
     // one. (Wrong here is cosmetic, unlike GALLERY_CRAWL_TARGET below, where a stale
     // number makes a badge unreachable.)
-    description: "Found the trophy room. Welcome — there are 36 more.",
+    description: "Found the trophy room. Welcome — there are 41 more.",
     hint: "Visit the achievements page.",
     tier: "common",
     category: "first-contact",
@@ -390,6 +419,60 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     icon: Compass,
     rarityHint: "Uncommon",
     rule: { kind: "set", key: KEYS.projectModals, members: PROJECT_SLUGS },
+  },
+  {
+    id: "press-start",
+    name: "Press Start",
+    description: "Found the games shelf. Turns out the CV is not the whole story.",
+    hint: "Visit the gaming page.",
+    tier: "common",
+    category: "explorer",
+    secret: false,
+    icon: Joystick,
+    rarityHint: "Common",
+    rule: { kind: "event" },
+  },
+  {
+    id: "giving-back",
+    name: "Giving Back",
+    description: "Went looking at the unpaid half of the résumé.",
+    hint: "Visit the volunteering page.",
+    tier: "common",
+    category: "explorer",
+    secret: false,
+    icon: HeartHandshake,
+    rarityHint: "Common",
+    rule: { kind: "event" },
+  },
+  {
+    id: "full-rotation",
+    name: "Full Rotation",
+    // A `members` list rather than a count, so this means "you saw all of them" even
+    // after the ring grows. Turning it yourself is the whole badge: the stand's own
+    // idle rotation deliberately does not record anything (see game-shelf.tsx).
+    description: "Turned every game on the stand to the front. The whole shelf, personally.",
+    hint: "Turn the games turntable until you have brought every cover to the front.",
+    tier: "uncommon",
+    category: "explorer",
+    secret: false,
+    icon: Disc3,
+    rarityHint: "Uncommon",
+    rule: { kind: "set", key: KEYS.gamesFronted, members: GAME_TITLES },
+  },
+  {
+    id: "reference-check",
+    // A target rather than a members list on purpose. Every member here is an OFF-SITE
+    // click, so demanding all six would be asking a visitor to open six tabs to finish a
+    // badge — three is "you actually followed these up", which is what it is meant to say.
+    name: "Reference Check",
+    description: "Followed three of the volunteering links out to the organisations themselves.",
+    hint: "Open three organisations' own sites from the volunteering page.",
+    tier: "uncommon",
+    category: "explorer",
+    secret: false,
+    icon: Building2,
+    rarityHint: "Uncommon",
+    rule: { kind: "set", key: KEYS.organisations, target: 3 },
   },
 
   // --- Tinkerer ------------------------------------------------------------
@@ -653,6 +736,26 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     art: "percussive",
     rarityHint: "Epic",
     rule: { kind: "burst", key: KEYS.logoClicks, target: 7, windowMs: 4_000 },
+  },
+  {
+    id: "one-more-turn",
+    name: "One More Turn",
+    description: "Spun the stand like it owed you money. Civ VI would be proud.",
+    clues: [
+      "One page here has something built to be turned, and no rule about how fast.",
+      "On the gaming page, hammer a turntable arrow — a dozen turns inside six seconds.",
+    ],
+    tier: "rare",
+    category: "deep-space",
+    secret: true,
+    icon: RotateCw,
+    rarityHint: "Rare",
+    rule: {
+      kind: "burst",
+      key: KEYS.gameTurns,
+      target: GAME_TURN_BURST.target,
+      windowMs: GAME_TURN_BURST.windowMs,
+    },
   },
 
   // --- Long Haul -----------------------------------------------------------

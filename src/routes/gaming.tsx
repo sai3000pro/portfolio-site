@@ -56,9 +56,7 @@ function Gaming() {
               textWrap: "pretty",
             }}
           >
-            Mostly strategy, and mostly the kind you lose an evening to by accident. Turn the stand
-            to bring one to the front — Civilization VI is facing you first, because it has earned
-            it.
+            Mostly strategy, and mostly the kind you lose an evening to by accident.
           </p>
         </Reveal>
 

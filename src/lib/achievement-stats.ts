@@ -23,9 +23,19 @@
  *                               Public by design — never treat it as a secret.
  */
 
-import type { Achievement } from "@/data/achievements";
+import { ACHIEVEMENT_IDS, type Achievement } from "@/data/achievements";
 
 const ENDPOINT = (import.meta.env.VITE_ACHIEVEMENTS_ENDPOINT as string | undefined)?.trim();
+
+/**
+ * Most ids one request may carry. Derived, not a literal: this was a hardcoded 40 back
+ * when the registry held 37 badges, which meant the first five badges added would have
+ * silently truncated a completionist's report — the one visitor whose report matters
+ * most. It has to stay <= the Worker's own MAX_IDS in
+ * workers/achievement-stats/src/index.ts, which is why that one is now a round number
+ * with headroom rather than a matching count.
+ */
+const MAX_REPORTED_IDS = ACHIEVEMENT_IDS.length;
 
 /**
  * Below this many recorded visitors the percentages are noise — "100% of
@@ -105,7 +115,7 @@ export async function reportUnlocks(ids: string[], visitorId: string): Promise<b
     const response = await fetch(`${endpoint.replace(/\/+$/, "")}/unlocks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ visitorId, ids: ids.slice(0, 40) }),
+      body: JSON.stringify({ visitorId, ids: ids.slice(0, MAX_REPORTED_IDS) }),
       keepalive: true,
     });
     return response.ok;
