@@ -7,9 +7,8 @@
  *     `rarityHint` prefixed with "est.". The site is fully functional with zero
  *     infrastructure — the endpoint is an upgrade, not a dependency.
  *   - NO CREDENTIALS IN THE CLIENT. The endpoint is a public write-only counter;
- *     there is no token to leak. That is why this talks to an owned Worker rather
- *     than to Upstash/Supabase directly, both of which would require shipping a
- *     key in the bundle.
+ *     there is no token to leak. That is why this talks to a public HTTP action
+ *     endpoint rather than exposing database credentials in the browser.
  *   - NO PII. The only thing sent is a random `visitorId` generated in
  *     src/lib/achievements.ts and the list of achievement ids earned.
  *   - DISPLAY ONLY. Rarity must never feed back into unlock logic, so a poisoned
@@ -18,8 +17,8 @@
  *   - SSR-SAFE. Every `window` / `navigator` access is guarded.
  *
  * ENV:
- *   VITE_ACHIEVEMENTS_ENDPOINT  Base URL of the stats Worker, e.g.
- *                               https://achievements.example.workers.dev
+ *   VITE_ACHIEVEMENTS_ENDPOINT  Base URL of the achievement HTTP API, e.g.
+ *                               https://good-basilisk-156.convex.site
  *                               Public by design — never treat it as a secret.
  */
 

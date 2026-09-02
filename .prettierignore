@@ -12,3 +12,4 @@ routeTree.gen.ts
 # churn, and leaving it unignored fails `format:check` — and therefore verify.yml,
 # and therefore the deploy — on 60 files nobody edits by hand.
 graphify-out
+.convex

@@ -11,6 +11,7 @@ Read `package.json` for exact versions. In shape:
 
 - **Vite** + **TanStack Start** (React meta-framework, SSR, file-based routing) on **React 19**
   and **TypeScript**, built with **Nitro** (`node-server` preset).
+- **Convex** for the optional anonymous achievement aggregate database and HTTP actions.
 - **Tailwind CSS v4** with custom design tokens, **framer-motion** for every animation and drag
   interaction, **shadcn/ui** (Radix primitives) for form and dialog chrome.
 - **TanStack Router** for routing, **TanStack Query** for the one optional network read,
@@ -68,7 +69,8 @@ public/assets/       Committed originals: portrait, logo, résumé, project shot
 public/assets/derived/   Generated responsive derivatives (see photo-pipeline.md)
 public/assets/hobbies/   Generated photo tiles (see photo-pipeline.md)
 photos/              Local staging area for photo originals — gitignored
-workers/             Optional Cloudflare Worker for achievement rarity stats
+workers/             Optional Cloudflare Worker alternative for achievement rarity stats
+convex/               Convex schema and HTTP actions for achievement rarity stats
 docs/                This directory
 ```
 
@@ -176,9 +178,11 @@ theme is active.
 
 Adding badge #37 is one object in the registry plus, if it needs a bespoke trigger, one call.
 
-Rarity percentages ("4.2% of visitors found this") come from an optional Cloudflare Worker in
-`workers/achievement-stats/` — see its README. With `VITE_ACHIEVEMENTS_ENDPOINT` unset, the
-client makes **zero** requests and the page falls back to each badge's authored estimate.
+Rarity percentages ("4.2% of visitors found this") come from the optional Convex HTTP API in
+`convex/` when `VITE_ACHIEVEMENTS_ENDPOINT` is configured — see `convex/README.md`. The
+Cloudflare Worker in `workers/achievement-stats/` remains an alternative implementation.
+With the endpoint unset, the client makes **zero** requests and the page falls back to each
+badge's authored estimate.
 
 ## Styling
 
@@ -245,12 +249,12 @@ Canonical links are declared **per route**, not in the root shell: a blanket can
 
 All are `VITE_*`, all public, all inert when unset:
 
-| Variable                         | Effect when set                                                  |
-| -------------------------------- | ---------------------------------------------------------------- |
-| `VITE_CONTACT_ENDPOINT`          | Contact form POSTs JSON here instead of falling back to mailto.  |
-| `VITE_ACHIEVEMENTS_ENDPOINT`     | Trophy case shows live rarity percentages from the stats Worker. |
-| `VITE_ANALYTICS_SRC` / `_DOMAIN` | Injects a self-hosted cookieless analytics script.               |
-| `VITE_VITALS_ENDPOINT`           | Web Vitals are POSTed here; otherwise dev-logged only.           |
+| Variable                         | Effect when set                                                                             |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| `VITE_CONTACT_ENDPOINT`          | Contact form POSTs JSON here instead of falling back to mailto.                             |
+| `VITE_ACHIEVEMENTS_ENDPOINT`     | Trophy case shows live rarity percentages from the configured HTTP API (Convex by default). |
+| `VITE_ANALYTICS_SRC` / `_DOMAIN` | Injects a self-hosted cookieless analytics script.                                          |
+| `VITE_VITALS_ENDPOINT`           | Web Vitals are POSTed here; otherwise dev-logged only.                                      |
 
 `SITE_BASE` and `SITE_ORIGIN` (build-time, not `VITE_`) override the deploy base path and
 origin used by the prerender and SEO scripts.

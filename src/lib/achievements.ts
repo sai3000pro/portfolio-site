@@ -518,16 +518,29 @@ export function getRuleProgress(achievement: Achievement, state: AchievementStat
   }
 }
 
-/** Wipe all progress. The visitor-facing escape hatch on /achievements. */
+/**
+ * Wipe the visitor's local progress without changing aggregate identity.
+ *
+ * The anonymous visitor id is deliberately retained so resetting the trophy case
+ * cannot manufacture a second Convex visitor. Convex also deduplicates each
+ * visitor/achievement pair, so earning a badge again after a reset does not change
+ * the historical aggregate count.
+ */
 export function resetProgress(): void {
   if (typeof window === "undefined") return;
   bursts.clear();
+  const previous = readState();
+  const next: AchievementState = {
+    ...emptyState(),
+    visitorId: previous.visitorId,
+  };
+
   try {
-    window.localStorage.removeItem(ACHIEVEMENTS_STORAGE_KEY);
+    window.localStorage.setItem(ACHIEVEMENTS_STORAGE_KEY, JSON.stringify(next));
   } catch {
-    /* ignore */
+    /* private mode / quota — session-only from here. */
   }
-  cached = emptyState();
+  cached = next;
   window.dispatchEvent(new CustomEvent(ACHIEVEMENT_CHANGE_EVENT));
 }
 
